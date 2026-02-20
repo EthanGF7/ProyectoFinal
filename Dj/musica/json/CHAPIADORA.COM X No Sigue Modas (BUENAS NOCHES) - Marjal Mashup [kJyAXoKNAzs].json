@@ -674,7 +674,7 @@
   ],
   "puede_salir": 244.23,
   "intro_fin": null,
-  "tiene_voz_inicio": false,
+  "tiene_voz_inicio": true,
   "puede_empezar_mezcla": null,
   "debe_sonar_sola": null
 }

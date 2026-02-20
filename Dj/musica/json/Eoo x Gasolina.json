@@ -415,7 +415,7 @@
   ],
   "puede_salir": 139.2,
   "intro_fin": 7.0,
-  "tiene_voz_inicio": false,
+  "tiene_voz_inicio": true,
   "puede_empezar_mezcla": null,
   "debe_sonar_sola": null
 }

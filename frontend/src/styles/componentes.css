@@ -1,0 +1,42 @@
+/* Estilos específicos para componentes */
+
+/* Barra de navegación */
+.barra-navegacion {
+  /* Aquí irán los estilos de la barra de navegación */
+}
+
+/* Formularios */
+.formulario-login,
+.formulario-registro {
+  /* Aquí irán los estilos de los formularios */
+}
+
+/* Reproductor de música */
+.reproductor-musica {
+  /* Aquí irán los estilos del reproductor */
+}
+
+/* Tarjetas de playlist */
+.tarjeta-playlist {
+  /* Aquí irán los estilos de las tarjetas */
+}
+
+/* Chatbot */
+.chatbot-recomendaciones {
+  /* Aquí irán los estilos del chatbot */
+}
+
+/* Perfiles de DJ */
+.perfil-dj {
+  /* Aquí irán los estilos de perfiles de DJ */
+}
+
+/* Eventos temáticos */
+.evento-tematico {
+  /* Aquí irán los estilos de eventos */
+}
+
+/* Panel de administración */
+.panel-admin {
+  /* Aquí irán los estilos del panel admin */
+}

@@ -8,25 +8,9 @@ from pathlib import Path
 import urllib.parse
 
 BASE_DIR  = Path(__file__).parent
-SRC_DIR   = BASE_DIR / "src"
 SONGS_DIR = BASE_DIR / "musica" / "canciones"
 JSON_DIR  = BASE_DIR / "musica" / "json"
 PORT      = 8765
-
-sys.path.insert(0, str(SRC_DIR))
-
-MODULES_OK    = False
-compatibility = None
-timing_engine = None
-try:
-    from compatibility_engine import CompatibilityEngine
-    from timing_engine         import TimingDecisionEngine
-    compatibility  = CompatibilityEngine()
-    timing_engine  = TimingDecisionEngine()
-    MODULES_OK     = True
-    print("✅  CompatibilityEngine + TimingDecisionEngine cargados")
-except ImportError as e:
-    print(f"⚠️  src/ no encontrado ({e}) — fallback inteligente activo")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -44,20 +28,34 @@ def load_library():
                 raw  = json.loads(jp.read_text(encoding="utf-8"))
                 meta = {k:v for k,v in raw.items() if not k.startswith("_") and v is not None}
             except: pass
+        # beat_times y energia_por_segundo se recortan para reducir payload JSON
+        bt = meta.get("beat_times", [])
+        ep = meta.get("energia_por_segundo", [])
+        # Limitar beat_times a los primeros 600 (suficiente para cualquier sesión)
+        # y truncar energia_por_segundo que pueden ser miles de entradas
+        bt = bt[:600] if bt else []
+        # Redondear para reducir tamaño: 2 decimales para beats, 1 para energía
+        bt = [round(float(t), 2) for t in bt]
+        ep = [round(float(e), 1) for e in ep]
         tracks.append({
             "name":                 f.stem,
             "file":                 f.name,
             "bpm":                  meta.get("bpm", 0),
+            "bpm_confidence":       meta.get("bpm_confidence", None),
             "energia":              meta.get("energia", 50),
             "key":                  meta.get("key", ""),
+            "key_confidence":       meta.get("key_confidence", None),
             "duracion_segundos":    meta.get("duracion_segundos", 0),
             "puede_salir":          meta.get("puede_salir"),
-            "puede_empezar_mezcla": meta.get("puede_empezar_mezcla"),
-            "debe_sonar_sola":      meta.get("debe_sonar_sola"),
+
+
             "intro_fin":            meta.get("intro_fin"),
             "tiene_voz_inicio":     meta.get("tiene_voz_inicio", False),
-            "beat_times":           meta.get("beat_times", []),
-            "energia_por_segundo":  meta.get("energia_por_segundo", []),
+            "has_stems":            meta.get("has_stems", False),
+            "vocal_phrases":        meta.get("vocal_phrases", []),
+            "structure_points":     meta.get("structure_points", []),
+            "beat_times":           bt,
+            "energia_por_segundo":  ep,
         })
     return tracks
 
@@ -81,19 +79,23 @@ def camelot_key(key_str):
     return CAMELOT.get(key_str.strip(), None)
 
 def key_compatibility_bonus(k1, k2):
-    """Devuelve bonus 0-15 según compatibilidad armónica."""
+    """Devuelve (bonus 0-15, descripción) según compatibilidad armónica."""
     c1, c2 = camelot_key(k1), camelot_key(k2)
-    if not c1 or not c2: return 5  # sin info: neutro
-    if c1 == c2: return 15         # misma tonalidad: perfecto
+    if not c1 or not c2: return 5, "key desconocida"  # sin info: neutro
+    if c1 == c2: return 15, "misma tonalidad"
     n1, l1 = int(c1[:-1]), c1[-1]
     n2, l2 = int(c2[:-1]), c2[-1]
+    diff = abs(n1 - n2)
+    circ = min(diff, 12 - diff)  # distancia circular
     # Adyacente en el círculo (±1)
-    if l1 == l2 and abs(n1-n2) in (1, 11): return 12
+    if l1 == l2 and circ == 1: return 12, "adyacente"
     # Relativo mayor/menor (misma posición, letra distinta)
-    if n1 == n2 and l1 != l2: return 10
+    if n1 == n2 and l1 != l2: return 10, "relativo mayor/menor"
     # 2 pasos: funciona pero menos ideal
-    if l1 == l2 and abs(n1-n2) in (2, 10): return 5
-    return 0
+    if l1 == l2 and circ == 2: return 5, "2 pasos"
+    # Cambio de modo + adyacente
+    if l1 != l2 and circ <= 1: return 7, "modo + adyacente"
+    return 0, "tonalidades incompatibles"
 
 
 # ══════════════════════════════════════════════════════════════
@@ -226,8 +228,20 @@ def score_track(candidate, current, phase, played_set, played_list=None):
         elif diff <= 14:
             score += max(0.0, 35 - diff * 2.5)
         else:
-            # BPM muy diferente: penalizar pero no descartar
-            score += max(0.0, 5 - (diff - 14) * 0.5)
+            # Comprobar ratios musicales: ×2, ×0.5, ×1.5, ×0.75
+            ratio_bonus = 0.0
+            for ratio in (2.0, 0.5, 1.5, 0.75):
+                ratio_diff = abs(cur_bpm * ratio - cnd_bpm)
+                if ratio_diff <= 5:
+                    ratio_bonus = max(ratio_bonus, 18 - ratio_diff * 2)
+            if ratio_bonus > 0:
+                score += ratio_bonus
+            else:
+                score += max(0.0, 5 - (diff - 14) * 0.5)
+
+        # Bonus si ambas tienen alta confidence de BPM
+        bpm_conf = (current.get("bpm_confidence") or 0.5) * (candidate.get("bpm_confidence") or 0.5)
+        score += bpm_conf * 3  # hasta +3 pts por datos fiables
     else:
         score += 10  # sin BPM: neutro
 
@@ -241,9 +255,13 @@ def score_track(candidate, current, phase, played_set, played_list=None):
     else: score += max(0.0, 15 - jump * 0.43)
 
     # 4. Compatibilidad armónica — rueda de Camelot (0-15 pts)
-    score += key_compatibility_bonus(
+    key_bonus, _ = key_compatibility_bonus(
         current.get("key",""), candidate.get("key","")
     )
+    # Ponderar por confidence de ambas keys
+    kc1 = current.get("key_confidence") or 0.7
+    kc2 = candidate.get("key_confidence") or 0.7
+    score += key_bonus * ((kc1 + kc2) / 2)
 
     # 5. Anti-repetición de tonalidad: si las últimas 2 canciones tuvieron
     #    la misma key que la candidata, penalizar (evita que suene todo en Am)
@@ -253,10 +271,11 @@ def score_track(candidate, current, phase, played_set, played_list=None):
         if cnd_key and recent_keys.count(cnd_key) >= 2:
             score -= 8
 
-    # 6. Bonus por calidad del JSON (mejor mezcla si hay beat_times)
-    if candidate.get("beat_times"):           score += 6
-    if candidate.get("puede_salir"):          score += 3
-    if candidate.get("puede_empezar_mezcla"): score += 3
+    # 6. Calidad del análisis — más datos = mejor phrase matching posible
+    if candidate.get("beat_times"):       score += 4
+    if candidate.get("puede_salir"):      score += 2
+    if candidate.get("structure_points"): score += 5   # phrase matching disponible
+    if candidate.get("has_stems"):        score += 3   # acappella exit disponible
 
     # 7. Factor humano — un DJ no es un algoritmo puro
     score += random.gauss(0, 4)
@@ -313,10 +332,58 @@ def build_plan(current, nxt, current_time, phase):
     # Punto de salida ideal: puede_salir del JSON, o últimos 3s de la canción
     exit_at = float(ps) if ps else (dur - 2.0 if dur else current_time + 90)
 
+    # ── Phrase matching ───────────────────────────────────────────
+    # Si ambas canciones tienen structure_points, intentar alinear
+    # el mix en un punto de cambio de la saliente con uno de la entrante.
+    #
+    # Estrategia:
+    #   1. Candidatos de salida: puntos estructurales de la saliente
+    #      dentro de [min_start, exit_at + 8s]
+    #   2. Para cada candidato, buscar un punto estructural de la entrante
+    #      que quede a ≤ cf/2 segundos del inicio del fade
+    #      (lo que significa que la entrante también empieza en una sección)
+    #   3. El mejor par: mínima suma de distancias a los puntos ideales
+    sp_cur = current.get("structure_points") or []
+    sp_nxt = nxt.get("structure_points") or []
+
+    phrase_exit_at = None
+    phrase_enter_at = None
+
+    if sp_cur and sp_nxt:
+        min_start_pm = dur * 0.65 if dur else current_time + 10
+        max_start_pm = exit_at + 8.0
+
+        best_score = float('inf')
+        for sp_out in sp_cur:
+            if not (min_start_pm <= sp_out <= max_start_pm):
+                continue
+            # start_mix si usamos este punto de salida
+            candidate_start = sp_out - cf
+            if candidate_start < current_time + 4:
+                continue
+            # Buscar punto de entrada en la entrante que quede alineado
+            for sp_in in sp_nxt:
+                # sp_in debería ser el punto donde la entrante "abre" su sección
+                # Queremos que sp_in caiga en [enter_at, enter_at + cf/2]
+                # → enter_at = sp_in (entrar exactamente en ese punto estructural)
+                if sp_in < 0 or sp_in > nxt.get("duracion_segundos", 300) * 0.8:
+                    continue
+                # Score: penalizar distancia al exit_at original + distancia al inicio ideal
+                score = abs(sp_out - exit_at) + abs(sp_in - 0) * 0.5
+                if score < best_score:
+                    best_score      = score
+                    phrase_exit_at  = sp_out
+                    phrase_enter_at = sp_in
+
+    # Aplicar phrase matching si encontró una alineación razonable
+    # (el punto de salida no puede alejarse más de 12s del ideal)
+    if phrase_exit_at is not None and abs(phrase_exit_at - exit_at) <= 12.0:
+        exit_at = phrase_exit_at
+
     # Comenzar el fade exactamente cf segundos antes de la salida
     start_mix = exit_at - cf
 
-    # Nunca antes del 73% de la canción  
+    # Nunca antes del 73% de la canción
     min_start = dur * 0.73 if dur else current_time + 10
     start_mix = max(start_mix, min_start, current_time + 8)
 
@@ -327,28 +394,23 @@ def build_plan(current, nxt, current_time, phase):
     #   3. Si tiene_voz_inicio=True, también usar intro_fin para no entrar
     #      con voz cantando encima de la pista saliente
     #   4. Fallback: 0 (desde el principio)
-    pem       = nxt.get("puede_empezar_mezcla")
     intro_fin = nxt.get("intro_fin")
     tiene_voz = nxt.get("tiene_voz_inicio", False)
 
-    if pem is not None:
-        # Manual tiene prioridad absoluta
-        enter_at = float(pem)
+    if phrase_enter_at is not None:
+        # Phrase matching encontró un punto estructural de la entrante
+        enter_at = float(phrase_enter_at)
     elif intro_fin is not None and intro_fin >= 3.0:
-        # Hay intro detectada — entrar al acabar la intro
-        # Ajustar al beat más próximo (4 beats antes del fin de intro)
-        # para que el drop de la entrante caiga alineado
+        # Intro detectada: entrar justo antes del drop
+        # 4 beats antes del fin de intro → el drop cae alineado dentro del crossfade
         bpm2 = nxt.get("bpm", 0) or 0
         if bpm2 > 0:
             beat_dur = 60.0 / bpm2
-            # Entrar 4 beats antes del fin de intro para que el drop
-            # caiga dentro del crossfade, no después
             enter_at = max(0.0, intro_fin - beat_dur * 4)
         else:
             enter_at = max(0.0, intro_fin - 4.0)
     elif tiene_voz:
-        # Tiene voz desde el principio pero no intro larga detectada.
-        # Entrar en el segundo 4 como mínimo para evitar la voz del inicio.
+        # Voz desde el principio: evitar superposición entrando desde el s4
         enter_at = 4.0
     else:
         enter_at = 0.0
@@ -359,27 +421,10 @@ def build_plan(current, nxt, current_time, phase):
         "mix_duration":       cf,
         "exit_at":            round(exit_at, 2),
         "phase":              phase[0],
-        "has_entry_point":    pem is not None,
-        "style":              style,
-    }
 
-    # TimingDecisionEngine — respetar si no corta demasiado pronto
-    if MODULES_OK and timing_engine:
-        try:
-            tp = timing_engine.find_mix_point(current, nxt, current_time)
-            if tp and isinstance(tp, dict):
-                sct = tp.get("start_current_time")
-                if sct and float(sct) >= min_start:
-                    tp.setdefault("exit_at",      plan["exit_at"])
-                    tp.setdefault("mix_duration",  cf)
-                    tp.setdefault("phase",         phase[0])
-                    return tp
-                tp["start_current_time"] = plan["start_current_time"]
-                tp.setdefault("exit_at",     plan["exit_at"])
-                tp.setdefault("mix_duration", cf)
-                tp.setdefault("phase",        phase[0])
-                return tp
-        except: pass
+        "style":              style,
+        "phrase_matched":     phrase_exit_at is not None,
+    }
 
     return plan
 
@@ -388,6 +433,10 @@ def build_plan(current, nxt, current_time, phase):
 #  SERVER
 # ══════════════════════════════════════════════════════════════
 LIBRARY = load_library()
+
+def reload_library():
+    global LIBRARY
+    LIBRARY = load_library()
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
@@ -402,8 +451,10 @@ class Handler(BaseHTTPRequestHandler):
         elif p.path == "/api/library":
             self.ok(json.dumps(LIBRARY).encode(), "application/json")
 
-        elif p.path == "/api/modules":
-            self.ok(json.dumps({"ok": MODULES_OK}).encode(), "application/json")
+        elif p.path == "/api/reload":
+            # Recarga la biblioteca en caliente (útil al añadir/eliminar canciones)
+            reload_library()
+            self.ok(json.dumps({"count": len(LIBRARY)}).encode(), "application/json")
 
         elif p.path == "/api/next":
             cur_file     = qs.get("current", [None])[0]
@@ -436,19 +487,48 @@ class Handler(BaseHTTPRequestHandler):
                 "target_energy": round(target_e, 1),
             }, default=str).encode(), "application/json")
 
-        elif p.path.startswith("/audio/"):
-            fname = urllib.parse.unquote(p.path[7:])
-            fp    = SONGS_DIR / fname
+        elif p.path.startswith("/audio/") or p.path.startswith("/musica/stems/"):
+            if p.path.startswith("/audio/"):
+                fname = urllib.parse.unquote(p.path[7:])
+                fp    = SONGS_DIR / fname
+                mime  = {".mp3":"audio/mpeg",".wav":"audio/wav",".ogg":"audio/ogg",
+                         ".flac":"audio/flac",".aac":"audio/aac",".m4a":"audio/mp4"
+                        }.get(Path(fname).suffix.lower(), "audio/mpeg")
+            else:
+                rel  = urllib.parse.unquote(p.path[len("/musica/stems/"):])
+                fp   = BASE_DIR / "musica" / "stems" / rel
+                mime = "audio/wav"
+
             if not fp.exists(): self.send_error(404); return
-            mime = {".mp3":"audio/mpeg",".wav":"audio/wav",".ogg":"audio/ogg",
-                    ".flac":"audio/flac",".aac":"audio/aac",".m4a":"audio/mp4"
-                   }.get(fp.suffix.lower(), "audio/mpeg")
-            data = fp.read_bytes()
-            self.send_response(200)
-            self.send_header("Content-Type", mime)
-            self.send_header("Content-Length", len(data))
-            self.end_headers()
-            self.wfile.write(data)
+
+            data      = fp.read_bytes()
+            total     = len(data)
+            range_hdr = self.headers.get("Range", "")
+
+            if range_hdr.startswith("bytes="):
+                # Range request — el browser solo pide lo que necesita
+                try:
+                    r      = range_hdr[6:].split("-")
+                    start  = int(r[0]) if r[0] else 0
+                    end    = int(r[1]) if r[1] else total - 1
+                    end    = min(end, total - 1)
+                    chunk  = data[start:end + 1]
+                    self.send_response(206)
+                    self.send_header("Content-Type", mime)
+                    self.send_header("Content-Range", f"bytes {start}-{end}/{total}")
+                    self.send_header("Content-Length", len(chunk))
+                    self.send_header("Accept-Ranges", "bytes")
+                    self.end_headers()
+                    self.wfile.write(chunk)
+                except Exception:
+                    self.send_error(416)
+            else:
+                self.send_response(200)
+                self.send_header("Content-Type", mime)
+                self.send_header("Content-Length", total)
+                self.send_header("Accept-Ranges", "bytes")
+                self.end_headers()
+                self.wfile.write(data)
         else:
             self.send_error(404)
 
@@ -661,6 +741,11 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 .mix-row.style-progressive{
   background:rgba(0,240,255,.03);color:var(--c);
   border-bottom-color:rgba(0,240,255,.08)}
+/* Acappella exit: blanco puro — la voz sola */
+.mix-row.style-acappella{
+  background:rgba(255,255,255,.03);color:#fff;
+  border-bottom-color:rgba(255,255,255,.12)}
+.style-acappella .mix-dot{background:#fff;animation:blink .3s step-end infinite}
 .mix-dot{width:5px;height:5px;border-radius:50%;
   animation:blink .5s step-end infinite;flex-shrink:0}
 .style-guetta .mix-dot{background:var(--g)}
@@ -687,6 +772,10 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
   color:var(--c);flex-shrink:0}
 .nxt-t{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);flex-shrink:0}
 
+.nxt-key{font-family:'IBM Plex Mono',monospace;font-size:8px;
+  padding:1px 5px;border-radius:5px;border:1px solid rgba(176,96,255,.25);
+  color:var(--p);flex-shrink:0}
+
 /* ── STATUS ────────────────────────────────────────────────── */
 .st{padding:7px 18px;display:flex;align-items:center;
   justify-content:space-between;flex-wrap:wrap;gap:6px}
@@ -698,10 +787,6 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 .live{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:2px;
   text-transform:uppercase;padding:2px 8px;border-radius:10px;
   border:1px solid var(--g);color:var(--g);animation:blink 1.4s step-end infinite}
-.mod{font-family:'IBM Plex Mono',monospace;font-size:8px;padding:2px 8px;
-  border-radius:10px;border:1px solid}
-.mod.ok{border-color:rgba(0,240,255,.3);color:var(--c)}
-.mod.fb{border-color:var(--dim);color:var(--dim)}
 .skip-btn{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;
   padding:3px 10px;border-radius:8px;border:1px solid rgba(200,255,0,.3);
   background:rgba(200,255,0,.06);color:var(--g);cursor:pointer;transition:all .15s;}
@@ -866,6 +951,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
       <div class="nxt-nm" id="nxtNm">—</div>
       <div class="nxt-sc" id="nxtSc">—</div>
       <div class="nxt-t"  id="nxtT">—</div>
+      <span class="nxt-key" id="nxtKey" style="display:none">—</span>
       <button class="cue-btn" id="btnCue" disabled title="Preview 5s de la siguiente">👂 CUE</button>
     </div>
 
@@ -875,8 +961,8 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
         <div class="bx"><div class="v" id="bpmVal">—</div><div class="l">BPM</div></div>
         <div class="live">● LIVE</div>
         <div class="beat-dot" id="beatDot"></div>
-        <div class="mod" id="modB">—</div>
         <button class="skip-btn" id="btnSkip" disabled title="Saltar al mix ahora">⏭ MIX NOW</button>
+        <button class="skip-btn" id="btnReload" title="Recargar biblioteca (añadiste canciones)" style="border-color:rgba(0,240,255,.3);color:var(--c)">↺</button>
       </div>
       <div id="log">—</div>
     </div>
@@ -942,8 +1028,8 @@ let ctx  = null;
 const PHASE_ORDER = ['warm-up','first-build','first-peak','breakdown','second-build','second-peak','outro'];
 const PHASE_LABELS = {'warm-up':'WARM','first-build':'BUILD','first-peak':'PEAK 1',
   'breakdown':'DOWN','second-build':'BUILD 2','second-peak':'PEAK 2','outro':'OUTRO'};
-const STYLE_LABELS = { guetta: '⚡ GUETTA', avicii: '🌅 AVICII', progressive: '〰 PROG' };
-const STYLE_ICONS  = { guetta: '⚡', avicii: '🌅', progressive: '〰' };
+const STYLE_LABELS = { guetta: '⚡ GUETTA', avicii: '🌅 AVICII', progressive: '〰 PROG', acappella: '🎤 ACAPPELLA' };
+const STYLE_ICONS  = { guetta: '⚡', avicii: '🌅', progressive: '〰', acappella: '🎤' };
 
 const S = {
   lib: [], cur: null, curFile: null,
@@ -956,7 +1042,6 @@ const S = {
   bufs: {},
   // Deck nodes: S.decks.A = { src, preGain, hipass, lopass, gain, analyser }
   decks: { A: {}, B: {} },
-  modOk: false,
 
   // Silence detection
   silenceStart: null,
@@ -975,6 +1060,15 @@ const S = {
 
   // Mix trigger
   _beatSnapScheduled: false,
+  _emergencyScheduled: false,
+  _urgentAsk: false,
+  _acapDecided: false,    // evita re-evaluar la lógica vocal en cada frame
+
+  // Acappella exit state
+  acappella:   false,    // true mientras está en modo acappella
+  acapSrc:     null,     // BufferSource del vocals.wav
+  acapBandpass: null,    // nodos EQ del fallback
+  vocBufs:     {},       // cache de vocals.wav decodificados: { filename: AudioBuffer }
 
   // Cue (preview siguiente)
   cueing: false,
@@ -1033,14 +1127,8 @@ function ic() {
 
 // ── Boot ─────────────────────────────────────────────────────
 async function boot() {
-  const [lr, mr] = await Promise.all([fetch('/api/library'), fetch('/api/modules')]);
-  S.lib  = await lr.json();
-  const m = await mr.json();
-  S.modOk = m.ok;
-
-  const mb = document.getElementById('modB');
-  mb.textContent = S.modOk ? 'MÓDULOS OK' : 'FALLBACK';
-  mb.className   = 'mod ' + (S.modOk ? 'ok' : 'fb');
+  const lr = await fetch('/api/library');
+  S.lib    = await lr.json();
 
   document.getElementById('libCount').textContent = S.lib.length + ' canciones';
   document.getElementById('idleInfo').innerHTML =
@@ -1167,8 +1255,11 @@ document.getElementById('btnStart').addEventListener('click', async () => {
 
 function chooseFirst() {
   if (!S.lib.length) return null;
-  // Warm-up: energía baja-media, primer cuartil
-  const s = [...S.lib].sort((a,b)=>(a.energia||50)-(b.energia||50));
+  // Preferir canciones con BPM y energía conocidos
+  const withMeta = S.lib.filter(t => t.bpm && t.energia);
+  const pool = withMeta.length >= 3 ? withMeta : S.lib;
+  // Warm-up: energía baja-media, primer cuartil de la piscina
+  const s = [...pool].sort((a, b) => (a.energia || 50) - (b.energia || 50));
   return s[Math.floor(s.length * 0.18)] || s[0];
 }
 
@@ -1191,6 +1282,23 @@ async function begin(t) {
 // Botón de skip: salta directamente al mix (para testing)
 document.getElementById('btnSkip').addEventListener('click', () => {
   if (!S.mixing && S.playing) doMix();
+});
+
+// Botón de recarga de biblioteca: añadiste canciones sin reiniciar el servidor
+document.getElementById('btnReload').addEventListener('click', async () => {
+  const btn = document.getElementById('btnReload');
+  btn.textContent = '…';
+  btn.disabled    = true;
+  try {
+    const d = await (await fetch('/api/reload')).json();
+    S.lib = await (await fetch('/api/library')).json();
+    renderLib();
+    logMsg(`↺ Biblioteca actualizada — ${d.count} canciones`);
+  } catch(e) {
+    logMsg('Error recargando biblioteca');
+  }
+  btn.textContent = '↺';
+  btn.disabled    = false;
 });
 
 // ── CUE: preview de la siguiente pista ───────────────────────
@@ -1263,6 +1371,9 @@ async function askNext(t, ct) {
     showNext(d.track, d.plan, d.score, d.phase);
     updateArc(d.phase, d.target_energy);
     preload(d.track);
+    // Pre-cargar vocals de la canción ACTUAL (no la siguiente)
+    // para que esté listo cuando llegue el acappella exit
+    if (S.cur) preloadVocals(S.cur);
     renderLib();
   } catch(e) {}
 }
@@ -1278,6 +1389,26 @@ async function loadBuf(t) {
 async function preload(t) {
   if (!t || S.bufs[t.file]) return;
   try { ic(); await loadBuf(t); } catch(e) {}
+}
+
+// Pre-carga el vocals.wav de una canción en S.vocBufs.
+// Se llama en background nada más conocerse la canción actual,
+// para que cuando llegue doAcappella el buffer ya esté listo.
+async function preloadVocals(t) {
+  if (!t || !t.has_stems || !t.file) return;
+  const key = t.file;
+  if (S.vocBufs[key]) return;  // ya en cache
+  try {
+    const stemName  = key.replace(/\.[^.]+$/, '');
+    const url       = `/musica/stems/${encodeURIComponent(stemName)}/vocals.wav`;
+    const resp      = await fetch(url);
+    if (!resp.ok) return;
+    const buf       = await ctx.decodeAudioData(await resp.arrayBuffer());
+    S.vocBufs[key]  = buf;
+    console.log(`🎤 vocals.wav precargado: ${stemName}`);
+  } catch(e) {
+    // Sin stems o error de red — silencioso, el fallback EQ se encarga
+  }
 }
 
 // ── Create / reset deck audio graph ──────────────────────────
@@ -1358,6 +1489,230 @@ async function playDeck(dk, track, offset = 0) {
 
 function getTime() {
   return !S.playing || !ctx ? 0 : Math.max(0, ctx.currentTime - S.startAt);
+}
+
+// ════════════════════════════════════════════════════════════
+//  A C A P P E L L A   E X I T  —  stems Demucs
+//
+//  Si has_stems=true: carga vocals.wav desde /musica/stems/<nombre>/
+//  y lo reproduce limpio mientras silencia el deck saliente.
+//
+//  Si has_stems=false: fallback a filtros EQ (menos limpio pero funciona).
+//
+//  Al llegar a acappella_fin, cierra el vocal y dispara doMix().
+// ════════════════════════════════════════════════════════════
+async function doAcappella(acapStart, acapFin) {
+  if (S.acappella || S.mixing) return;
+  S.acappella = true;
+
+  const dk = S.decks[S.deck];
+  if (!dk || !dk.preGain || !dk.src) { S.acappella = false; return; }
+
+  if (S.cur && S.cur.has_stems) {
+    // ── MODO STEMS ────────────────────────────────────────────
+    // Intentar usar el buffer ya en cache (preloadVocals lo cargó antes).
+    // Si no está, cargarlo ahora — pero el offset se recalcula DESPUÉS
+    // del await para que coincida con la posición real de la canción.
+    const key = S.cur.file;
+    let vocBuf = S.vocBufs[key];
+
+    if (!vocBuf) {
+      const stemName = key.replace(/\.[^.]+$/, '');
+      try {
+        const resp = await fetch(`/musica/stems/${encodeURIComponent(stemName)}/vocals.wav`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        vocBuf = await ctx.decodeAudioData(await resp.arrayBuffer());
+        S.vocBufs[key] = vocBuf;
+      } catch(e) {
+        console.warn('vocals.wav no disponible, fallback EQ:', e);
+        S.acappella = false;
+        const t0f = ctx.currentTime;
+        const dur = acapFin - getTime();
+        showMixing('🎤 acappella exit', dur, 'acappella');
+        S.mixStart = t0f; S.mixDur = dur;
+        _acapEQFallback(dk, t0f, Math.max(0.5, dur));
+        return;
+      }
+    }
+
+    // ── Recalcular offset AHORA — después de todos los awaits ──
+    // getTime() es la posición real de la canción en este instante.
+    // El vocals.wav tiene exactamente la misma duración que el original,
+    // así que el offset es simplemente la posición actual.
+    const nowInSong = getTime();
+    const vocOffset = Math.max(0, nowInSong);
+    const realDur   = Math.max(0.5, acapFin - nowInSong);
+    const tNow      = ctx.currentTime;
+
+    showMixing('🎤 acappella exit', realDur, 'acappella');
+    logMsg(`🎤 Acappella · offset ${vocOffset.toFixed(2)}s · ${realDur.toFixed(1)}s`);
+    S.mixStart = tNow; S.mixDur = realDur; S.mixStyle = 'acappella';
+
+    // Gain vocal con fade-in suave
+    const vocGain = ctx.createGain();
+    vocGain.gain.setValueAtTime(0, tNow);
+    vocGain.gain.linearRampToValueAtTime(1.15, tNow + 0.3);
+    vocGain.connect(S.comp);
+
+    // Reverb de sala
+    if (S.reverb && S.reverbGain) {
+      S.reverbGain.gain.cancelScheduledValues(tNow);
+      S.reverbGain.gain.setValueAtTime(0, tNow);
+      S.reverbGain.gain.linearRampToValueAtTime(0.28, tNow + 0.4);
+    }
+
+    // Arrancar el vocals.wav en el offset correcto (posición actual de la canción)
+    const vocSrc = ctx.createBufferSource();
+    vocSrc.buffer = vocBuf;
+    vocSrc.connect(vocGain);
+    vocSrc.start(tNow, vocOffset);  // offset = posición real ahora
+    S.acapSrc = vocSrc;
+
+    // Silenciar instrumental gradualmente
+    dk.preGain.gain.cancelScheduledValues(tNow);
+    dk.preGain.gain.setValueAtTime(1, tNow);
+    dk.preGain.gain.linearRampToValueAtTime(0, tNow + 0.5);
+
+    // ── Disparar doMix para que el DROP caiga exactamente en acapFin ──
+    // El crossfade dura cf segundos. El drop (plena energía de la entrante)
+    // cae al final del fade. Para que coincida con el fin de la frase vocal:
+    //   doMix() se dispara cf segundos ANTES de acapFin.
+    // Así la voz sigue sonando durante todo el crossfade y el drop llega
+    // justo cuando la frase termina — como haría un DJ.
+    const cfDurAcap  = S.nxtPlan ? (S.nxtPlan.mix_duration || 8) : 8;
+    const mixDelay   = Math.max(0, (realDur - cfDurAcap) * 1000);
+
+    // Ajustar enter_at para que el drop de la entrante caiga exactamente
+    // al final del crossfade (= fin de la frase vocal).
+    // El drop natural está en intro_fin (o 0 si no hay intro).
+    // Queremos: enter_at = dropPoint - cfDurAcap
+    // donde dropPoint es el segundo desde el que empieza a sonar fuerte.
+    if (S.nxtPlan && S.nxt) {
+      const dropPoint = S.nxt.intro_fin || 0;
+      const alignedEnter = Math.max(0, dropPoint - cfDurAcap);
+      S.nxtPlan.start_next_time = alignedEnter;
+      S.nxtPlan._acap_aligned = true;  // flag para debug
+    }
+
+    setTimeout(() => {
+      if (!S.acappella) return;
+      if (S.nxt && !S.mixing) doMix();
+    }, mixDelay);
+
+    // Al acabar la frase: cerrar la voz limpiamente
+    // (doMix ya lleva cf segundos corriendo — el drop acaba de llegar)
+    setTimeout(() => {
+      if (!S.acappella) return;
+      const tEnd = ctx.currentTime;
+
+      vocGain.gain.cancelScheduledValues(tEnd);
+      vocGain.gain.setValueAtTime(vocGain.gain.value, tEnd);
+      vocGain.gain.linearRampToValueAtTime(0, tEnd + 0.4);
+
+      if (S.reverbGain) {
+        S.reverbGain.gain.cancelScheduledValues(tEnd);
+        S.reverbGain.gain.linearRampToValueAtTime(0, tEnd + 0.5);
+      }
+
+      setTimeout(() => { try { vocSrc.stop(); } catch(e) {} vocGain.disconnect(); }, 500);
+      S.acapSrc = null; S.acappella = false;
+      hideMixing();
+
+    }, realDur * 1000);
+
+  } else {
+    // ── MODO FALLBACK: filtros EQ ─────────────────────────────
+    const t0  = ctx.currentTime;
+    const dur = Math.max(0.5, acapFin - getTime());
+    showMixing('🎤 acappella exit', dur, 'acappella');
+    logMsg(`🎤 Acappella EQ · ${dur.toFixed(1)}s`);
+    S.mixStart = t0; S.mixDur = dur; S.mixStyle = 'acappella';
+    _acapEQFallback(dk, t0, dur);
+  }
+}
+
+function _acapEQFallback(dk, t0, dur) {
+  // Highpass 180 Hz + Lowpass 3800 Hz → aísla la banda vocal
+  const hpV = ctx.createBiquadFilter();
+  hpV.type = 'highpass'; hpV.frequency.value = 180; hpV.Q.value = 0.6;
+  const lpV = ctx.createBiquadFilter();
+  lpV.type = 'lowpass';  lpV.frequency.value = 3800; lpV.Q.value = 0.5;
+  const gV  = ctx.createGain();
+  gV.gain.setValueAtTime(1.35, t0);
+
+  dk.preGain.disconnect();
+  dk.preGain.connect(hpV); hpV.connect(lpV); lpV.connect(gV); gV.connect(dk.hipass);
+  S.acapBandpass = { hpV, lpV, gV };
+
+  const ramp = Math.min(0.8, dur * 0.2);
+  dk.hipass.frequency.cancelScheduledValues(t0);
+  dk.hipass.frequency.setValueAtTime(20, t0);
+  dk.hipass.frequency.linearRampToValueAtTime(180, t0 + ramp);
+  dk.lopass.frequency.cancelScheduledValues(t0);
+  dk.lopass.frequency.setValueAtTime(20000, t0);
+  dk.lopass.frequency.linearRampToValueAtTime(4000, t0 + ramp);
+
+  if (S.reverb && S.reverbGain) {
+    S.reverbGain.gain.cancelScheduledValues(t0);
+    S.reverbGain.gain.setValueAtTime(0, t0);
+    S.reverbGain.gain.linearRampToValueAtTime(0.22, t0 + ramp);
+  }
+
+  const cfDurAcap  = S.nxtPlan ? (S.nxtPlan.mix_duration || 8) : 8;
+  const mixDelay   = Math.max(0, (dur - cfDurAcap) * 1000);
+
+  setTimeout(() => {
+    if (!S.acappella) return;
+    if (S.nxt && !S.mixing) doMix();
+  }, mixDelay);
+
+  setTimeout(() => {
+    if (!S.acappella) return;
+    const tEnd = ctx.currentTime;
+    if (S.acapBandpass) {
+      const { hpV, lpV, gV } = S.acapBandpass;
+      gV.gain.cancelScheduledValues(tEnd);
+      gV.gain.linearRampToValueAtTime(0, tEnd + 0.2);
+      setTimeout(() => {
+        try { dk.preGain.disconnect(); hpV.disconnect(); lpV.disconnect(); gV.disconnect();
+              dk.preGain.connect(dk.hipass); } catch(e) {}
+        S.acapBandpass = null;
+      }, 250);
+    }
+    if (S.reverbGain) {
+      S.reverbGain.gain.cancelScheduledValues(tEnd);
+      S.reverbGain.gain.linearRampToValueAtTime(0, tEnd + 0.3);
+    }
+    S.acappella = false;
+    hideMixing();
+  }, dur * 1000);
+}
+
+function cancelAcappella() {
+  if (!S.acappella) return;
+  S.acappella = false;
+  if (S.acapSrc) { try { S.acapSrc.stop(); } catch(e) {} S.acapSrc = null; }
+  const dk = S.decks[S.deck];
+  if (dk && S.acapBandpass) {
+    try {
+      dk.preGain.disconnect();
+      S.acapBandpass.hpV.disconnect(); S.acapBandpass.lpV.disconnect();
+      S.acapBandpass.gV.disconnect();
+      dk.preGain.connect(dk.hipass);
+      dk.hipass.frequency.setValueAtTime(20, ctx.currentTime);
+      dk.lopass.frequency.setValueAtTime(20000, ctx.currentTime);
+    } catch(e) {}
+    S.acapBandpass = null;
+  }
+  if (dk && dk.preGain) {
+    dk.preGain.gain.cancelScheduledValues(ctx.currentTime);
+    dk.preGain.gain.setValueAtTime(1, ctx.currentTime);
+  }
+  if (S.reverbGain) {
+    S.reverbGain.gain.cancelScheduledValues(ctx.currentTime);
+    S.reverbGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
+  }
+  hideMixing();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1560,6 +1915,7 @@ async function doMix() {
     S.cur  = nxt; S.curFile = nxt.file;
     S.played.push(nxt.file); S.playedSet.add(nxt.file); S.count++;
     S.nxt  = null; S.nxtPlan = null;
+    S._acapDecided = false; S._beatSnapScheduled = false; S._emergencyScheduled = false; S._urgentAsk = false;  // resetear para la próxima canción
     S.sessionTracks.push({
       track: nxt,
       startCtxTime: inpStartedAt,
@@ -1625,50 +1981,113 @@ function loop() {
   }
 
   // ── Trigger del mix ─────────────────────────────────────────
-  // No disparar mientras el usuario está arrastrando el playhead
-  if (!S.mixing && S.nxt && dur > 0 && !(S._dragging && S._dragging())) {
-    const cf         = S.nxtPlan ? (S.nxtPlan.mix_duration || 8) : 8;
-    const puedeSalir = S.cur ? (parseFloat(S.cur.puede_salir) || 0) : 0;
-    const planExit   = S.nxtPlan ? (parseFloat(S.nxtPlan.exit_at) || 0) : 0;
+  if (!S.mixing && dur > 0 && !(S._dragging && S._dragging())) {
+    const cf       = S.nxtPlan ? (S.nxtPlan.mix_duration || 8) : 8;
+    const exit     = S.nxtPlan ? (parseFloat(S.nxtPlan.exit_at) || 0) : 0;
+    const trig     = Math.max(exit > 0 ? exit - cf : dur - cf - 2, dur * 0.73);
+    const emergency = dur - 12;  // último recurso: 12s antes del final
 
-    let trig;
-    if (puedeSalir > 0) {
-      trig = puedeSalir - cf;
-    } else if (planExit > 0) {
-      trig = planExit - cf;
-    } else {
-      trig = dur - cf - 2;
-    }
-    trig = Math.max(trig, dur * 0.73);
-
-    // Beat-snapping: si el trigger está a menos de 1 beat de distancia,
-    // esperar al beat más cercano para arrancar alineado con el ritmo.
-    // Usa los beat_times del JSON si están disponibles.
-    if (t >= trig - 0.5 && t < trig + 2.5 && !S._beatSnapScheduled) {
+    // Trigger normal: en el punto calculado, con beat-snap
+    if (S.nxt && t >= trig - 0.5 && !S._beatSnapScheduled) {
       S._beatSnapScheduled = true;
-      const beatTimes = S.cur ? (S.cur.beat_times || []) : [];
-      let snapTarget = trig;
-
-      if (beatTimes.length > 0) {
-        // Encontrar el beat más próximo dentro de ±1.5s del trigger ideal
-        let bestDist = 9999, bestBeat = trig;
-        for (const bt of beatTimes) {
-          const dist = Math.abs(bt - trig);
-          if (dist < bestDist && dist < 1.5) { bestDist = dist; bestBeat = bt; }
+      const beats = S.cur ? (S.cur.beat_times || []) : [];
+      let snap = trig;
+      if (beats.length >= 4) {
+        let best = 9999;
+        for (let i = 0; i < beats.length; i++) {
+          const d = Math.abs(beats[i] - trig);
+          if (d < 2.0) {
+            const beatScore = d + (i % 4 === 0 ? 0 : 0.3);
+            if (beatScore < best) { best = beatScore; snap = beats[i]; }
+          }
         }
-        snapTarget = bestBeat;
+      } else if (beats.length > 0) {
+        let best = 9999;
+        for (const bt of beats) {
+          const d = Math.abs(bt - trig);
+          if (d < best && d < 2.0) { best = d; snap = bt; }
+        }
       }
-
-      const delay = Math.max(0, (snapTarget - t) * 1000);
+      // No esperar más de 3s — si la ventana pasa, disparar igual
+      const delay = Math.min(Math.max(0, snap - t), 3.0) * 1000;
       setTimeout(() => {
         S._beatSnapScheduled = false;
         if (!S.mixing && S.nxt) doMix();
+        else if (!S.mixing && !S.nxt) askNext(S.cur, getTime());
       }, delay);
+    }
+
+    // Emergencia: últimos 12s sin mezclar → mix inmediato
+    if (t >= emergency && !S._emergencyScheduled) {
+      S._emergencyScheduled = true;
+      if (!S.mixing) {
+        if (S.nxt) {
+          logMsg('⚠ Mix de emergencia — últimos 12s');
+          doMix();
+        } else {
+          // No hay siguiente preparada — pedirla y mezclar en cuanto llegue
+          logMsg('⚡ Sin siguiente — pedir urgente...');
+          askNext(S.cur, t).then(() => { if (!S.mixing && S.nxt) doMix(); });
+        }
+      }
     }
   }
 
-  // Refrescar plan cada 20s para mantenerlo actualizado
-  if (!S.mixing && S.cur && S.nxt && Math.round(t) % 20 === 0 && t > 8) {
+  // Si no hay siguiente y estamos en los últimos 25s, pedir urgente
+  if (!S.mixing && !S.nxt && dur > 0 && t >= dur - 25 && !S._urgentAsk) {
+    S._urgentAsk = true;
+    askNext(S.cur, t);
+  }
+
+  // ── Lógica vocal inteligente ────────────────────────────────
+  // Con vocal_phrases sabemos exactamente dónde canta el artista.
+  //
+  //   CASO A — hay frase activa cuando llega el trigger:
+  //     → acappella exit: voz sola hasta que acabe, luego drop
+  //
+  //   CASO B — viene frase DENTRO del crossfade pero aún no empezó:
+  //     → mix instrumental limpio (no queremos voz encima del drop)
+  //
+  //   CASO C — sin frases en la zona → crossfade normal
+  //
+  // Se evalúa una sola vez por canción (flag _acapDecided) en la
+  // ventana de -4s a +1s del trigger para no malgastar ciclos.
+  if (!S.mixing && !S.acappella && S.nxt && S.cur && dur > 0 && !S._acapDecided) {
+    const phrases = (S.cur.vocal_phrases || []);
+    if (phrases.length > 0 && S.cur.has_stems) {
+      const cf      = S.nxtPlan ? (S.nxtPlan.mix_duration || 8) : 8;
+      const ps      = parseFloat(S.cur.puede_salir) || 0;
+      const trigger = ps > 0 ? ps - cf : dur - cf - 2;
+
+      if (t >= trigger - 4 && t < trigger + 1) {
+        S._acapDecided = true;
+
+        // Frase activa ahora mismo
+        const activePhrase = phrases.find(([s, e]) => t >= s && t < e);
+
+        // Frase que empieza dentro del crossfade pero aún no empezó
+        const incomingPhrase = !activePhrase && phrases.find(
+          ([s, e]) => s > t && s < trigger + cf * 0.5
+        );
+
+        if (activePhrase) {
+          // CASO A: frase en curso → acappella exit al fin de la frase
+          const [pStart, pEnd] = activePhrase;
+          logMsg(`🎤 Frase activa →${pEnd.toFixed(1)}s → acappella exit`);
+          if (!S.acappella) doAcappella(pStart, pEnd);
+
+        } else if (incomingPhrase) {
+          // CASO B: frase entrante dentro del crossfade → avisamos y mix normal
+          logMsg(`🎵 Frase en ${incomingPhrase[0].toFixed(1)}s dentro del crossfade → mix instrumental`);
+          // beat-snap se encarga del doMix() normal
+        }
+        // CASO C: sin frases → beat-snap hace doMix() normalmente
+      }
+    }
+  }
+
+  // Refrescar plan cada 30s para mantenerlo actualizado
+  if (!S.mixing && S.cur && S.nxt && Math.round(t) % 30 === 0 && t > 10) {
     askNext(S.cur, t);
   }
 
@@ -1722,26 +2141,37 @@ function loop() {
       for (let i = 0; i < buf.length; i++) sum += (buf[i]/255) * (buf[i]/255);
       const rms = Math.sqrt(sum / buf.length);
 
-      const SILENCE_THRESHOLD = 0.03;   // por debajo de esto = silencio percibido
-      const SILENCE_MS        = 1800;   // debe durar 1.8s para confirmar
-      const MIN_PROGRESS      = 0.30;   // ignorar antes del 30% de la canción
+      const SILENCE_THRESHOLD = 0.06;   // silencio total o casi total
+      const FADEOUT_THRESHOLD  = 0.12;   // energía muy baja (fade-out gradual)
+      const SILENCE_MS         = 1200;   // 1.2s de silencio confirma el corte
+      const FADEOUT_MS         = 2500;   // 2.5s de fade-out muy bajo confirma
+      const MIN_PROGRESS       = 0.35;   // ignorar antes del 35% de la canción
 
       const progress = dur > 0 ? t / dur : 0;
 
-      if (rms < SILENCE_THRESHOLD && progress > MIN_PROGRESS && !S.silenceTriggered) {
-        if (S.silenceStart === null) {
-          S.silenceStart = ctx.currentTime;
-        } else if ((ctx.currentTime - S.silenceStart) * 1000 > SILENCE_MS) {
-          // ¡Silencio confirmado! Saltar al siguiente
-          S.silenceTriggered = true;
-          S.silenceStart     = null;
-          logMsg('⚡ Silencio detectado — saltando');
-          doMix();
+      // Guardar historial de RMS para detectar caída sostenida
+      if (!S.rmsHistory) S.rmsHistory = [];
+      S.rmsHistory.push(rms);
+      if (S.rmsHistory.length > 90) S.rmsHistory.shift(); // ~3s a 30fps
+
+      if (progress > MIN_PROGRESS && !S.silenceTriggered) {
+        const isSilent  = rms < SILENCE_THRESHOLD;
+        const isFadeout = rms < FADEOUT_THRESHOLD;
+
+        if (isSilent || isFadeout) {
+          const threshold_ms = isSilent ? SILENCE_MS : FADEOUT_MS;
+          if (S.silenceStart === null) {
+            S.silenceStart = ctx.currentTime;
+          } else if ((ctx.currentTime - S.silenceStart) * 1000 > threshold_ms) {
+            S.silenceTriggered = true;
+            S.silenceStart     = null;
+            logMsg(isSilent ? '⚡ Silencio — mix' : '📉 Fade-out detectado — mix');
+            if (!S.mixing) doMix();
+          }
+        } else {
+          S.silenceStart = null;
+          // No resetear silenceTriggered — si ya se disparó, no volver
         }
-      } else if (rms >= SILENCE_THRESHOLD) {
-        // Señal volvió — resetear contador
-        S.silenceStart     = null;
-        S.silenceTriggered = false;
       }
     }
   }
@@ -1797,13 +2227,26 @@ function showNext(t, plan, score, phase) {
   document.getElementById('nxtRow').style.display = 'flex';
   document.getElementById('nxtNm').textContent    = t.name;
   document.getElementById('nxtSc').textContent    = 'Score ' + Math.round(score);
-  const style  = plan ? (plan.style || 'guetta') : 'guetta';
-  const sLabel = STYLE_ICONS[style] || '⚡';
-  const timing = plan
-    ? `${sLabel} ${style.toUpperCase()} · ${(plan.mix_duration||8).toFixed(0)}s fade`
+  const style   = plan ? (plan.style || 'guetta') : 'guetta';
+  const sLabel  = STYLE_ICONS[style] || '⚡';
+  const matched = plan && plan.phrase_matched ? ' · ⌖ phrase' : '';
+  const timing  = plan
+    ? `${sLabel} ${style.toUpperCase()} · ${(plan.mix_duration||8).toFixed(0)}s fade${matched}`
     : '';
   document.getElementById('nxtT').textContent = timing;
   document.getElementById('btnCue').disabled = false;
+
+  // Mostrar key de la siguiente pista
+  const keyEl = document.getElementById('nxtKey');
+  if (t.key) {
+    keyEl.textContent = t.key;
+    keyEl.style.display = 'inline';
+    // Indicar compatibilidad visual con la pista actual
+    const curKey = S.cur ? S.cur.key : '';
+    keyEl.title = curKey ? `${curKey} → ${t.key}` : t.key;
+  } else {
+    keyEl.style.display = 'none';
+  }
 }
 function hideNext() { document.getElementById('nxtRow').style.display = 'none'; }
 
@@ -1811,10 +2254,11 @@ function showMixing(name, dur, style) {
   const row   = document.getElementById('mixRow');
   const label = document.getElementById('mixStyleLabel');
   row.classList.add('on');
-  row.classList.remove('style-guetta', 'style-avicii', 'style-progressive');
+  row.classList.remove('style-guetta', 'style-avicii', 'style-progressive', 'style-acappella');
   row.classList.add('style-' + (style || 'guetta'));
   label.textContent = STYLE_LABELS[style] || '⚡ GUETTA';
-  document.getElementById('mixInfo').textContent = `→ ${name} · ${dur.toFixed(0)}s`;
+  const durStr = typeof dur === 'number' ? dur.toFixed(0) + 's' : String(dur);
+  document.getElementById('mixInfo').textContent = `→ ${name} · ${durStr}`;
   document.getElementById('mixFill').style.width = '0%';
   document.getElementById('eqRow').classList.add('on');
 }
@@ -1826,7 +2270,9 @@ function renderLib() {
     list.innerHTML = '<div class="empty"><p>Pon MP3/WAV en <code>musica/canciones/</code></p></div>';
     return;
   }
+  document.getElementById('libCount').textContent = S.lib.length + ' canciones';
   const cBpm = S.cur ? (S.cur.bpm||0) : 0;
+  const cKey = S.cur ? (S.cur.key||'') : '';
   list.innerHTML = S.lib.map((t,i) => {
     const iC   = t.file === S.curFile;
     const iN   = S.nxt && t.file === S.nxt.file;
@@ -1834,9 +2280,10 @@ function renderLib() {
     const bOk  = !cBpm || !t.bpm || Math.abs(t.bpm-cBpm) <= 10;
     const sc   = iN ? Math.round(S.nxtScore) : null;
     const sC   = sc===null ? '' : sc>70?'hi':sc>40?'mi':'lo';
+    const keyTxt = t.key ? `<span style="font-family:'IBM Plex Mono',monospace;font-size:7px;color:var(--p);padding:0 3px;border-radius:3px;border:1px solid rgba(176,96,255,.2)">${t.key}</span>` : '';
     return `<div class="tk ${iC?'cur':''} ${iN?'nxt':''} ${done?'done':''}">
       <div class="tn">${iC?'▶':iN?'→':done?'✓':i+1}</div>
-      <div class="tt">${t.name}</div>
+      <div class="tt">${t.name}${keyTxt?'&ensp;'+keyTxt:''}</div>
       <div class="te"><div class="tef" style="width:${t.energia||50}%"></div></div>
       <div class="tb ${bOk?'ok':'no'}">${t.bpm?t.bpm.toFixed(0)+'bpm':'—'}</div>
       <div class="ts ${sC}">${sc!==null?sc:'—'}</div>
@@ -1879,6 +2326,34 @@ function drawWave(buf, track) {
     g.strokeStyle='rgba(0,240,255,.18)'; g.lineWidth=1;
     g.beginPath();g.moveTo(x1,0);g.lineTo(x1,H);g.stroke();
     if(track.debe_sonar_sola){g.beginPath();g.moveTo(x2,0);g.lineTo(x2,H);g.stroke();}
+  }
+  // Puntos de cambio estructural (amarillo tenue) — secciones de la canción
+  if (track.structure_points && track.structure_points.length > 0) {
+    track.structure_points.forEach(sp => {
+      const xs = (sp / dur) * W;
+      g.strokeStyle = 'rgba(255,220,0,.20)'; g.lineWidth = 1;
+      g.setLineDash([3, 4]);
+      g.beginPath(); g.moveTo(xs, 0); g.lineTo(xs, H); g.stroke();
+      g.setLineDash([]);
+    });
+  }
+  // Frases vocales (blanco)
+  if(track.vocal_phrases && track.vocal_phrases.length > 0) {
+    track.vocal_phrases.forEach(([ps, pe], i) => {
+      const xa1 = (ps / dur) * W;
+      const xa2 = (pe / dur) * W;
+      g.fillStyle = 'rgba(255,255,255,.06)';
+      g.fillRect(xa1, 0, xa2 - xa1, H);
+      g.strokeStyle = 'rgba(255,255,255,.25)';
+      g.lineWidth = 1;
+      g.beginPath(); g.moveTo(xa1, 0); g.lineTo(xa1, H); g.stroke();
+      g.beginPath(); g.moveTo(xa2, 0); g.lineTo(xa2, H); g.stroke();
+      // Icono solo en la primera frase para no saturar
+      if (i === 0) {
+        g.font = '8px Arial'; g.fillStyle = 'rgba(255,255,255,.45)';
+        g.fillText('🎤', xa1 + 2, 10);
+      }
+    });
   }
   // Punto de salida (rojo)
   if(track.puede_salir){

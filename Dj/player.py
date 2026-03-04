@@ -1399,6 +1399,15 @@ async function doMix() {
   const enterAt = plan ? (plan.start_next_time || 0) : 0;
   const style   = plan ? (plan.style || 'guetta') : 'guetta';
 
+  // Detener CUE si está activo antes de empezar la mezcla
+  if (S.cueing && S.cueSrc) {
+    try { S.cueSrc.stop(); } catch(e) {}
+    S.cueSrc = null;
+    S.cueing = false;
+    document.getElementById('btnCue').classList.remove('cueing');
+    document.getElementById('btnCue').textContent = '👂 CUE';
+  }
+
   S.mixing   = true;
   S.mixStart = ctx.currentTime;
   S.mixDur   = cfDur;
@@ -2003,6 +2012,7 @@ function renderTimeline() {
 
 // Seek directo a una canción del timeline (click en bloque)
 function tlSeek(idx) {
+  if (S.mixing) return;  // no permitir seek durante mezcla
   const st = S.sessionTracks[idx];
   if (!st) return;
   // Si es la pista actual, solo saltar al principio

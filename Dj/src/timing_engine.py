@@ -35,7 +35,7 @@ class TimingDecisionEngine:
         """
         # Verificar si ya pasamos el punto de salida obligatorio
         max_exit = current_song.get('puede_salir')
-        if current_time >= max_exit:
+        if max_exit is not None and isinstance(max_exit, (int, float)) and current_time >= max_exit:
             # Mezcla urgente, tenemos que salir YA
             return self._create_urgent_mix(current_time, next_song)
         

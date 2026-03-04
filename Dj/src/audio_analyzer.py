@@ -210,10 +210,22 @@ class AudioAnalyzer:
     # ── Guardado y lote ──────────────────────────────────────────
 
     def save_metadata(self, audio_path: str, output_dir: str):
+        
         metadata = self.analyze_song(audio_path)
         
         audio_name = Path(audio_path).stem
         json_path  = os.path.join(output_dir, f"{audio_name}.json")
+        
+        # Preservar campos manuales si ya existe el JSON
+        manual_fields = {}
+        if os.path.exists(json_path):
+            try:
+                existing = json.loads(Path(json_path).read_text(encoding='utf-8'))
+                for field in ('puede_empezar_mezcla', 'debe_sonar_sola'):
+                    if existing.get(field) is not None:
+                        manual_fields[field] = existing[field]
+            except: pass
+        metadata.update(manual_fields)
         
         with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, indent=2, ensure_ascii=False)

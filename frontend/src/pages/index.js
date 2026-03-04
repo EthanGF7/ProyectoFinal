@@ -1,13 +1,24 @@
-// Componente principal de la página de inicio
+// Página de inicio de la aplicación
+import BarraNavegacion from '../components/BarraNavegacion';
+
 export default function Home() {
   return (
-    // Contenedor principal con estilos básicos
-    <div style={{ padding: '20px', textAlign: 'center' }}>
-      {/* Título principal de la aplicación */}
-      <h1>🎵 Discoteca Online</h1>
+    <div className="page-container">
+      <BarraNavegacion />
       
-      {/* Mensaje de confirmación que el frontend funciona */}
-      <p>Frontend funcionando!</p>
+      {/* Contenido principal de la página de inicio */}
+      <div className="home-content">
+        <h1 className="home-title">🎵 Bienvenido a Discoteca Online</h1>
+        <p className="home-subtitle">Tu plataforma de música favorita</p>
+        
+        {/* Sección de características principales */}
+        <div className="home-features">
+          <h2>¿Qué quieres hacer?</h2>
+          <p>• Escuchar playlists de tus DJs favoritos</p>
+          <p>• Usar nuestro chatbot para recomendaciones</p>
+          <p>• Descubrir eventos temáticos</p>
+        </div>
+      </div>
     </div>
   );
 }

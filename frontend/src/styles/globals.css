@@ -7,8 +7,110 @@
 
 body {
   font-family: 'Inter', sans-serif;
-  background-color: #0f0f0f;
-  color: #ffffff;
+  background-color: #ffffff;
+  color: #333333;
+  line-height: 1.6;
 }
 
-/* Aquí irán los estilos globales de la aplicación */
+/* Contenedor principal de páginas */
+.page-container {
+  min-height: 100vh;
+}
+
+/* Contenido principal de páginas */
+.page-content {
+  padding: 40px;
+}
+
+/* Contenido centrado */
+.page-content-centered {
+  padding: 40px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Contenido de formularios */
+.form-content {
+  padding: 40px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* Títulos principales */
+.page-title {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+/* Subtítulos */
+.page-subtitle {
+  font-size: 1rem;
+  color: #666;
+  margin-bottom: 30px;
+}
+
+/* Sección con margen superior */
+.section {
+  margin-top: 30px;
+}
+
+/* Grid de 2 columnas */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-top: 20px;
+}
+
+/* Grid de 3 columnas */
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 30px;
+}
+
+/* Tarjetas básicas */
+.card {
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #fff;
+}
+
+/* Tarjeta especial (destacada) */
+.card-special {
+  padding: 20px;
+  border: 2px solid #FBBF24;
+  border-radius: 8px;
+  background-color: #000;
+  color: #FBBF24;
+  margin-bottom: 20px;
+}
+
+/* Tarjeta de chat */
+.chat-card {
+  margin-top: 30px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 20px;
+  background-color: #f9f9f9;
+}
+
+/* Mensaje del chat */
+.chat-message {
+  margin-bottom: 20px;
+}
+
+/* Texto de ayuda */
+.help-text {
+  color: #666;
+  font-style: italic;
+}
+
+/* Texto secundario */
+.text-secondary {
+  color: #666;
+  margin-top: 20px;
+}

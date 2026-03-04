@@ -1,42 +1,288 @@
 /* Estilos específicos para componentes */
 
-/* Barra de navegación */
-.barra-navegacion {
-  /* Aquí irán los estilos de la barra de navegación */
+/* ===== BARRA DE NAVEGACIÓN ===== */
+.navbar {
+  background-color: #1a1a1a;
+  padding: 15px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-/* Formularios */
-.formulario-login,
-.formulario-registro {
-  /* Aquí irán los estilos de los formularios */
+.navbar-logo {
+  color: #fff;
+  font-size: 24px;
+  font-weight: bold;
+  text-decoration: none;
 }
 
-/* Reproductor de música */
-.reproductor-musica {
-  /* Aquí irán los estilos del reproductor */
+.navbar-logo:hover {
+  color: #fff;
+  text-decoration: none;
 }
 
-/* Tarjetas de playlist */
-.tarjeta-playlist {
-  /* Aquí irán los estilos de las tarjetas */
+.navbar-menu {
+  display: flex;
+  gap: 25px;
 }
 
-/* Chatbot */
-.chatbot-recomendaciones {
-  /* Aquí irán los estilos del chatbot */
+.navbar-link {
+  color: #fff;
+  text-decoration: none;
+  transition: color 0.3s ease;
 }
 
-/* Perfiles de DJ */
-.perfil-dj {
-  /* Aquí irán los estilos de perfiles de DJ */
+.navbar-link:hover {
+  color: #FBBF24;
+  text-decoration: none;
 }
 
-/* Eventos temáticos */
-.evento-tematico {
-  /* Aquí irán los estilos de eventos */
+.navbar-auth {
+  display: flex;
+  gap: 15px;
 }
 
-/* Panel de administración */
-.panel-admin {
-  /* Aquí irán los estilos del panel admin */
+.navbar-login {
+  color: #fff;
+  text-decoration: none;
+  padding: 8px 16px;
+  border: 1px solid #fff;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.navbar-login:hover {
+  background-color: #fff;
+  color: #1a1a1a;
+  text-decoration: none;
+}
+
+.navbar-register {
+  color: #000;
+  text-decoration: none;
+  padding: 8px 16px;
+  background-color: #fff;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.navbar-register:hover {
+  background-color: #FBBF24;
+  color: #000;
+  text-decoration: none;
+}
+
+/* ===== PÁGINA DE INICIO ===== */
+.home-content {
+  padding: 40px;
+  text-align: center;
+}
+
+.home-title {
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
+.home-subtitle {
+  font-size: 1.2rem;
+  color: #666;
+  margin-bottom: 30px;
+}
+
+.home-features {
+  margin-top: 30px;
+}
+
+.home-features h2 {
+  margin-bottom: 20px;
+}
+
+.home-features p {
+  margin: 10px 0;
+  font-size: 1.1rem;
+}
+
+/* ===== FORMULARIOS ===== */
+.form-title {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+.form-subtitle {
+  color: #666;
+  margin-bottom: 30px;
+}
+
+.form-field {
+  margin-bottom: 15px;
+}
+
+.form-field p {
+  margin: 8px 0;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+/* ===== PÁGINAS DE CONTENIDO ===== */
+.content-title {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+.content-subtitle {
+  color: #666;
+  margin-bottom: 30px;
+  font-size: 1.1rem;
+}
+
+.content-section {
+  margin-top: 30px;
+}
+
+.content-section h3 {
+  margin-bottom: 15px;
+  font-size: 1.5rem;
+}
+
+/* ===== TARJETAS DE CONTENIDO ===== */
+.content-card {
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #fff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.content-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.content-card h3 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.content-card h4 {
+  margin-bottom: 8px;
+  color: #444;
+}
+
+.content-card p {
+  margin: 5px 0;
+  color: #666;
+}
+
+/* ===== CHATBOT ===== */
+.chatbot-container {
+  padding: 40px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.chatbot-title {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+.chatbot-subtitle {
+  color: #666;
+  margin-bottom: 30px;
+}
+
+.chatbot-chat {
+  margin-top: 30px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 20px;
+  background-color: #f9f9f9;
+}
+
+.chatbot-message {
+  margin-bottom: 20px;
+}
+
+.chatbot-options {
+  margin-bottom: 20px;
+}
+
+.chatbot-options p {
+  margin: 5px 0;
+  padding-left: 10px;
+}
+
+/* ===== EVENTOS TEMÁTICOS ===== */
+.event-active {
+  padding: 20px;
+  border: 2px solid #FBBF24;
+  border-radius: 8px;
+  background-color: #000;
+  color: #FBBF24;
+  margin-bottom: 20px;
+}
+
+.event-active h3 {
+  margin-bottom: 10px;
+}
+
+.event-active p {
+  margin: 5px 0;
+}
+
+.events-upcoming {
+  margin-top: 20px;
+}
+
+.events-upcoming h3 {
+  margin-bottom: 15px;
+}
+
+/* ===== DASHBOARD ===== */
+.dashboard-grid {
+  margin-top: 30px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.dashboard-widget {
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #fff;
+}
+
+.dashboard-widget h3 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.dashboard-widget p {
+  margin: 5px 0;
+  color: #666;
+}
+
+/* ===== PANEL DE ADMINISTRACIÓN ===== */
+.admin-grid {
+  margin-top: 30px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.admin-card {
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #fff;
+}
+
+.admin-card h3 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.admin-card p {
+  margin: 5px 0;
+  color: #666;
 }

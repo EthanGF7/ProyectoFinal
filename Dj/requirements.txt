@@ -1,0 +1,30 @@
+# DJ AI — Dependencias del proyecto
+# Instalar: pip install -r requirements.txt
+
+# ── Análisis y procesamiento de audio ──────────────────────────
+librosa>=0.10.0         # BPM, beats, chroma, MFCC, spectral features
+soundfile>=0.12.0       # Lectura/escritura de WAV (sin torchaudio)
+numpy>=1.24.0           # Álgebra numérica
+scipy>=1.10.0           # Convoluciones, filtros
+
+# ── Formatos de audio adicionales ──────────────────────────────
+audioread>=3.0.0        # Backend de decodificación para librosa
+pydub>=0.25.0           # Manejo de MP3 (requiere ffmpeg en el PATH)
+
+# ── Reproducción de audio (player.py sirve via browser) ────────
+# No se necesita reproducción Python — el browser usa Web Audio API
+
+# ── Separación de stems (opcional, activa acappella exit) ───────
+# Instalar manualmente si quieres stems: pip install demucs
+# Requiere PyTorch: https://pytorch.org/get-started/locally/
+# demucs>=4.0.0
+
+# ── Notas de instalación ────────────────────────────────────────
+# Si tienes problemas con MP3 en Windows, instala ffmpeg:
+#   - Con conda:  conda install -c conda-forge ffmpeg
+#   - Descarga:   https://ffmpeg.org/download.html
+#
+# Para análisis paralelo (--workers N), no se necesita nada extra.
+#
+# Para GPU con Demucs (mucho más rápido):
+#   pip install torch --index-url https://download.pytorch.org/whl/cu121

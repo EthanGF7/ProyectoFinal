@@ -1,0 +1,28 @@
+{
+  "_README_": "Este JSON es generado AUTOMÁTICAMENTE por audio_analyzer.py. No necesitas editar nada.",
+
+  "bpm":                  128.5,
+  "bpm_confidence":       0.91,
+
+  "energia":              75.3,
+
+  "key":                  "Am",
+  "key_confidence":       0.84,
+
+  "duracion_segundos":    245.67,
+
+  "puede_salir":          221.1,
+
+  "intro_fin":            16.0,
+
+  "tiene_voz_inicio":     false,
+
+  "has_stems":            false,
+  "vocal_phrases":        [[32.0, 48.5], [96.0, 112.3]],
+
+  "structure_points":     [32.0, 64.0, 96.0, 160.0],
+
+  "beat_times":           [0, 0.47, 0.94, 1.41, 1.88],
+
+  "energia_por_segundo":  [70, 72, 75, 76, 78]
+}

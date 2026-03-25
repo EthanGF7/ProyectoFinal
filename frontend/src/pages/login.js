@@ -1,24 +1,116 @@
 // Página de inicio de sesión
-import BarraNavegacion from '../components/BarraNavegacion';
+import { useState } from 'react';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { supabase } from '../utils/supabase';
 
 export default function PaginaLogin() {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const router = useRouter();
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    setError(''); // Limpiar errores al escribir
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      // Intentar iniciar sesión con Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.user) {
+        setSuccess('¡Inicio de sesión exitoso! Redirigiendo...');
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Error de login:', error);
+      setError(error.message || 'Error al iniciar sesión');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="page-container">
-      <BarraNavegacion />
-      
-      {/* Formulario de inicio de sesión */}
-      <div className="form-content">
-        <h1 className="form-title">🔐 Iniciar Sesión</h1>
-        <p className="form-subtitle">Accede a tu cuenta de Discoteca Online</p>
+    <div className="auth-container">
+      <div className="auth-form">
+        <h1 className="auth-title">🎵 LOGIN</h1>
+        <p className="auth-subtitle">Accede a la pista de baile digital</p>
         
-        {/* Campos del formulario (próximamente funcionales) */}
-        <div className="form-field">
-          <p>📧 Email: (formulario próximamente)</p>
-          <p>🔑 Contraseña: (formulario próximamente)</p>
-          <p className="text-secondary">
-            ¿No tienes cuenta? Ve a Registro
-          </p>
-        </div>
+        {error && <div className="error-message">{error}</div>}
+        {success && <div className="success-message">{success}</div>}
+        
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="email" className="form-label">
+              📧 Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              className="form-input"
+              placeholder="tu@email.com"
+              value={formData.email}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password" className="form-label">
+              🔑 Contraseña
+            </label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              className="form-input"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            className="btn-primary"
+            disabled={loading}
+          >
+            {loading ? '🎵 Conectando...' : '🚀 Entrar a la Discoteca'}
+          </button>
+        </form>
+
+        <Link href="/registro" className="auth-link">
+          ¿No tienes cuenta? 🎉 Únete a la fiesta
+        </Link>
+
+        <Link href="/" className="btn-secondary">
+          🏠 Volver al Inicio
+        </Link>
       </div>
     </div>
   );

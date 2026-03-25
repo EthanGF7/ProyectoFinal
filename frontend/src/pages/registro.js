@@ -1,26 +1,196 @@
 // Página de registro de usuarios
-import BarraNavegacion from '../components/BarraNavegacion';
+import { useState } from 'react';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { supabase } from '../utils/supabase';
 
 export default function PaginaRegistro() {
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    tipoUsuario: 'usuario_normal'
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const router = useRouter();
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    setError(''); // Limpiar errores al escribir
+  };
+
+  const validateForm = () => {
+    if (formData.password !== formData.confirmPassword) {
+      setError('Las contraseñas no coinciden');
+      return false;
+    }
+    if (formData.password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      return false;
+    }
+    if (formData.username.length < 3) {
+      setError('El username debe tener al menos 3 caracteres');
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    if (!validateForm()) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Registrar usuario con Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            username: formData.username,
+            tipo_usuario: formData.tipoUsuario
+          }
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.user) {
+        setSuccess('¡Registro exitoso! Revisa tu email para confirmar tu cuenta.');
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Error de registro:', error);
+      setError(error.message || 'Error al registrar usuario');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="page-container">
-      <BarraNavegacion />
-      
-      {/* Formulario de registro */}
-      <div className="form-content">
-        <h1 className="form-title">📝 Registro</h1>
-        <p className="form-subtitle">Crea tu cuenta en Discoteca Online</p>
+    <div className="auth-container">
+      <div className="auth-form">
+        <h1 className="auth-title">🎉 REGISTRO</h1>
+        <p className="auth-subtitle">Únete a la mejor discoteca digital</p>
         
-        {/* Campos del formulario (próximamente funcionales) */}
-        <div className="form-field">
-          <p>👤 Username: (formulario próximamente)</p>
-          <p>📧 Email: (formulario próximamente)</p>
-          <p>🔑 Contraseña: (formulario próximamente)</p>
-          <p>🎭 Tipo de usuario: (Admin/DJ/Usuario)</p>
-          <p className="text-secondary">
-            ¿Ya tienes cuenta? Ve a Login
-          </p>
-        </div>
+        {error && <div className="error-message">{error}</div>}
+        {success && <div className="success-message">{success}</div>}
+        
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="username" className="form-label">
+              👤 Username
+            </label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              className="form-input"
+              placeholder="Tu nombre de DJ"
+              value={formData.username}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="email" className="form-label">
+              📧 Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              className="form-input"
+              placeholder="tu@email.com"
+              value={formData.email}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="tipoUsuario" className="form-label">
+              🎭 Tipo de Usuario
+            </label>
+            <select
+              id="tipoUsuario"
+              name="tipoUsuario"
+              className="form-select"
+              value={formData.tipoUsuario}
+              onChange={handleChange}
+              required
+            >
+              <option value="usuario_normal">🎵 Usuario Normal</option>
+              <option value="dj">🎧 DJ</option>
+              <option value="admin">⚙️ Administrador</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password" className="form-label">
+              🔑 Contraseña
+            </label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              className="form-input"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="confirmPassword" className="form-label">
+              🔒 Confirmar Contraseña
+            </label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              className="form-input"
+              placeholder="••••••••"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            className="btn-primary"
+            disabled={loading}
+          >
+            {loading ? '🎵 Creando cuenta...' : '🚀 Unirse a la Discoteca'}
+          </button>
+        </form>
+
+        <Link href="/login" className="auth-link">
+          ¿Ya tienes cuenta? 🎵 Inicia sesión
+        </Link>
+
+        <Link href="/" className="btn-secondary">
+          🏠 Volver al Inicio
+        </Link>
       </div>
     </div>
   );

@@ -1,12 +1,18 @@
 /* Estilos específicos para componentes */
 
-/* ===== BARRA DE NAVEGACIÓN ===== */
+/* ===== BARRA DE NAVEGACIÓN DISCOTECA ===== */
 .navbar {
-  background-color: #1a1a1a;
+  background: linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(26,10,46,0.9) 50%, rgba(0,0,0,0.9) 100%);
+  backdrop-filter: blur(10px);
+  border-bottom: 2px solid rgba(255, 0, 255, 0.3);
   padding: 15px 30px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(255, 0, 255, 0.2);
 }
 
 .navbar-logo {
@@ -14,10 +20,17 @@
   font-size: 24px;
   font-weight: bold;
   text-decoration: none;
+  background: linear-gradient(45deg, #ff00ff, #00ffff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+  transition: all 0.3s ease;
 }
 
 .navbar-logo:hover {
-  color: #fff;
+  text-shadow: 0 0 30px rgba(255, 0, 255, 0.8);
+  transform: scale(1.05);
   text-decoration: none;
 }
 
@@ -29,11 +42,16 @@
 .navbar-link {
   color: #fff;
   text-decoration: none;
-  transition: color 0.3s ease;
+  transition: all 0.3s ease;
+  padding: 8px 12px;
+  border-radius: 6px;
+  position: relative;
 }
 
 .navbar-link:hover {
-  color: #FBBF24;
+  color: #00ffff;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
+  background: rgba(0, 255, 255, 0.1);
   text-decoration: none;
 }
 
@@ -43,32 +61,35 @@
 }
 
 .navbar-login {
-  color: #fff;
+  color: #00ffff;
   text-decoration: none;
-  padding: 8px 16px;
-  border: 1px solid #fff;
-  border-radius: 4px;
+  padding: 10px 20px;
+  border: 2px solid rgba(0, 255, 255, 0.5);
+  border-radius: 8px;
   transition: all 0.3s ease;
+  background: rgba(0, 255, 255, 0.05);
 }
 
 .navbar-login:hover {
-  background-color: #fff;
-  color: #1a1a1a;
+  background: rgba(0, 255, 255, 0.2);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
   text-decoration: none;
+  transform: translateY(-2px);
 }
 
 .navbar-register {
   color: #000;
   text-decoration: none;
-  padding: 8px 16px;
-  background-color: #fff;
-  border-radius: 4px;
+  padding: 10px 20px;
+  background: linear-gradient(45deg, #ff00ff, #00ffff);
+  border-radius: 8px;
   transition: all 0.3s ease;
+  font-weight: bold;
 }
 
 .navbar-register:hover {
-  background-color: #FBBF24;
-  color: #000;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 0, 255, 0.4);
   text-decoration: none;
 }
 
@@ -102,25 +123,222 @@
   font-size: 1.1rem;
 }
 
-/* ===== FORMULARIOS ===== */
-.form-title {
-  font-size: 2rem;
+/* ===== FORMULARIOS DE DISCOTECA ===== */
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(138, 43, 226, 0.1) 0%, transparent 50%);
+}
+
+.auth-form {
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 0, 255, 0.4);
+  border-radius: 20px;
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 
+    0 0 40px rgba(255, 0, 255, 0.4),
+    0 0 80px rgba(0, 255, 255, 0.3),
+    inset 0 0 30px rgba(255, 255, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-form::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  background: linear-gradient(45deg, #ff0080, #00ff80, #8000ff, #ff0080);
+  border-radius: 20px;
+  z-index: -1;
+  animation: neonBorder 4s linear infinite;
+  opacity: 0.8;
+}
+
+@keyframes neonBorder {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.auth-title {
+  font-size: 2.5rem;
   margin-bottom: 10px;
+  text-align: center;
+  background: linear-gradient(45deg, #ff0080, #00ff80, #ff0080);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: neonText 2s ease-in-out infinite alternate;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+  font-weight: 900;
 }
 
-.form-subtitle {
-  color: #666;
+@keyframes neonText {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+.auth-subtitle {
+  color: #e0e0e0;
   margin-bottom: 30px;
+  text-align: center;
+  font-size: 1.1rem;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+  font-weight: 300;
 }
 
-.form-field {
-  margin-bottom: 15px;
+.form-group {
+  margin-bottom: 25px;
+  position: relative;
 }
 
-.form-field p {
-  margin: 8px 0;
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #00ff80;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(0, 255, 128, 0.4);
+}
+
+.form-input {
+  width: 100%;
+  padding: 15px 20px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(0, 255, 128, 0.4);
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+  font-weight: 500;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #00ffff;
+  box-shadow: 
+    0 0 20px rgba(0, 255, 255, 0.5),
+    inset 0 0 10px rgba(0, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.form-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.form-select {
+  width: 100%;
+  padding: 15px 20px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 0, 128, 0.4);
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+  font-weight: 500;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: #ff0080;
+  box-shadow: 
+    0 0 20px rgba(255, 0, 128, 0.5),
+    inset 0 0 10px rgba(255, 0, 128, 0.1);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(45deg, #ff0080, #00ff80);
+  border: none;
+  border-radius: 10px;
+  color: #000000;
+  font-size: 1.1rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 10px 25px rgba(255, 0, 255, 0.4),
+    0 0 30px rgba(0, 255, 255, 0.3);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 15px;
+}
+
+.btn-secondary:hover {
+  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+.auth-link {
+  display: block;
+  text-align: center;
+  margin-top: 20px;
+  color: #00ffff;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.auth-link:hover {
+  color: #ff00ff;
+  text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+}
+
+.error-message {
+  background: rgba(255, 0, 0, 0.1);
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 20px;
+  color: #ff6b6b;
+  text-align: center;
+}
+
+.success-message {
+  background: rgba(0, 255, 0, 0.1);
+  border: 1px solid rgba(0, 255, 0, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 20px;
+  color: #51cf66;
+  text-align: center;
 }
 
 /* ===== PÁGINAS DE CONTENIDO ===== */

@@ -55,6 +55,22 @@ export default function PaginaLogin() {
 
   return (
     <div className="auth-container">
+      {/* Vinilo animado de fondo */}
+      <div className="vinyl-background">
+        <div className="vinyl-glow"></div>
+        <div className="vinyl-record">
+          <div className="vinyl-grooves"></div>
+          <div className="vinyl-reflection"></div>
+        </div>
+      </div>
+      
+      {/* Partículas musicales flotantes */}
+      <div className="music-particles">
+        <div className="music-note">♪</div>
+        <div className="music-note">♫</div>
+        <div className="music-note">♪</div>
+      </div>
+      
       <div className="auth-form">
         <h1 className="auth-title">🎵 LOGIN</h1>
         <p className="auth-subtitle">Accede a la pista de baile digital</p>

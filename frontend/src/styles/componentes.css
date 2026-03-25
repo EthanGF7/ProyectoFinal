@@ -130,6 +130,240 @@
   align-items: center;
   justify-content: center;
   background: radial-gradient(ellipse at center, rgba(138, 43, 226, 0.1) 0%, transparent 50%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ===== VINILO ANIMADO DE FONDO ===== */
+.vinyl-background {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  opacity: 0.8;
+  max-width: 1200px;
+  max-height: 1200px;
+}
+
+.vinyl-record {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: 
+    radial-gradient(circle at center, #1a1a1a 15%, #000 16%, #000 20%, #1a1a1a 21%),
+    conic-gradient(from 0deg, #000, #1a1a1a, #000, #1a1a1a, #000);
+  position: relative;
+  animation: vinylSpin 8s linear infinite;
+  box-shadow: 
+    0 0 50px rgba(255, 0, 255, 0.3),
+    inset 0 0 100px rgba(0, 0, 0, 0.8);
+}
+
+.vinyl-record::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: 
+    radial-gradient(circle at center, #ff0080 20%, #00ff80 40%, #8000ff 60%, #ff0080 80%),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.2) 0%, transparent 50%);
+  box-shadow: 
+    0 0 60px rgba(255, 0, 255, 0.8),
+    0 0 120px rgba(0, 255, 128, 0.6),
+    inset 0 0 40px rgba(0, 0, 0, 0.6);
+  animation: vinylCenter 6s ease-in-out infinite alternate;
+}
+
+@keyframes vinylCenter {
+  0% { 
+    box-shadow: 
+      0 0 60px rgba(255, 0, 255, 0.8),
+      0 0 120px rgba(0, 255, 128, 0.6),
+      inset 0 0 40px rgba(0, 0, 0, 0.6);
+  }
+  100% { 
+    box-shadow: 
+      0 0 80px rgba(0, 255, 128, 0.9),
+      0 0 140px rgba(255, 0, 255, 0.7),
+      inset 0 0 50px rgba(0, 0, 0, 0.7);
+  }
+}
+
+.vinyl-record::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #000;
+  box-shadow: 
+    inset 0 0 20px rgba(255, 255, 255, 0.3),
+    0 0 20px rgba(0, 0, 0, 0.8);
+}
+
+.vinyl-grooves {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: 
+    repeating-radial-gradient(
+      circle at center,
+      transparent 0px,
+      rgba(255, 255, 255, 0.08) 2px,
+      transparent 4px,
+      rgba(0, 0, 0, 0.3) 6px,
+      transparent 8px
+    ),
+    repeating-conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      rgba(255, 255, 255, 0.05) 0.5deg,
+      transparent 1deg
+    );
+  animation: vinylGrooves 8s linear infinite;
+}
+
+@keyframes vinylGrooves {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.6; }
+}
+
+.vinyl-reflection {
+  position: absolute;
+  top: 10%;
+  left: 20%;
+  width: 60%;
+  height: 30%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  border-radius: 50%;
+  transform: rotate(-20deg);
+  animation: vinylReflection 4s ease-in-out infinite alternate;
+}
+
+@keyframes vinylSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes vinylReflection {
+  0% { opacity: 0.3; transform: rotate(-20deg) scale(1); }
+  100% { opacity: 0.6; transform: rotate(-25deg) scale(1.1); }
+}
+
+/* Partículas de música flotantes */
+.music-particles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.music-note {
+  position: absolute;
+  font-size: 24px;
+  animation: floatNote 6s ease-in-out infinite;
+  text-shadow: 0 0 10px currentColor;
+}
+
+.music-note:nth-child(1) {
+  top: 20%;
+  left: 15%;
+  color: rgba(255, 0, 128, 0.4);
+  animation-delay: 0s;
+}
+
+.music-note:nth-child(2) {
+  top: 60%;
+  right: 20%;
+  color: rgba(0, 255, 128, 0.4);
+  animation-delay: 2s;
+}
+
+.music-note:nth-child(3) {
+  bottom: 30%;
+  left: 25%;
+  color: rgba(128, 0, 255, 0.4);
+  animation-delay: 4s;
+}
+
+@keyframes floatNote {
+  0%, 100% { 
+    transform: translateY(0px) rotate(0deg) scale(1); 
+    opacity: 0.2; 
+  }
+  50% { 
+    transform: translateY(-30px) rotate(15deg) scale(1.2); 
+    opacity: 0.6; 
+  }
+}
+
+/* Efectos adicionales para el vinilo */
+.vinyl-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 110%;
+  height: 110%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    transparent 30%,
+    rgba(255, 0, 255, 0.3) 50%,
+    rgba(0, 255, 255, 0.2) 70%,
+    rgba(255, 0, 128, 0.1) 90%,
+    transparent 100%
+  );
+  animation: vinylGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes vinylGlow {
+  0% { 
+    transform: translate(-50%, -50%) scale(0.95) rotate(0deg);
+    opacity: 0.6;
+  }
+  100% { 
+    transform: translate(-50%, -50%) scale(1.1) rotate(180deg);
+    opacity: 0.9;
+  }
+}
+
+/* Mejoras en el vinilo para más realismo */
+.vinyl-record {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: 
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.15) 0%, transparent 25%),
+    radial-gradient(circle at center, #2a2a2a 12%, #000 13%, #000 17%, #2a2a2a 18%),
+    repeating-conic-gradient(from 0deg, #000 0deg, #1a1a1a 2deg, #000 4deg);
+  position: relative;
+  animation: vinylSpin 4s linear infinite;
+  box-shadow: 
+    0 0 100px rgba(255, 0, 255, 0.6),
+    0 0 200px rgba(0, 255, 255, 0.4),
+    inset 0 0 150px rgba(0, 0, 0, 0.9),
+    inset 0 0 80px rgba(255, 255, 255, 0.08);
 }
 
 .auth-form {
@@ -240,7 +474,7 @@
 .form-select {
   width: 100%;
   padding: 15px 20px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.8);
   border: 2px solid rgba(255, 0, 128, 0.4);
   border-radius: 10px;
   color: #ffffff;
@@ -256,7 +490,24 @@
   box-shadow: 
     0 0 20px rgba(255, 0, 128, 0.5),
     inset 0 0 10px rgba(255, 0, 128, 0.1);
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.form-select option {
+  background: #1a1a1a;
+  color: #ffffff;
+  padding: 10px;
+  font-weight: 500;
+}
+
+.form-select option:checked {
+  background: #ff0080;
+  color: #ffffff;
+}
+
+.form-select option:hover {
+  background: #333333;
+  color: #ffffff;
 }
 
 .btn-primary {
@@ -310,15 +561,17 @@
 .auth-link {
   display: block;
   text-align: center;
-  margin-top: 20px;
-  color: #00ffff;
+  margin: 30px 0;
+  color: #00ff80;
   text-decoration: none;
   transition: all 0.3s ease;
+  padding: 10px 0;
 }
 
 .auth-link:hover {
-  color: #ff00ff;
-  text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+  color: #ff0080;
+  text-shadow: 0 0 10px rgba(255, 0, 128, 0.5);
+  text-decoration: none;
 }
 
 .error-message {
@@ -503,4 +756,300 @@
 .admin-card p {
   margin: 5px 0;
   color: #666;
+}
+
+/* ===== POPUP DE VERIFICACIÓN ===== */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: popupFadeIn 0.3s ease-out;
+}
+
+@keyframes popupFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.popup-container {
+  position: relative;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: popupSlideIn 0.4s ease-out;
+}
+
+@keyframes popupSlideIn {
+  from { 
+    transform: translateY(-50px) scale(0.9);
+    opacity: 0;
+  }
+  to { 
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.popup-glow {
+  position: absolute;
+  top: -20px;
+  left: -20px;
+  right: -20px;
+  bottom: -20px;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 0, 255, 0.3) 0%,
+    rgba(0, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  border-radius: 30px;
+  animation: popupGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes popupGlow {
+  0% { 
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% { 
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+.popup-content {
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(255, 0, 255, 0.4);
+  border-radius: 20px;
+  padding: 40px 30px;
+  position: relative;
+  text-align: center;
+  box-shadow: 
+    0 0 50px rgba(255, 0, 255, 0.4),
+    0 0 100px rgba(0, 255, 255, 0.3),
+    inset 0 0 30px rgba(255, 255, 255, 0.05);
+}
+
+.popup-content::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #ff0080, #00ff80, #8000ff, #ff0080);
+  border-radius: 20px;
+  z-index: -1;
+  animation: neonBorder 3s linear infinite;
+  opacity: 0.7;
+}
+
+.popup-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  animation: popupBounce 2s ease-in-out infinite;
+}
+
+@keyframes popupBounce {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.popup-title {
+  font-size: 2rem;
+  margin-bottom: 15px;
+  background: linear-gradient(45deg, #ff0080, #00ff80, #ff0080);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: neonText 2s ease-in-out infinite alternate;
+  font-weight: 900;
+}
+
+.popup-message {
+  color: #e0e0e0;
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+  line-height: 1.5;
+}
+
+.popup-email {
+  background: rgba(255, 0, 255, 0.1);
+  border: 1px solid rgba(255, 0, 255, 0.3);
+  border-radius: 10px;
+  padding: 15px;
+  margin: 20px 0;
+  color: #00ff80;
+  font-weight: bold;
+  font-size: 1.1rem;
+  word-break: break-all;
+  text-shadow: 0 0 10px rgba(0, 255, 128, 0.3);
+}
+
+.popup-instructions {
+  color: #b0b0b0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 25px;
+}
+
+.popup-tips {
+  background: rgba(0, 255, 255, 0.05);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 15px;
+  margin: 20px 0;
+  text-align: left;
+}
+
+.popup-tips p {
+  color: #00ffff;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.popup-tips ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.popup-tips li {
+  color: #c0c0c0;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+}
+
+.popup-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 30px;
+  flex-wrap: wrap;
+}
+
+.popup-btn-primary {
+  flex: 1;
+  padding: 15px 20px;
+  background: linear-gradient(45deg, #ff0080, #00ff80);
+  border: none;
+  border-radius: 10px;
+  color: #000000;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.popup-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 0, 255, 0.4);
+}
+
+.popup-btn-secondary {
+  flex: 1;
+  padding: 15px 20px;
+  background: transparent;
+  border: 2px solid rgba(0, 255, 255, 0.4);
+  border-radius: 10px;
+  color: #00ffff;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.popup-btn-secondary:hover {
+  background: rgba(0, 255, 255, 0.1);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.popup-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.popup-close:hover {
+  background: rgba(255, 0, 0, 0.2);
+  color: #ff6b6b;
+  transform: rotate(90deg);
+}
+
+.popup-particles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+.popup-particle {
+  position: absolute;
+  font-size: 20px;
+  animation: popupFloat 4s ease-in-out infinite;
+  opacity: 0.6;
+}
+
+.popup-particle:nth-child(1) {
+  top: 10%;
+  left: 10%;
+  color: #ff0080;
+  animation-delay: 0s;
+}
+
+.popup-particle:nth-child(2) {
+  top: 20%;
+  right: 15%;
+  color: #00ff80;
+  animation-delay: 1s;
+}
+
+.popup-particle:nth-child(3) {
+  bottom: 20%;
+  left: 20%;
+  color: #8000ff;
+  animation-delay: 2s;
+}
+
+.popup-particle:nth-child(4) {
+  bottom: 10%;
+  right: 10%;
+  color: #00ffff;
+  animation-delay: 3s;
+}
+
+@keyframes popupFloat {
+  0%, 100% { 
+    transform: translateY(0px) rotate(0deg); 
+    opacity: 0.4; 
+  }
+  50% { 
+    transform: translateY(-20px) rotate(180deg); 
+    opacity: 0.8; 
+  }
 }

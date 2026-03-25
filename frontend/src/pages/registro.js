@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { supabase } from '../utils/supabase';
+import PopupVerificacion from '../components/PopupVerificacion';
 
 export default function PaginaRegistro() {
   const [formData, setFormData] = useState({
@@ -15,6 +16,7 @@ export default function PaginaRegistro() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showPopup, setShowPopup] = useState(false);
   const router = useRouter();
 
   const handleChange = (e) => {
@@ -71,9 +73,7 @@ export default function PaginaRegistro() {
 
       if (data.user) {
         setSuccess('¡Registro exitoso! Revisa tu email para confirmar tu cuenta.');
-        setTimeout(() => {
-          router.push('/login');
-        }, 3000);
+        setShowPopup(true);
       }
     } catch (error) {
       console.error('Error de registro:', error);
@@ -83,8 +83,32 @@ export default function PaginaRegistro() {
     }
   };
 
+  const handleClosePopup = () => {
+    setShowPopup(false);
+    // Redirigir al login después de cerrar el popup
+    setTimeout(() => {
+      router.push('/login');
+    }, 500);
+  };
+
   return (
     <div className="auth-container">
+      {/* Vinilo animado de fondo */}
+      <div className="vinyl-background">
+        <div className="vinyl-glow"></div>
+        <div className="vinyl-record">
+          <div className="vinyl-grooves"></div>
+          <div className="vinyl-reflection"></div>
+        </div>
+      </div>
+      
+      {/* Partículas musicales flotantes */}
+      <div className="music-particles">
+        <div className="music-note">♪</div>
+        <div className="music-note">♫</div>
+        <div className="music-note">♪</div>
+      </div>
+      
       <div className="auth-form">
         <h1 className="auth-title">🎉 REGISTRO</h1>
         <p className="auth-subtitle">Únete a la mejor discoteca digital</p>
@@ -192,6 +216,13 @@ export default function PaginaRegistro() {
           🏠 Volver al Inicio
         </Link>
       </div>
+
+      {/* Popup de verificación de email */}
+      <PopupVerificacion 
+        isOpen={showPopup}
+        onClose={handleClosePopup}
+        email={formData.email}
+      />
     </div>
   );
 }

@@ -1,7 +1,35 @@
 // Componente de la barra de navegación principal
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { supabase } from '../utils/supabase';
 
 export default function BarraNavegacion() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkUser();
+    
+    // Escuchar cambios en el estado de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const checkUser = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    } catch (error) {
+      console.error('Error al verificar usuario:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <nav className="navbar">
       {/* Logo y título de la aplicación */}
@@ -33,14 +61,24 @@ export default function BarraNavegacion() {
         </Link>
       </div>
 
-      {/* Botones de autenticación */}
+      {/* Enlaces de autenticación */}
       <div className="navbar-auth">
-        <Link href="/login" className="navbar-login">
-          Login
-        </Link>
-        <Link href="/registro" className="navbar-register">
-          Registro
-        </Link>
+        {user ? (
+          // Usuario autenticado - mostrar solo perfil
+          <Link href="/perfil" className="navbar-link">
+            👤 Perfil
+          </Link>
+        ) : (
+          // Usuario no autenticado - mostrar login y registro
+          <>
+            <Link href="/login" className="navbar-login">
+              Iniciar Sesión
+            </Link>
+            <Link href="/registro" className="navbar-register">
+              Registrarse
+            </Link>
+          </>
+        )}
       </div>
     </nav>
   );

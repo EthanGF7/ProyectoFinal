@@ -50,6 +50,7 @@ def load_library():
             "bpm":                  meta.get("bpm", 0),
             "energia":              meta.get("energia", 50),
             "key":                  meta.get("key", ""),
+            "estilo":               meta.get("estilo", ""),
             "duracion_segundos":    meta.get("duracion_segundos", 0),
             "puede_salir":          meta.get("puede_salir"),
             "puede_empezar_mezcla": meta.get("puede_empezar_mezcla"),
@@ -273,6 +274,11 @@ def score_track(candidate, current, phase, played_set, played_list=None):
     # 7. Factor humano — un DJ no es un algoritmo puro
     score += random.gauss(0, 4)
 
+    # 8. Preferencias del usuario (like/dislike)
+    pref = PREFS.get(candidate["file"], 0)
+    if pref == 1:   score += 18   # like: grande boost
+    elif pref == -1: score -= 50  # dislike: prácticamente descartada
+
     return max(0.0, score)
 
 
@@ -397,6 +403,26 @@ def build_plan(current, nxt, current_time, phase):
 
 
 # ══════════════════════════════════════════════════════════════
+#  PREFERENCIAS DE USUARIO (like/dislike)
+# ══════════════════════════════════════════════════════════════
+PREFS_FILE = BASE_DIR / "musica" / "preferencias.json"
+
+def load_prefs() -> dict:
+    """Carga preferencias: {file: 1 (like) | -1 (dislike)}"""
+    if PREFS_FILE.exists():
+        try:
+            return json.loads(PREFS_FILE.read_text(encoding="utf-8"))
+        except: pass
+    return {}
+
+def save_prefs(prefs: dict):
+    PREFS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    PREFS_FILE.write_text(json.dumps(prefs, indent=2, ensure_ascii=False), encoding="utf-8")
+
+PREFS = load_prefs()
+
+
+# ══════════════════════════════════════════════════════════════
 #  SERVER
 # ══════════════════════════════════════════════════════════════
 LIBRARY = load_library()
@@ -448,6 +474,10 @@ class Handler(BaseHTTPRequestHandler):
                 "target_energy": round(target_e, 1),
             }, default=str).encode(), "application/json")
 
+        elif p.path == "/api/prefs":
+            # Devuelve todas las preferencias actuales
+            self.ok(json.dumps(PREFS).encode(), "application/json")
+
         elif p.path.startswith("/audio/"):
             fname = urllib.parse.unquote(p.path[7:])
             fp    = SONGS_DIR / fname
@@ -461,6 +491,32 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", len(data))
             self.end_headers()
             self.wfile.write(data)
+        else:
+            self.send_error(404)
+
+    def do_POST(self):
+        p = urllib.parse.urlparse(self.path)
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length) if length else b"{}"
+        try:
+            data = json.loads(body)
+        except:
+            data = {}
+
+        if p.path == "/api/like":
+            file   = data.get("file", "")
+            action = data.get("action", "")  # "like", "dislike", "clear"
+            if file and action in ("like", "dislike", "clear"):
+                if action == "like":
+                    PREFS[file] = 1
+                elif action == "dislike":
+                    PREFS[file] = -1
+                else:
+                    PREFS.pop(file, None)
+                save_prefs(PREFS)
+                self.ok(json.dumps({"ok": True, "file": file, "action": action}).encode(), "application/json")
+            else:
+                self.ok(b'{"error":"invalid"}', "application/json")
         else:
             self.send_error(404)
 
@@ -573,6 +629,19 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
   color:rgba(100,160,255,.9);
   padding:2px 8px;border:1px solid rgba(100,160,255,.3);border-radius:3px;}
 .hud-dur{font-family:'IBM Plex Mono',monospace;font-size:10px;color:rgba(255,255,255,.25);}
+.hud-estilo{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;
+  color:rgba(255,200,80,.9);padding:2px 8px;border:1px solid rgba(255,200,80,.3);border-radius:3px;}
+
+#likeRow{display:flex;gap:8px;align-items:center;}
+.like-btn{background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:50%;
+  width:36px;height:36px;cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;pointer-events:all;}
+.like-btn:hover{border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.08);transform:scale(1.12);}
+.like-btn.active-like{border-color:rgba(80,220,120,.7);background:rgba(80,220,120,.15);
+  box-shadow:0 0 16px rgba(80,220,120,.4);}
+.like-btn.active-dislike{border-color:rgba(255,80,80,.7);background:rgba(255,80,80,.15);
+  box-shadow:0 0 16px rgba(255,80,80,.4);}
 
 .hud-right{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
 
@@ -628,12 +697,17 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
       <div class="hud-meta">
         <span class="hud-bpm" id="npBpm"></span>
         <span class="hud-key" id="npKey" style="display:none"></span>
+        <span class="hud-estilo" id="npEstilo" style="display:none"></span>
         <span class="hud-dur" id="npDur"></span>
       </div>
     </div>
     <div class="hud-right">
       <div id="phasePill" class="pill-warm-up">WARM</div>
       <div id="mixIndicator"><div class="mix-dot-ind"></div><span id="mixLabel">MIX</span></div>
+      <div id="likeRow">
+        <button class="like-btn" id="btnLike" onclick="sendLike('like')" title="Me gusta">👍</button>
+        <button class="like-btn" id="btnDislike" onclick="sendLike('dislike')" title="No me gusta">👎</button>
+      </div>
     </div>
   </div>
 </div>
@@ -828,6 +902,7 @@ async function boot() {
   S.lib  = await lr.json();
   const m = await mr.json();
   S.modOk = m.ok;
+  await loadPrefs();
 
   const mb = document.getElementById('modB');
   mb.textContent = S.modOk ? 'MÓDULOS OK' : 'FALLBACK';
@@ -1602,6 +1677,8 @@ function updateNP(t, phase) {
   if(durEl) durEl.textContent = t.duracion_segundos ? fmt(t.duracion_segundos) : '';
   const keyEl = document.getElementById('npKey');
   if(keyEl){ if(t.key){keyEl.textContent=t.key;keyEl.style.display='inline';}else keyEl.style.display='none'; }
+  const estiloEl = document.getElementById('npEstilo');
+  if(estiloEl){ if(t.estilo){estiloEl.textContent=t.estilo;estiloEl.style.display='inline';}else estiloEl.style.display='none'; }
 
   // BPM box (oculto, compat)
   const bv = document.getElementById('bpmVal');
@@ -1615,6 +1692,9 @@ function updateNP(t, phase) {
   // EQ visual reset
   const egyEl = document.getElementById('npEgy');
   if(egyEl) egyEl.textContent = t.energia ? 'E'+t.energia : '';
+
+  // Like/dislike state
+  updateLikeUI(t.file);
 }
 
 function updateArc(phase, targetE) {
@@ -1666,6 +1746,53 @@ function hideMixing() {
   if(ind) ind.className = '';
 }
 
+// ── Like / Dislike ────────────────────────────────────────────
+// S.prefs: {filename: 1||-1}  cargado al arrancar y actualizado en vivo
+S.prefs = {};
+
+async function loadPrefs() {
+  try {
+    const r = await fetch('/api/prefs');
+    S.prefs = await r.json();
+  } catch(e) {}
+}
+
+async function sendLike(action) {
+  if (!S.cur) return;
+  const file = S.cur.file;
+  // Toggle: si ya tiene esa acción, la borra (clear)
+  const current = S.prefs[file];
+  const sendAction = (action === 'like' && current === 1) || (action === 'dislike' && current === -1)
+    ? 'clear' : action;
+
+  try {
+    await fetch('/api/like', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ file, action: sendAction })
+    });
+    if (sendAction === 'like')    S.prefs[file] = 1;
+    else if (sendAction === 'dislike') S.prefs[file] = -1;
+    else delete S.prefs[file];
+    updateLikeUI(file);
+    // Feedback visual breve en el título
+    const titleEl = document.getElementById('npTitle');
+    if (titleEl) {
+      const orig = titleEl.textContent;
+      titleEl.textContent = sendAction === 'like' ? '👍 ¡Guardado!' : sendAction === 'dislike' ? '👎 Anotado' : '✓ Borrado';
+      setTimeout(() => { titleEl.textContent = orig; }, 1400);
+    }
+  } catch(e) {}
+}
+
+function updateLikeUI(file) {
+  const pref = S.prefs[file] || 0;
+  const bl = document.getElementById('btnLike');
+  const bd = document.getElementById('btnDislike');
+  if (bl) { bl.classList.toggle('active-like', pref === 1); }
+  if (bd) { bd.classList.toggle('active-dislike', pref === -1); }
+}
+
 function renderLib() {
   const list = document.getElementById('tlist');
   if (!S.lib.length) {
@@ -1682,11 +1809,12 @@ function renderLib() {
     const sC   = sc===null ? '' : sc>70?'hi':sc>40?'mi':'lo';
     return `<div class="tk ${iC?'cur':''} ${iN?'nxt':''} ${done?'done':''}">
       <div class="tn">${iC?'▶':iN?'→':done?'✓':i+1}</div>
-      <div class="tt">${t.name}</div>
+      <div class="tt">${t.name}${t.estilo?` <span class="tk-estilo">${t.estilo}</span>`:''}</div>
       <div class="te"><div class="tef" style="width:${t.energia||50}%"></div></div>
       <div class="tb ${bOk?'ok':'no'}">${t.bpm?t.bpm.toFixed(0)+'bpm':'—'}</div>
       <div class="ts ${sC}">${sc!==null?sc:'—'}</div>
       <div class="td">${t.duracion_segundos?fmt(t.duracion_segundos):'—'}</div>
+      <div class="tpref">${(S.prefs[t.file]===1)?'👍':(S.prefs[t.file]===-1)?'👎':''}</div>
     </div>`;
   }).join('');
 }

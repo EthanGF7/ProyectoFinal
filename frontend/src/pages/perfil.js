@@ -7,7 +7,6 @@ import BarraNavegacion from '../components/BarraNavegacion';
 
 export default function PaginaPerfil() {
   const [user, setUser] = useState(null);
-  const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editMode, setEditMode] = useState(false);
@@ -40,16 +39,8 @@ export default function PaginaPerfil() {
         confirmPassword: ''
       });
       
-      // Obtener información adicional del perfil si existe
-      const { data: profile } = await supabase
-        .from('app_users')
-        .select('*')
-        .eq('email', user.email)
-        .single();
-      
-      if (profile) {
-        setUserProfile(profile);
-      }
+      // La información del usuario viene directamente de Supabase Auth
+      // No necesitamos consultar una tabla adicional
     } catch (error) {
       console.error('Error al obtener usuario:', error);
       setError('Error al cargar el perfil');

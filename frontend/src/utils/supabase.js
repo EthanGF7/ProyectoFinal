@@ -17,10 +17,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Función para verificar la conexión
 export const verificarConexion = async () => {
   try {
-    const { data, error } = await supabase
-      .from('genres')
-      .select('*')
-      .limit(1);
+    // Verificar conexión usando auth en lugar de una tabla específica
+    const { data, error } = await supabase.auth.getSession();
     
     if (error) throw error;
     

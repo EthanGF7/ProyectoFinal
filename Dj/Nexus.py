@@ -59,6 +59,7 @@ def load_library():
             "tiene_voz_inicio":     meta.get("tiene_voz_inicio", False),
             "beat_times":           meta.get("beat_times", []),
             "energia_por_segundo":  meta.get("energia_por_segundo", []),
+            "start_position":       (lambda pem, intro: float(pem) if pem and float(pem) > 0 else (float(intro) if intro and float(intro) > 0 else 0.0))(meta.get("puede_empezar_mezcla"), meta.get("intro_fin")),
         })
     return tracks
 
@@ -1046,8 +1047,9 @@ async function begin(t) {
   S.sessionStartTime = ctx.currentTime;
   S.sessionTracks = [{ track: t, startCtxTime: ctx.currentTime, color: trackColor(0) }];
   updateNP(t, 'warm-up');
-  await playDeck('A', t, 0);
-  logMsg(`Iniciando: ${t.name}`);
+  const startPos = t.start_position ?? 0;
+  await playDeck('A', t, startPos);
+  logMsg(`Iniciando desde ${fmt(startPos)}: ${t.name}`);
   document.getElementById('btnSkip').disabled = false;
   renderLib();
   renderTimeline();

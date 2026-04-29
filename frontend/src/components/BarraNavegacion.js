@@ -11,12 +11,12 @@ export default function BarraNavegacion() {
     checkUser();
     
     // Escuchar cambios en el estado de autenticación
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => authListener?.subscription?.unsubscribe();
   }, []);
 
   const checkUser = async () => {

@@ -9,6 +9,7 @@ export default function PaginaPerfil() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({
     username: '',
@@ -38,6 +39,7 @@ export default function PaginaPerfil() {
         password: '',
         confirmPassword: ''
       });
+      setSuccess('');
       
       // La información del usuario viene directamente de Supabase Auth
       // No necesitamos consultar una tabla adicional
@@ -64,6 +66,7 @@ export default function PaginaPerfil() {
   const handleEditToggle = () => {
     setEditMode(!editMode);
     setError('');
+    setSuccess('');
   };
 
   const handleInputChange = (e) => {
@@ -71,12 +74,17 @@ export default function PaginaPerfil() {
       ...editData,
       [e.target.name]: e.target.value
     });
+    setSuccess('');
+    setError('');
   };
 
   const handleSaveProfile = async () => {
     try {
       setLoading(true);
       setError('');
+      setSuccess('');
+
+      const previousEmail = user?.email || '';
 
       // Validar contraseñas si se están cambiando
       if (editData.password && editData.password !== editData.confirmPassword) {
@@ -109,29 +117,52 @@ export default function PaginaPerfil() {
       }
 
       // Actualizar usuario en Supabase Auth
-      const { error } = await supabase.auth.updateUser(updateData);
+      const { data, error } = await supabase.auth.updateUser(updateData);
 
       if (error) throw error;
 
-      // Actualizar información local
-      setUser(prev => ({
-        ...prev,
-        email: editData.email,
-        user_metadata: {
-          ...prev.user_metadata,
-          username: editData.username
-        }
-      }));
+      // Obtener el usuario actualizado desde Supabase
+      const { data: refreshed } = await supabase.auth.getUser();
+      const refreshedUser = refreshed?.user;
+
+      if (refreshedUser) {
+        setUser(refreshedUser);
+        setEditData(prev => ({
+          ...prev,
+          username: refreshedUser.user_metadata?.username || editData.username,
+          email: refreshedUser.email || updateData.email || editData.email,
+          password: '',
+          confirmPassword: ''
+        }));
+      } else {
+        // Fallback en caso de que no se pueda obtener el usuario
+        setUser(prev => ({
+          ...prev,
+          email: updateData.email || prev?.email,
+          user_metadata: {
+            ...prev?.user_metadata,
+            username: editData.username
+          }
+        }));
+        setEditData(prev => ({
+          ...prev,
+          password: '',
+          confirmPassword: ''
+        }));
+      }
+
+      const emailChanged = updateData.email && updateData.email !== previousEmail;
+      const pendingEmail = data?.user?.email_change_sent_to;
+
+      if (emailChanged && pendingEmail) {
+        setSuccess(`Hemos enviado un correo de verificación a ${pendingEmail}. Confírmalo para completar el cambio.`);
+      } else if (emailChanged) {
+        setSuccess('Correo actualizado correctamente.');
+      } else {
+        setSuccess('Perfil actualizado correctamente.');
+      }
 
       setEditMode(false);
-      setError('');
-      
-      // Limpiar campos de contraseña
-      setEditData(prev => ({
-        ...prev,
-        password: '',
-        confirmPassword: ''
-      }));
 
     } catch (error) {
       console.error('Error al actualizar perfil:', error);
@@ -189,6 +220,7 @@ export default function PaginaPerfil() {
           </div>
 
           {error && <div className="error-message">{error}</div>}
+          {success && <div className="success-message">{success}</div>}
 
           <div className="profile-info">
             <div className="profile-card">

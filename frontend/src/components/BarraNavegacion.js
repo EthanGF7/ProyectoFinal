@@ -2,10 +2,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '../utils/supabase';
+import { useAppUser } from '../hooks/useAppUser';
 
 export default function BarraNavegacion() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { appUser, supabaseUser } = useAppUser();
 
   useEffect(() => {
     checkUser();
@@ -63,10 +65,21 @@ export default function BarraNavegacion() {
         {loading ? (
           <span className="navbar-placeholder" aria-hidden="true">&nbsp;</span>
         ) : user ? (
-          // Usuario autenticado - mostrar solo perfil
-          <Link href="/perfil" className="navbar-link">
-            👤 Perfil
-          </Link>
+          <>
+            <Link href="/perfil" className="navbar-link">
+              👤 Perfil
+            </Link>
+            {(appUser?.tipo_usuario === 'dj' || supabaseUser?.user_metadata?.tipo_usuario === 'dj') && (
+              <Link href="/dj" className="navbar-link">
+                🎧 Panel DJ
+              </Link>
+            )}
+            {(appUser?.tipo_usuario === 'admin' || supabaseUser?.user_metadata?.tipo_usuario === 'admin') && (
+              <Link href="/admin" className="navbar-link">
+                🛠️ Admin
+              </Link>
+            )}
+          </>
         ) : (
           // Usuario no autenticado - mostrar login y registro
           <>

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { supabase } from '../utils/supabase';
+import { syncUserProfile } from '../utils/profileSync';
 
 export default function PaginaLogin() {
   const [formData, setFormData] = useState({
@@ -40,6 +41,12 @@ export default function PaginaLogin() {
       }
 
       if (data.user) {
+        try {
+          await syncUserProfile();
+        } catch (syncError) {
+          console.warn('No se pudo sincronizar el perfil en el login:', syncError?.message || syncError);
+        }
+
         setSuccess('¡Inicio de sesión exitoso! Redirigiendo...');
         setTimeout(() => {
           router.push('/dashboard');

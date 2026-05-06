@@ -1,46 +1,8 @@
 // Página para explorar perfiles de DJs
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import BarraNavegacion from '../components/BarraNavegacion';
 import { useNeonCardEffects } from '../hooks/useNeonCardEffects';
-
-const djs = [
-  {
-    id: 'luna-vega',
-    emoji: '🌙',
-    name: 'Luna Vega',
-    tagline: 'Progressive house etéreo',
-    bio: 'Sets con pads envolventes, voces celestiales y drops que suben lentamente.',
-    stats: '18 playlists · 2.4K seguidores',
-    link: '/djs#luna-vega',
-  },
-  {
-    id: 'prisma',
-    emoji: '🔮',
-    name: 'DJ Prisma',
-    tagline: 'Synthwave / Future Funk',
-    bio: 'Remixes retrofuturistas con visuales 3D que sincronizan con cada beat.',
-    stats: '22 playlists · 3.1K seguidores',
-    link: '/djs#dj-prisma',
-  },
-  {
-    id: 'kora-beat',
-    emoji: '🪘',
-    name: 'Kora Beat',
-    tagline: 'Afrohouse & Latin Bass',
-    bio: 'Percusiones tribales con bajos densos para no parar de bailar.',
-    stats: '16 playlists · 2.8K seguidores',
-    link: '/djs#kora-beat',
-  },
-  {
-    id: 'arcanum',
-    emoji: '⚡',
-    name: 'Arcana Pulse',
-    tagline: 'Techno hipnótico',
-    bio: 'Capas industriales, vocal chops distorsionados y finales de sets explosivos.',
-    stats: '14 playlists · 1.6K seguidores',
-    link: '/djs#arcana-pulse',
-  },
-];
 
 const residencies = [
   {
@@ -56,12 +18,64 @@ const residencies = [
 ];
 
 export default function PaginaDJs() {
+  const [djs, setDjs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
   const {
     handleCardMouseMove,
     handleCardMouseLeave,
     handleCardMouseEnter,
     handleCardClick,
   } = useNeonCardEffects();
+
+  useEffect(() => {
+    const loadDjs = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        const response = await fetch('/api/djs');
+        if (!response.ok) {
+          throw new Error('No se pudieron cargar los DJs.');
+        }
+        const payload = await response.json();
+        setDjs(payload.djs || []);
+      } catch (err) {
+        console.error('[djs] Error cargando DJs:', err);
+        setError(err.message || 'No se pudieron cargar los DJs');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDjs();
+  }, []);
+
+  const preparedDjs = useMemo(() => {
+    return (djs || []).map((dj) => {
+      const badge = dj.nombre_artistico?.[0]?.toUpperCase() || '🎧';
+      let activoDesde = null;
+      if (dj.created_at) {
+        const parsed = new Date(dj.created_at);
+        if (!Number.isNaN(parsed.getTime())) {
+          activoDesde = parsed.toLocaleDateString('es-ES', {
+            month: 'short',
+            year: 'numeric',
+          });
+        }
+      }
+
+      const headlineParts = [dj.estilo_musical, dj.estilo_visual].filter(Boolean);
+
+      return {
+        ...dj,
+        badge,
+        activoDesde,
+        headline: headlineParts.join(' · '),
+        profileUrl: `/djs/${dj.id}`,
+      };
+    });
+  }, [djs]);
 
   return (
     <div className="page-container">
@@ -77,28 +91,40 @@ export default function PaginaDJs() {
             </p>
           </header>
 
-          <div className="neon-grid dj-profiles">
-            {djs.map((dj) => (
-              <Link
-                key={dj.id}
-                href={dj.link}
-                className="neon-card dj-card"
-                onMouseMove={handleCardMouseMove}
-                onMouseEnter={handleCardMouseEnter}
-                onMouseLeave={handleCardMouseLeave}
-                onClick={handleCardClick}
-              >
-                <div className="card-content">
-                  <div className="dj-badge">{dj.emoji}</div>
-                  <h3>{dj.name}</h3>
-                  <div className="card-meta">{dj.tagline}</div>
-                  <p>{dj.bio}</p>
-                  <span className="dj-stats">{dj.stats}</span>
-                  <span className="card-link">Ver perfil →</span>
-                </div>
-              </Link>
-            ))}
-          </div>
+          {loading ? (
+            <div className="admin-loading">
+              <div className="loading-spinner"></div>
+              <p>Iluminando la cabina...</p>
+            </div>
+          ) : error ? (
+            <div className="error-message">{error}</div>
+          ) : preparedDjs.length === 0 ? (
+            <div className="admin-empty">Aún no hay DJs activos. ¡Pronto llegará el primer line-up!</div>
+          ) : (
+            <div className="neon-grid dj-profiles">
+              {preparedDjs.map((dj) => (
+                <Link
+                  key={dj.id}
+                  href={dj.profileUrl}
+                  className="neon-card dj-card"
+                  onMouseMove={handleCardMouseMove}
+                  onMouseEnter={handleCardMouseEnter}
+                  onMouseLeave={handleCardMouseLeave}
+                  onClick={handleCardClick}
+                >
+                  <div className="card-content">
+                    <div className="dj-badge">{dj.badge}</div>
+                    <h3>{dj.nombre_artistico}</h3>
+                    {dj.headline && <div className="card-meta">{dj.headline}</div>}
+                    {dj.bio && <p>{dj.bio}</p>}
+                    <p className="chip">Playlists destacadas: {dj.playlists_count || 0}</p>
+                    {dj.activoDesde && <span className="dj-stats">Activo desde {dj.activoDesde}</span>}
+                    <span className="card-link">Ver perfil →</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="neon-section">

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { supabase } from '../utils/supabase';
+import { syncUserProfile } from '../utils/profileSync';
 import PopupVerificacion from '../components/PopupVerificacion';
 
 export default function PaginaRegistro() {
@@ -56,13 +57,15 @@ export default function PaginaRegistro() {
 
     try {
       // Registrar usuario con Supabase Auth
+      const tipoSeleccionado = formData.tipoUsuario;
+
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
             username: formData.username,
-            tipo_usuario: formData.tipoUsuario
+            tipo_usuario: tipoSeleccionado
           }
         }
       });
@@ -72,6 +75,15 @@ export default function PaginaRegistro() {
       }
 
       if (data.user) {
+        try {
+          await syncUserProfile({
+            username: formData.username,
+            tipoUsuario: tipoSeleccionado,
+          });
+        } catch (syncError) {
+          console.warn('No se pudo sincronizar el perfil inmediatamente:', syncError?.message || syncError);
+        }
+
         setSuccess('¡Registro exitoso! Revisa tu email para confirmar tu cuenta.');
         setShowPopup(true);
       }

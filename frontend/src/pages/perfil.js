@@ -1,8 +1,10 @@
 // Página de perfil de usuario
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { supabase } from '../utils/supabase';
+import { createDjRequest, fetchOwnDjRequest } from '../utils/djRequests';
+import { useAppUser } from '../hooks/useAppUser';
 import BarraNavegacion from '../components/BarraNavegacion';
 
 export default function PaginaPerfil() {
@@ -10,7 +12,11 @@ export default function PaginaPerfil() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const { appUser, supabaseUser } = useAppUser();
   const [editMode, setEditMode] = useState(false);
+  const [djRequest, setDjRequest] = useState(null);
+  const [djRequestLoading, setDjRequestLoading] = useState(false);
+  const [djRequestMessage, setDjRequestMessage] = useState('');
   const [editData, setEditData] = useState({
     username: '',
     email: '',
@@ -201,6 +207,62 @@ export default function PaginaPerfil() {
     }
   };
 
+  const loadDjRequest = async () => {
+    try {
+      setDjRequestLoading(true);
+      const request = await fetchOwnDjRequest();
+      setDjRequest(request);
+    } catch (requestError) {
+      console.error('Error al cargar solicitud DJ:', requestError);
+    } finally {
+      setDjRequestLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      loadDjRequest();
+    }
+  }, [user]);
+
+  const handleRequestDj = async () => {
+    try {
+      setDjRequestLoading(true);
+      const request = await createDjRequest({ message: djRequestMessage });
+      setDjRequest(request);
+      setSuccess('Solicitud enviada. Te avisaremos cuando sea revisada.');
+      setDjRequestMessage('');
+    } catch (requestError) {
+      console.error('Error al solicitar ser DJ:', requestError);
+      setError(requestError.message || 'No se pudo enviar la solicitud.');
+    } finally {
+      setDjRequestLoading(false);
+    }
+  };
+
+  const puedeSolicitarDj = useMemo(() => {
+    if (!user) return false;
+    const tipo = appUser?.tipo_usuario || supabaseUser?.user_metadata?.tipo_usuario;
+    if (tipo === 'dj' || tipo === 'admin') return false;
+    if (!djRequest) return true;
+    return djRequest.estado === 'rechazada';
+  }, [user, djRequest, appUser, supabaseUser]);
+
+  const estadoSolicitudDj = useMemo(() => {
+    if (!djRequest) return null;
+    const estado = djRequest.estado;
+    if (estado === 'pendiente') {
+      return 'Tu solicitud está siendo revisada.';
+    }
+    if (estado === 'aprobada') {
+      return '¡Solicitud aprobada! Ya puedes acceder al panel de DJ.';
+    }
+    if (estado === 'rechazada') {
+      return 'Solicitud rechazada. Puedes volver a intentarlo cuando quieras.';
+    }
+    return null;
+  }, [djRequest]);
+
   if (loading) {
     return (
       <div className="page-container">
@@ -297,8 +359,8 @@ export default function PaginaPerfil() {
               <div className="profile-field">
                 <label className="profile-label">🎭 Tipo de Usuario:</label>
                 <span className="profile-value profile-type">
-                  {user.user_metadata?.tipo_usuario === 'dj' ? '🎧 DJ' :
-                   user.user_metadata?.tipo_usuario === 'admin' ? '⚙️ Administrador' :
+                  {(appUser?.tipo_usuario || supabaseUser?.user_metadata?.tipo_usuario) === 'dj' ? '🎧 DJ' :
+                   (appUser?.tipo_usuario || supabaseUser?.user_metadata?.tipo_usuario) === 'admin' ? '⚙️ Administrador' :
                    '🎵 Usuario Normal'}
                 </span>
               </div>
@@ -340,8 +402,8 @@ export default function PaginaPerfil() {
             </div>
 
             <div className="profile-actions">
-              {editMode ? (
-                <div className="profile-edit-actions">
+            {editMode ? (
+              <div className="profile-edit-actions">
                   <button 
                     className="btn-primary"
                     onClick={handleSaveProfile}
@@ -364,7 +426,34 @@ export default function PaginaPerfil() {
                   ✏️ Editar Perfil
                 </button>
               )}
-              
+              {puedeSolicitarDj && (
+                <div className="dj-request-card">
+                  <h4>¿Quieres ser DJ?</h4>
+                  <p>Envíanos un mensaje corto explicando tu estilo y por qué quieres sumarte.</p>
+                  <textarea
+                    className="profile-textarea"
+                    value={djRequestMessage}
+                    onChange={(e) => setDjRequestMessage(e.target.value)}
+                    placeholder="Comparte tu experiencia y estilo musical"
+                    disabled={djRequestLoading}
+                  />
+                  <small className="dj-request-helper">Tu solicitud será revisada por el equipo de administración.</small>
+                  <button
+                    className="btn-secondary"
+                    onClick={handleRequestDj}
+                    disabled={djRequestLoading}
+                  >
+                    {djRequestLoading ? 'Enviando...' : 'Solicitar ser DJ'}
+                  </button>
+                </div>
+              )}
+
+              {estadoSolicitudDj && (
+                <div className="dj-request-status">
+                  {estadoSolicitudDj}
+                </div>
+              )}
+
               <button 
                 className="btn-logout"
                 onClick={handleLogout}

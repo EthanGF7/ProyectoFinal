@@ -19,28 +19,29 @@ export default function PaginaPerfil() {
   });
   const router = useRouter();
 
-  useEffect(() => {
-    checkUser();
-  }, []);
+  const fetchCurrentUser = async () => {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) throw error;
+    return data?.user || null;
+  };
 
   const checkUser = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
+      const refreshedUser = await fetchCurrentUser();
+      if (!refreshedUser) {
         router.push('/login');
         return;
       }
 
-      setUser(user);
+      setUser(refreshedUser);
       setEditData({
-        username: user.user_metadata?.username || '',
-        email: user.email || '',
+        username: refreshedUser.user_metadata?.username || '',
+        email: refreshedUser.email || '',
         password: '',
         confirmPassword: ''
       });
       setSuccess('');
-      
+
       // La información del usuario viene directamente de Supabase Auth
       // No necesitamos consultar una tabla adicional
     } catch (error) {
@@ -50,6 +51,20 @@ export default function PaginaPerfil() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    checkUser();
+  }, []);
+
+  useEffect(() => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
+        checkUser();
+      }
+    });
+
+    return () => subscription?.subscription?.unsubscribe();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -106,20 +121,50 @@ export default function PaginaPerfil() {
         }
       };
 
-      // Añadir email si ha cambiado
-      if (editData.email !== user.email) {
-        updateData.email = editData.email;
-      }
-
       // Añadir contraseña si se ha proporcionado
       if (editData.password) {
         updateData.password = editData.password;
       }
 
-      // Actualizar usuario en Supabase Auth
+      // Actualizar usuario en Supabase Auth (sin cambiar email aquí)
       const { data, error } = await supabase.auth.updateUser(updateData);
 
       if (error) throw error;
+
+      let emailChanged = false;
+
+      if (editData.email !== previousEmail) {
+        emailChanged = true;
+
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+
+        if (!token) {
+          throw new Error('No se pudo obtener el token de sesión. Vuelve a iniciar sesión.');
+        }
+
+        const response = await fetch('/api/profile/update-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ newEmail: editData.email })
+        });
+
+        if (!response.ok) {
+          let errorMessage = 'No se pudo actualizar el correo.';
+          try {
+            const errorResponse = await response.json();
+            if (errorResponse?.error) {
+              errorMessage = errorResponse.error;
+            }
+          } catch (parseError) {
+            // Ignorar error de parseo y usar mensaje genérico
+          }
+          throw new Error(errorMessage);
+        }
+      }
 
       // Obtener el usuario actualizado desde Supabase
       const { data: refreshed } = await supabase.auth.getUser();
@@ -127,36 +172,15 @@ export default function PaginaPerfil() {
 
       if (refreshedUser) {
         setUser(refreshedUser);
-        setEditData(prev => ({
-          ...prev,
+        setEditData({
           username: refreshedUser.user_metadata?.username || editData.username,
-          email: refreshedUser.email || updateData.email || editData.email,
+          email: refreshedUser.email || editData.email,
           password: '',
           confirmPassword: ''
-        }));
-      } else {
-        // Fallback en caso de que no se pueda obtener el usuario
-        setUser(prev => ({
-          ...prev,
-          email: updateData.email || prev?.email,
-          user_metadata: {
-            ...prev?.user_metadata,
-            username: editData.username
-          }
-        }));
-        setEditData(prev => ({
-          ...prev,
-          password: '',
-          confirmPassword: ''
-        }));
+        });
       }
 
-      const emailChanged = updateData.email && updateData.email !== previousEmail;
-      const pendingEmail = data?.user?.email_change_sent_to;
-
-      if (emailChanged && pendingEmail) {
-        setSuccess(`Hemos enviado un correo de verificación a ${pendingEmail}. Confírmalo para completar el cambio.`);
-      } else if (emailChanged) {
+      if (emailChanged) {
         setSuccess('Correo actualizado correctamente.');
       } else {
         setSuccess('Perfil actualizado correctamente.');
@@ -167,6 +191,11 @@ export default function PaginaPerfil() {
     } catch (error) {
       console.error('Error al actualizar perfil:', error);
       setError(error.message || 'Error al actualizar el perfil');
+      setEditData(prev => ({
+        ...prev,
+        password: '',
+        confirmPassword: ''
+      }));
     } finally {
       setLoading(false);
     }
@@ -264,6 +293,7 @@ export default function PaginaPerfil() {
                 )}
               </div>
 
+
               <div className="profile-field">
                 <label className="profile-label">🎭 Tipo de Usuario:</label>
                 <span className="profile-value profile-type">
@@ -343,6 +373,7 @@ export default function PaginaPerfil() {
               </button>
             </div>
           </div>
+
 
           <div className="profile-stats">
             <div className="profile-stat-card">

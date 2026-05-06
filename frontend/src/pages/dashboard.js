@@ -30,11 +30,7 @@ export default function PaginaDashboard() {
             <p>Ninguna canción reproduciéndose</p>
             <p className="help-text">(Reproductor próximamente)</p>
           </div>
-          <div className="dashboard-widget">
-            <h3>🤖 Última Recomendación</h3>
-            <p>El chatbot te recomendó:</p>
-            <p>"Electronic Vibes" para tu estado energético</p>
-          </div>
+          
         </div>
       </div>
     </div>

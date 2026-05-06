@@ -38,16 +38,5 @@ export const api = {
   obtenerGeneros: async () => {
     // Aquí irá la lógica para obtener géneros
     return [];
-  },
-
-  // Chatbot
-  iniciarChatbot: async () => {
-    // Aquí irá la lógica para iniciar chatbot
-    return {};
-  },
-
-  enviarRespuestaChatbot: async (respuesta) => {
-    // Aquí irá la lógica para enviar respuesta al chatbot
-    return {};
   }
 };

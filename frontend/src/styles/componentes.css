@@ -58,6 +58,12 @@
 .navbar-auth {
   display: flex;
   gap: 15px;
+  align-items: center;
+}
+
+.navbar-placeholder {
+  width: 100px;
+  display: inline-block;
 }
 
 .navbar-login {
@@ -644,43 +650,6 @@
   color: #666;
 }
 
-/* ===== CHATBOT ===== */
-.chatbot-container {
-  padding: 40px;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.chatbot-title {
-  font-size: 2rem;
-  margin-bottom: 10px;
-}
-
-.chatbot-subtitle {
-  color: #666;
-  margin-bottom: 30px;
-}
-
-.chatbot-chat {
-  margin-top: 30px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 20px;
-  background-color: #f9f9f9;
-}
-
-.chatbot-message {
-  margin-bottom: 20px;
-}
-
-.chatbot-options {
-  margin-bottom: 20px;
-}
-
-.chatbot-options p {
-  margin: 5px 0;
-  padding-left: 10px;
-}
 
 /* ===== EVENTOS TEMÁTICOS ===== */
 .event-active {
@@ -1277,16 +1246,18 @@
 }
 
 .btn-logout {
-  padding: 15px 30px;
+  width: 100%;
+  padding: 15px;
   background: linear-gradient(45deg, #ff4757, #ff6b7a);
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   color: #ffffff;
   font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
   text-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 5px 20px rgba(255, 71, 87, 0.25);
 }
 
 .btn-logout:hover {

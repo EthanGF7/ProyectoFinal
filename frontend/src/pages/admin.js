@@ -34,7 +34,7 @@ export default function PaginaAdmin() {
           <div className="admin-card">
             <h3>📊 Estadísticas</h3>
             <p>• Reproducciones hoy: 15,678</p>
-            <p>• Sesiones de chatbot: 234</p>
+            <p>• Usuarios activos: 534</p>
             <p>• Tiempo promedio: 45 min</p>
           </div>
         </div>

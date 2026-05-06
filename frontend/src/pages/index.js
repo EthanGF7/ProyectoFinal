@@ -15,7 +15,6 @@ export default function Home() {
         <div className="home-features">
           <h2>¿Qué quieres hacer?</h2>
           <p>• Escuchar playlists de tus DJs favoritos</p>
-          <p>• Usar nuestro chatbot para recomendaciones</p>
           <p>• Descubrir eventos temáticos</p>
         </div>
       </div>

@@ -1,6 +1,6 @@
 # Discoteca Online
 
-Discoteca Online es una plataforma web con estética neon/disco pensada para ofrecer a los usuarios una experiencia inmersiva de comunidad musical. El proyecto combina un **frontend en Next.js 14** con autenticación mediante **Supabase** y un **backend en FastAPI** preparado para futuras integraciones (chatbot, recomendaciones, etc.).
+Discoteca Online es una plataforma web con estética neon/disco pensada para ofrecer a los usuarios una experiencia inmersiva de comunidad musical. El proyecto combina un **frontend en Next.js 14** con autenticación mediante **Supabase** y un **backend en FastAPI** preparado para futuras integraciones (playlists, eventos, dashboards personalizados, etc.).
 
 La aplicación actual se centra en la experiencia de registro, acceso seguro y gestión del perfil del usuario, manteniendo una interfaz altamente visual con animaciones de vinilos, gradientes luminosos y componentes responsivos.
 
@@ -10,7 +10,7 @@ La aplicación actual se centra en la experiencia de registro, acceso seguro y g
 ProyectoFinal/
 ├── frontend/          # Aplicación Next.js (React) + Supabase
 │   ├── src/
-│   │   ├── pages/     # Rutas: login, registro, perfil, chatbot, etc.
+│   │   ├── pages/     # Rutas: login, registro, perfil, eventos, etc.
 │   │   ├── components/ # Reutilizables: barra de navegación, popup de verificación, ...
 │   │   └── styles/    # CSS Modules y hojas globales
 │   └── public/        # Recursos estáticos
@@ -32,7 +32,7 @@ ProyectoFinal/
   -Botón de cierre de sesión que limpia la sesión y redirige al inicio.
 - **Barra de navegación dinámica**: muestra enlaces a login/registro solo cuando el usuario no está autenticado y acceso directo al perfil cuando sí lo está.
 - **Tema disco-neón** consistente: gradientes, luces dinámicas, tarjetas con borde brillante, avatar generativo pulsante y componentes responsivos.
-- **Chatbot y páginas de contenido** (estructura preparada) para ampliar la experiencia musical.
+- **Páginas temáticas preparadas**: playlists, géneros, DJs, eventos y paneles administrativos listos para conectar con datos reales.
 
 ## 🛠 Tecnologías principales
 
@@ -133,7 +133,6 @@ src/
 │   ├── login.js                # Pantalla de acceso con vinilo animado
 │   ├── registro.js             # Formulario de alta + popup
 │   ├── perfil.js               # Perfil con edición de datos y logout
-│   ├── chatbot.js              # Vista placeholder para integraciones futuras
 │   └── api/profile/update-email.js # Endpoint interno para actualizar email
 └── styles/
     ├── componentes.css         # Estilos neon, animaciones y layout general
@@ -152,7 +151,7 @@ src/
 | `login.js` | Formulario de inicio de sesión con animación de vinilo. | `supabase.js` (cliente), `useRouter` | Redirige al dashboard tras login. |
 | `registro.js` | Alta de usuarios con validaciones y popup neon. | `supabase.js`, `PopupVerificacion` | Redirige a `/login` y muestra modal tras registro. |
 | `perfil.js` | Dashboard personal: muestra metadata, permite editar username/email/password y cerrar sesión. | `supabase.js`, `BarraNavegacion`, `/api/profile/update-email` | Actualiza Supabase Auth y la API interna para cambios de email; redirige a `/login` si no hay sesión. |
-| `chatbot.js`, `eventos.js`, `generos.js`, `djs.js`, `playlists.js`, `dashboard.js`, `admin.js` | Páginas temáticas/preparadas para ampliar contenido (listados, dashboards, panel de admin). | Componentes específicos (p.ej. `ChatbotRecomendaciones`, `PanelAdmin`) | Sirven como contenedores para futuras integraciones. |
+| `eventos.js`, `generos.js`, `djs.js`, `playlists.js`, `dashboard.js`, `admin.js` | Páginas temáticas/preparadas para ampliar contenido (listados, dashboards, panel de admin). | Componentes específicos (p.ej. `EventoTematico`, `PanelAdmin`) | Sirven como contenedores para futuras integraciones. |
 | `api/profile/update-email.js` | API Route que ejecuta en servidor Next. Usa la Service Role Key para cambiar el email directamente en Supabase sin verificación. | `@supabase/supabase-js`, variable `SUPABASE_SERVICE_ROLE_KEY` | Devuelve JSON con el nuevo email o error; consumido por `perfil.js`. |
 
 ### Frontend – Componentes (`src/components`)
@@ -161,7 +160,7 @@ src/
 |------------|---------|---------------|
 | `BarraNavegacion.js` | Navbar reactiva: consulta Supabase para mostrar login/registro o enlace al perfil. | Todas las páginas públicas y privadas. |
 | `PopupVerificacion.js` | Modal con animación neon que se lanza tras el registro para guiar la verificación. | `registro.js`. |
-| `ChatbotRecomendaciones.js`, `EventoTematico.js`, `ListaPlaylist.js`, `PanelAdmin.js`, `PerfilDJ.js`, `TarjetaPlaylist.js`, `ReproductorMusica.js` | Widgets preparados para listas de contenido, panel de admin, perfiles y reproductores. | Páginas temáticas (`chatbot.js`, `eventos.js`, `djs.js`, etc.). |
+| `EventoTematico.js`, `ListaPlaylist.js`, `PanelAdmin.js`, `PerfilDJ.js`, `TarjetaPlaylist.js`, `ReproductorMusica.js` | Widgets preparados para listas de contenido, panel de admin, perfiles y reproductores. | Páginas temáticas (`eventos.js`, `djs.js`, etc.). |
 | `FormularioLogin.js`, `FormularioRegistro.js` | Variantes minimalistas de formularios reutilizables. | Disponibles para integrar en futuras vistas o modales. |
 
 ### Frontend – Utilidades y estilos
@@ -176,7 +175,7 @@ src/
 |---------------|-------------|--------|
 | `main.py` | Inicializa FastAPI, configura CORS para `http://localhost:3000` y expone `/` y `/health`. | Operativo. |
 | `app/config/` | Espacio para settings y carga de variables (placeholders actuales). | Base preparada. |
-| `app/routes/*.py` | Esqueletos para autenticación, usuarios, playlists, géneros, eventos, canciones y chatbot. Cada archivo define funciones stub listas para implementar lógica. | En construcción (stubs). |
+| `app/routes/*.py` | Esqueletos para autenticación, usuarios, playlists, géneros, eventos y canciones. Cada archivo define funciones stub listas para implementar lógica. | En construcción (stubs). |
 | `app/controllers/`, `app/middleware/`, `app/utils/` | Carpetas vacías o con plantillas para alojar la lógica de negocio, middlewares personalizados y utilidades. | Preparado para expansión. |
 
 ### Comunicación entre capas
@@ -184,13 +183,13 @@ src/
 1. **Frontend ⇄ Supabase**: todas las páginas importan el cliente desde `src/utils/supabase.js`. `login.js`, `registro.js` y `perfil.js` consumen `supabase.auth` directamente.
 2. **Cambio directo de email**: `perfil.js` obtiene el token de sesión actual (`supabase.auth.getSession()`), lo envía en la cabecera `Authorization` hacia la API interna `/api/profile/update-email`. Esa ruta corre en el servidor de Next.js, crea un cliente de Supabase con la Service Role Key y llama a `supabaseAdmin.auth.admin.updateUserById`.
 3. **Estado de navegación**: `BarraNavegacion` escucha `supabase.auth.onAuthStateChange`, de modo que cualquier login/logout emitido desde otros componentes sincroniza la UI de inmediato.
-4. **Backend FastAPI**: aunque hoy no está conectado directamente, `main.py` queda listo para servir datos (por ejemplo, listas de eventos) que luego podrían ser consumidos con `fetch` desde `eventos.js` o `chatbot.js`.
+4. **Backend FastAPI**: aunque hoy no está conectado directamente, `main.py` queda listo para servir datos (por ejemplo, listas de eventos) que luego podrían ser consumidos con `fetch` desde `eventos.js` u otras páginas de contenido.
 
-## �🔮 Próximos pasos sugeridos
+## �� Próximos pasos sugeridos
 
 - Integrar servicios reales en el backend (recomendaciones musicales, eventos, etc.).
 - Añadir tests (Playwright / Jest) para flujos críticos de autenticación.
-- Sincronizar el chatbot con APIs externas o modelos propios.
+- Integrar recomendaciones automáticas futuramente (sin chatbot dedicado).
 - Internacionalización (i18n) y soporte multilenguaje.
 
 ## 📄 Licencia

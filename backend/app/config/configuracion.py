@@ -12,6 +12,3 @@ class Configuracion:
     
     # Configuración de playlists
     MAX_CANCIONES_POR_PLAYLIST = 100
-    
-    # Configuración del chatbot
-    MAX_PREGUNTAS_POR_SESION = 10

@@ -53,9 +53,6 @@ export default function BarraNavegacion() {
         <Link href="/djs" className="navbar-link">
           DJs
         </Link>
-        <Link href="/chatbot" className="navbar-link">
-          Chatbot
-        </Link>
         <Link href="/eventos" className="navbar-link">
           Eventos
         </Link>
@@ -63,7 +60,9 @@ export default function BarraNavegacion() {
 
       {/* Enlaces de autenticación */}
       <div className="navbar-auth">
-        {user ? (
+        {loading ? (
+          <span className="navbar-placeholder" aria-hidden="true">&nbsp;</span>
+        ) : user ? (
           // Usuario autenticado - mostrar solo perfil
           <Link href="/perfil" className="navbar-link">
             👤 Perfil

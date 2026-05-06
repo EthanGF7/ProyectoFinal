@@ -3,8 +3,15 @@
 import '../styles/globals.css';
 import '../styles/componentes.css';
 
+import CursorGlow from '../components/CursorGlow';
+
 export default function App({ Component, pageProps }) {
   // Component: la página actual que se está renderizando
   // pageProps: las props que se pasan a la página
-  return <Component {...pageProps} />
+  return (
+    <>
+      <CursorGlow />
+      <Component {...pageProps} />
+    </>
+  );
 }

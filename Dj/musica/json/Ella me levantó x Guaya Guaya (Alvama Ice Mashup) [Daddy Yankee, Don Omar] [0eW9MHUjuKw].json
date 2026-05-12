@@ -545,5 +545,6 @@
   "intro_fin": 12.0,
   "tiene_voz_inicio": false,
   "puede_empezar_mezcla": null,
-  "debe_sonar_sola": null
+  "debe_sonar_sola": null,
+  "estilo": "urbano"
 }

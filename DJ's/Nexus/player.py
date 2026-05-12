@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+
+
 """
 DJ AI - Live Player  |  python player.py  |  Dale Play. La IA hace todo.
 """
@@ -11,7 +13,12 @@ BASE_DIR  = Path(__file__).parent
 SRC_DIR   = BASE_DIR / "src"
 SONGS_DIR = BASE_DIR / "musica" / "canciones"
 JSON_DIR  = BASE_DIR / "musica" / "json"
-PORT      = 8765
+
+import argparse
+parser = argparse.ArgumentParser(description='Inicia el player local del DJ')
+parser.add_argument('--port', type=int, default=8765, help='Puerto HTTP del player')
+args = parser.parse_args()
+PORT = args.port
 
 sys.path.insert(0, str(SRC_DIR))
 
@@ -393,6 +400,13 @@ LIBRARY = load_library()
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
 
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+
     def do_GET(self):
         p  = urllib.parse.urlparse(self.path)
         qs = urllib.parse.parse_qs(p.query)
@@ -457,6 +471,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", f"{ct}; charset=utf-8")
         self.send_header("Content-Length", len(data))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
         self.wfile.write(data)
 

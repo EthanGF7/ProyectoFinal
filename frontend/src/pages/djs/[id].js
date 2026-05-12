@@ -1,7 +1,7 @@
 // Ficha pública de un DJ con sus playlists
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import BarraNavegacion from '../../components/BarraNavegacion';
 import { useNeonCardEffects } from '../../hooks/useNeonCardEffects';
 
@@ -20,6 +20,10 @@ export default function FichaDj() {
   const { id } = router.query;
   const [dj, setDj] = useState(null);
   const [playlists, setPlaylists] = useState([]);
+  const [audioFiles, setAudioFiles] = useState([]);
+  const [currentTrack, setCurrentTrack] = useState(null);
+  const [playerVisible, setPlayerVisible] = useState(false);
+  const [launchingPlayer, setLaunchingPlayer] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -45,6 +49,8 @@ export default function FichaDj() {
         const payload = await response.json();
         setDj(payload.dj || null);
         setPlaylists(payload.playlists || []);
+        setAudioFiles(payload.audioFiles || []);
+        setCurrentTrack((payload.audioFiles || [])[0] || null);
       } catch (err) {
         console.error('[djs/:id] Error cargando DJ:', err);
         setError(err.message || 'No se pudo cargar la ficha del DJ');
@@ -61,6 +67,47 @@ export default function FichaDj() {
     const segments = [dj.estilo_musical, dj.estilo_visual].filter((value) => value);
     return segments.join(' · ');
   }, [dj]);
+
+  const handleLaunchPlayer = async () => {
+    if (!dj?.isLocal || !id) return;
+
+    setLaunchingPlayer(true);
+    try {
+      const response = await fetch(`/api/djs/${id}/launch`);
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || 'No se pudo arrancar el player local');
+      }
+      const payload = await response.json();
+      const port = payload.port || 8765;
+
+      const tryOpen = async () => {
+        const maxAttempts = 10;
+        const url = `http://localhost:${port}`;
+        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+          try {
+            const response = await fetch(url);
+            if (response.ok) {
+              window.open(url, '_blank');
+              return;
+            }
+          } catch (err) {
+            // Ignorar errores de conexión
+          }
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+        // Abrir de todas formas después de los intentos
+        window.open(url, '_blank');
+      };
+
+      await tryOpen();
+    } catch (err) {
+      console.error('[djs/:id] Error arrancando player:', err);
+      alert(err.message || 'No se pudo arrancar el player local');
+    } finally {
+      setLaunchingPlayer(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -112,6 +159,71 @@ export default function FichaDj() {
               ← Volver al catálogo de DJs
             </Link>
           </header>
+
+          <section className="dj-player-section">
+            <header className="dj-subheader player-header">
+              <div>
+                <h2>Player del DJ</h2>
+                <p>Escucha la sesión del DJ seleccionado.</p>
+              </div>
+              <div className="player-actions">
+                {dj.isLocal && (
+                  <button
+                    type="button"
+                    className="player-open-link"
+                    onClick={handleLaunchPlayer}
+                    disabled={launchingPlayer}
+                  >
+                    {launchingPlayer ? 'Arrancando player...' : 'Abrir player local'}
+                  </button>
+                )}
+                {audioFiles.length > 0 && (
+                  <button
+                    type="button"
+                    className="player-toggle-button"
+                    onClick={() => setPlayerVisible((visible) => !visible)}
+                  >
+                    {playerVisible ? 'Cerrar player' : 'Abrir player'}
+                  </button>
+                )}
+              </div>
+            </header>
+
+            {audioFiles.length > 0 ? (
+              playerVisible ? (
+                <div className="dj-audio-panel">
+                  <div className="dj-audio-player">
+                    <audio
+                      controls
+                      src={currentTrack?.url}
+                      preload="metadata"
+                      className="audio-player"
+                    />
+                  </div>
+                  <div className="dj-track-list">
+                    {audioFiles.map((file) => (
+                      <button
+                        key={file.name}
+                        type="button"
+                        className={`track-button ${currentTrack?.name === file.name ? 'active' : ''}`}
+                        onClick={() => setCurrentTrack(file)}
+                      >
+                        {file.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="player-placeholder">
+                  <p>Pulsa el botón para abrir el reproductor del DJ.</p>
+                </div>
+              )
+            ) : (
+              <div className="admin-empty">
+                Aún no hay audio disponible para este DJ.
+              </div>
+            )}
+          </section>
 
           <section className="dj-playlists-public">
             <header className="dj-subheader">

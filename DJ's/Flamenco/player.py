@@ -11,7 +11,12 @@ BASE_DIR  = Path(__file__).parent
 SRC_DIR   = BASE_DIR / "src"
 SONGS_DIR = BASE_DIR / "musica" / "canciones"
 JSON_DIR  = BASE_DIR / "musica" / "json"
-PORT      = 8765
+
+import argparse
+parser = argparse.ArgumentParser(description='Inicia el player local del DJ')
+parser.add_argument('--port', type=int, default=8765, help='Puerto HTTP del player')
+args = parser.parse_args()
+PORT      = args.port
 
 sys.path.insert(0, str(SRC_DIR))
 
@@ -457,6 +462,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", f"{ct}; charset=utf-8")
         self.send_header("Content-Length", len(data))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
         self.wfile.write(data)
 

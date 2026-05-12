@@ -11,7 +11,12 @@ BASE_DIR  = Path(__file__).parent
 SRC_DIR   = BASE_DIR / "src"
 SONGS_DIR = BASE_DIR / "musica" / "canciones"
 JSON_DIR  = BASE_DIR / "musica" / "json"
-PORT      = 8765
+
+import argparse
+parser = argparse.ArgumentParser(description='Inicia el player local del DJ')
+parser.add_argument('--port', type=int, default=8765, help='Puerto HTTP del player')
+args = parser.parse_args()
+PORT      = args.port
 
 sys.path.insert(0, str(SRC_DIR))
 

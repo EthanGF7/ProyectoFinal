@@ -50,6 +50,7 @@ def load_library():
             "bpm":                  meta.get("bpm", 0),
             "energia":              meta.get("energia", 50),
             "key":                  meta.get("key", ""),
+            "estilo":               meta.get("estilo", ""),
             "duracion_segundos":    meta.get("duracion_segundos", 0),
             "puede_salir":          meta.get("puede_salir"),
             "puede_empezar_mezcla": meta.get("puede_empezar_mezcla"),
@@ -140,6 +141,14 @@ def detect_style(phase, e_current, e_next, bpm_current, bpm_next):
     diff = abs(e_next - e_current)
     bpm_diff = abs((bpm_current or 0) - (bpm_next or 0))
 
+    # Fusion: BPM muy parecido + tonalidad compatible + energías similares
+    # Las dos canciones suenan juntas durante mucho tiempo como una sola
+    # Se activa con probabilidad ~35% cuando las condiciones son buenas
+    bpm  = bpm_current or bpm_next or 120
+    if bpm_diff <= 6 and diff <= 15 and bpm >= 110:
+        if random.random() < 0.35:
+            return "fusion"
+
     # Progressive: BPM casi idéntico + energía parecida → mezcla técnica perfecta
     if bpm_diff <= 3 and diff <= 12 and bpm >= 115:
         return "progressive"
@@ -181,6 +190,10 @@ def fade_duration(phase, e_current, e_next, style="guetta"):
     """
     _, _, _, base = phase
     diff = e_next - e_current
+
+    if style == "fusion":
+        # Las dos canciones conviven mucho tiempo — blend largo y equilibrado
+        return 38.0 if abs(diff) <= 10 else 32.0
 
     if style == "progressive":
         # Mezcla técnica: larga y gradual — los BPMs son casi iguales
@@ -261,6 +274,11 @@ def score_track(candidate, current, phase, played_set, played_list=None):
 
     # 7. Factor humano — un DJ no es un algoritmo puro
     score += random.gauss(0, 4)
+
+    # 8. Preferencias del usuario (like/dislike)
+    pref = PREFS.get(candidate["file"], 0)
+    if pref == 1:   score += 18   # like: grande boost
+    elif pref == -1: score -= 50  # dislike: prácticamente descartada
 
     return max(0.0, score)
 
@@ -386,6 +404,26 @@ def build_plan(current, nxt, current_time, phase):
 
 
 # ══════════════════════════════════════════════════════════════
+#  PREFERENCIAS DE USUARIO (like/dislike)
+# ══════════════════════════════════════════════════════════════
+PREFS_FILE = BASE_DIR / "musica" / "preferencias.json"
+
+def load_prefs() -> dict:
+    """Carga preferencias: {file: 1 (like) | -1 (dislike)}"""
+    if PREFS_FILE.exists():
+        try:
+            return json.loads(PREFS_FILE.read_text(encoding="utf-8"))
+        except: pass
+    return {}
+
+def save_prefs(prefs: dict):
+    PREFS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    PREFS_FILE.write_text(json.dumps(prefs, indent=2, ensure_ascii=False), encoding="utf-8")
+
+PREFS = load_prefs()
+
+
+# ══════════════════════════════════════════════════════════════
 #  SERVER
 # ══════════════════════════════════════════════════════════════
 LIBRARY = load_library()
@@ -437,6 +475,10 @@ class Handler(BaseHTTPRequestHandler):
                 "target_energy": round(target_e, 1),
             }, default=str).encode(), "application/json")
 
+        elif p.path == "/api/prefs":
+            # Devuelve todas las preferencias actuales
+            self.ok(json.dumps(PREFS).encode(), "application/json")
+
         elif p.path.startswith("/audio/"):
             fname = urllib.parse.unquote(p.path[7:])
             fp    = SONGS_DIR / fname
@@ -450,6 +492,32 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", len(data))
             self.end_headers()
             self.wfile.write(data)
+        else:
+            self.send_error(404)
+
+    def do_POST(self):
+        p = urllib.parse.urlparse(self.path)
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length) if length else b"{}"
+        try:
+            data = json.loads(body)
+        except:
+            data = {}
+
+        if p.path == "/api/like":
+            file   = data.get("file", "")
+            action = data.get("action", "")  # "like", "dislike", "clear"
+            if file and action in ("like", "dislike", "clear"):
+                if action == "like":
+                    PREFS[file] = 1
+                elif action == "dislike":
+                    PREFS[file] = -1
+                else:
+                    PREFS.pop(file, None)
+                save_prefs(PREFS)
+                self.ok(json.dumps({"ok": True, "file": file, "action": action}).encode(), "application/json")
+            else:
+                self.ok(b'{"error":"invalid"}', "application/json")
         else:
             self.send_error(404)
 
@@ -469,448 +537,245 @@ HTML = r"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>DJ AI</title>
+<title>NEXUS</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;600&display=swap');
-:root{
-  --bg:#07080f; --s1:#0d0f1c; --s2:#12152a; --b:#1c2040;
-  --g:#c8ff00;  --c:#00f0ff;  --r:#ff3b5c; --o:#ff9500; --p:#b060ff;
-  --t:#dde2ff;  --dim:#3d4466;
-}
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=IBM+Plex+Mono:wght@400;700&family=DM+Sans:wght@300;400;600&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;overflow:hidden}
-body{background:var(--bg);color:var(--t);font-family:'DM Sans',sans-serif;
-  display:flex;align-items:center;justify-content:center;}
-body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
-  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.035) 3px,rgba(0,0,0,.035) 4px);}
+html,body{height:100%;overflow:hidden;background:#000;}
+body{font-family:'DM Sans',sans-serif;}
 
-/* ── IDLE ──────────────────────────────────────────────────── */
+/* Scanlines */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 3px);}
+
+/* ── IDLE ─────────────────────────────────────────────── */
 #idle{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:28px;z-index:100;background:var(--bg);
-  transition:opacity .9s,visibility .9s;}
+  justify-content:center;gap:36px;z-index:100;background:#000;
+  transition:opacity 1.4s,visibility 1.4s;}
 #idle.off{opacity:0;visibility:hidden;pointer-events:none}
 
-.idle-logo{font-family:'Bebas Neue',sans-serif;
-  font-size:clamp(72px,15vw,140px);letter-spacing:12px;
-  background:linear-gradient(135deg,var(--g) 30%,var(--c));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  animation:logopulse 3s ease-in-out infinite;}
-@keyframes logopulse{
-  0%,100%{filter:drop-shadow(0 0 20px rgba(200,255,0,.3))}
-  50%    {filter:drop-shadow(0 0 60px rgba(200,255,0,.7)) drop-shadow(0 0 120px rgba(0,240,255,.3))}}
-
-.idle-sub{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:4px;
-  color:var(--dim);text-transform:uppercase;}
-
-.play-btn{width:100px;height:100px;border-radius:50%;background:var(--g);border:none;
-  cursor:pointer;font-size:38px;color:#000;font-weight:900;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 0 50px rgba(200,255,0,.4),0 0 100px rgba(200,255,0,.15);
-  transition:all .25s;position:relative;}
-.play-btn::before{content:'';position:absolute;inset:-4px;border-radius:50%;
-  border:1px solid rgba(200,255,0,.2);animation:ringgrow 2s ease-out infinite;}
-@keyframes ringgrow{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.4);opacity:0}}
-.play-btn:hover{transform:scale(1.09);box-shadow:0 0 80px rgba(200,255,0,.7),0 0 160px rgba(200,255,0,.25)}
-.play-btn:disabled{opacity:.3;cursor:not-allowed;transform:none;animation:none}
-.play-btn:disabled::before{display:none}
-.idle-info{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);}
-.idle-info b{color:var(--g)}
-
-/* ── APP ───────────────────────────────────────────────────── */
-#app{width:100%;max-width:860px;padding:12px;opacity:0;transition:opacity 1s;
-  pointer-events:none;display:flex;flex-direction:column;gap:8px;height:100vh;max-height:100vh;}
-#app.on{opacity:1;pointer-events:all}
-
-/* MAIN CARD */
-.card{background:var(--s1);border:1px solid var(--b);border-radius:16px;overflow:hidden;flex-shrink:0}
-
-/* ── VIZ (spectrum arriba) ─────────────────────────────────── */
-#viz{width:100%;height:52px;display:block;border-radius:10px 10px 0 0;
-  background:var(--bg);border:1px solid var(--b);border-bottom:none;flex-shrink:0}
-
-/* ── NOW PLAYING ───────────────────────────────────────────── */
-.np{padding:12px 18px 10px;border-bottom:1px solid var(--b);
-  display:flex;align-items:center;gap:14px}
-
-/* Vinyl animado */
-.vinyl{width:52px;height:52px;border-radius:50%;flex-shrink:0;position:relative;
+/* Nebula fondo en idle */
+#idle::before{content:'';position:absolute;inset:0;
   background:
-    radial-gradient(circle at 50% 50%,
-      #333 0%,#333 16%,transparent 17%,
-      rgba(255,255,255,.04) 35%,transparent 36%,
-      rgba(255,255,255,.02) 55%,transparent 56%,
-      #1a1a1a 80%
-    );
-  border:1px solid #2a2a2a;}
-.vinyl.spin{animation:vspin 1.8s linear infinite}
-@keyframes vspin{to{transform:rotate(360deg)}}
-.vinyl-dot{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:10px;height:10px;border-radius:50%;
-  background:radial-gradient(var(--g),rgba(200,255,0,.4));
-  box-shadow:0 0 8px var(--g)}
-.vinyl-groove{position:absolute;inset:6px;border-radius:50%;
-  border:1px solid rgba(255,255,255,.04)}
-.vinyl-groove2{position:absolute;inset:14px;border-radius:50%;
-  border:1px solid rgba(255,255,255,.03)}
+    radial-gradient(ellipse 80% 60% at 30% 40%, rgba(100,0,200,.18) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 70% 60%, rgba(0,60,180,.15) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 50% 20%, rgba(180,0,255,.1) 0%, transparent 50%);
+  pointer-events:none;}
 
-.np-info{flex:1;min-width:0}
-.np-lbl{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:3px;
-  color:var(--dim);text-transform:uppercase;margin-bottom:2px}
-.np-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(22px,3.8vw,34px);
-  letter-spacing:1px;line-height:1;margin-bottom:3px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.np-meta{display:flex;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:10px;
-  flex-wrap:wrap;align-items:center}
-.np-meta .bpm{color:var(--g);font-weight:700}
-.np-meta .egy{color:var(--c)}
-.np-meta .key{color:var(--p);font-size:9px;
-  padding:1px 5px;border-radius:5px;border:1px solid rgba(176,96,255,.25)}
-.np-meta .dm{color:var(--dim)}
+.idle-logo{font-family:'Orbitron',sans-serif;font-weight:900;
+  font-size:clamp(64px,14vw,140px);letter-spacing:20px;
+  color:#fff;
+  text-shadow:
+    0 0 40px rgba(140,80,255,.9),
+    0 0 80px rgba(140,80,255,.5),
+    0 0 160px rgba(80,120,255,.3);
+  animation:nexuspulse 4s ease-in-out infinite;}
+@keyframes nexuspulse{
+  0%,100%{text-shadow:0 0 40px rgba(140,80,255,.9),0 0 80px rgba(140,80,255,.5),0 0 160px rgba(80,120,255,.3);}
+  50%{text-shadow:0 0 60px rgba(180,100,255,1),0 0 120px rgba(140,80,255,.8),0 0 240px rgba(80,120,255,.5),0 0 400px rgba(60,80,200,.2);}}
+
+.idle-sub{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:6px;
+  color:rgba(160,120,255,.5);text-transform:uppercase;}
+
+.play-btn{width:100px;height:100px;border-radius:50%;
+  background:transparent;border:2px solid rgba(140,80,255,.6);
+  cursor:pointer;font-size:36px;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 40px rgba(140,80,255,.4),inset 0 0 30px rgba(140,80,255,.1);
+  transition:all .3s;position:relative;}
+.play-btn::before{content:'';position:absolute;inset:-6px;border-radius:50%;
+  border:1px solid rgba(140,80,255,.2);animation:ringgrow 2.5s ease-out infinite;}
+.play-btn::after{content:'';position:absolute;inset:-14px;border-radius:50%;
+  border:1px solid rgba(80,120,255,.1);animation:ringgrow 2.5s ease-out .6s infinite;}
+@keyframes ringgrow{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.6);opacity:0}}
+.play-btn:hover{border-color:rgba(180,120,255,.9);
+  box-shadow:0 0 80px rgba(140,80,255,.8),inset 0 0 50px rgba(140,80,255,.2);}
+.play-btn:disabled{opacity:.2;cursor:not-allowed;}
+.play-btn:disabled::before,.play-btn:disabled::after{display:none}
+.idle-info{font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(140,80,255,.4);}
+.idle-info b{color:rgba(180,140,255,.8)}
+
+/* ── STAGE — pantalla completa ────────────────────────── */
+#stage{position:fixed;inset:0;z-index:1;opacity:0;transition:opacity 1.6s;background:#000;}
+#stage.on{opacity:1;}
+
+#vizMain{position:absolute;inset:0;width:100%;height:100%;}
+#particles{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+
+/* ── HUD ─────────────────────────────────────────────── */
+#hud{position:absolute;bottom:0;left:0;right:0;
+  padding:0 52px 44px;
+  display:flex;align-items:flex-end;justify-content:space-between;
+  pointer-events:none;z-index:10;}
+#hud::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.4) 50%,transparent 100%);
+  pointer-events:none;}
+
+.hud-left{position:relative;z-index:1;max-width:75%;}
+.hud-label{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:5px;
+  text-transform:uppercase;color:rgba(140,80,255,.7);margin-bottom:8px;}
+
+#npTitle{font-family:'Orbitron',sans-serif;font-weight:700;
+  font-size:clamp(28px,4.5vw,68px);letter-spacing:2px;line-height:1;
+  color:#fff;
+  text-shadow:0 0 30px rgba(140,80,255,.5);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:text-shadow .08s;}
+#npTitle.beat-pulse{text-shadow:0 0 60px rgba(180,120,255,1),0 0 120px rgba(140,80,255,.7);}
+
+.hud-meta{display:flex;align-items:center;gap:18px;margin-top:10px;}
+.hud-bpm{font-family:'IBM Plex Mono',monospace;font-size:12px;
+  color:rgba(140,80,255,.9);font-weight:700;}
+.hud-key{font-family:'IBM Plex Mono',monospace;font-size:10px;
+  color:rgba(100,160,255,.9);
+  padding:2px 8px;border:1px solid rgba(100,160,255,.3);border-radius:3px;}
+.hud-dur{font-family:'IBM Plex Mono',monospace;font-size:10px;color:rgba(255,255,255,.25);}
+.hud-estilo{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;
+  color:rgba(255,200,80,.9);padding:2px 8px;border:1px solid rgba(255,200,80,.3);border-radius:3px;}
+
+#likeRow{display:flex;gap:8px;align-items:center;}
+.like-btn{background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:50%;
+  width:36px;height:36px;cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;pointer-events:all;}
+.like-btn:hover{border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.08);transform:scale(1.12);}
+.like-btn.active-like{border-color:rgba(80,220,120,.7);background:rgba(80,220,120,.15);
+  box-shadow:0 0 16px rgba(80,220,120,.4);}
+.like-btn.active-dislike{border-color:rgba(255,80,80,.7);background:rgba(255,80,80,.15);
+  box-shadow:0 0 16px rgba(255,80,80,.4);}
+
+.hud-right{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
 
 /* Phase pill */
-.pill{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1px;
-  text-transform:uppercase;padding:2px 8px;border-radius:8px;flex-shrink:0;
-  border:1px solid}
-.pill-warm-up     {color:var(--c);border-color:rgba(0,240,255,.25);background:rgba(0,240,255,.06)}
-.pill-first-build {color:var(--g);border-color:rgba(200,255,0,.2);background:rgba(200,255,0,.05)}
-.pill-first-peak  {color:var(--g);border-color:rgba(200,255,0,.4);background:rgba(200,255,0,.1);
-  animation:peakpulse 1.2s ease-in-out infinite}
-.pill-breakdown   {color:var(--o);border-color:rgba(255,149,0,.3);background:rgba(255,149,0,.07)}
-.pill-second-build{color:var(--g);border-color:rgba(200,255,0,.25);background:rgba(200,255,0,.06)}
-.pill-second-peak {color:var(--g);border-color:rgba(200,255,0,.5);background:rgba(200,255,0,.12);
-  animation:peakpulse .9s ease-in-out infinite}
-.pill-outro       {color:var(--dim);border-color:rgba(61,68,102,.4);background:rgba(61,68,102,.1)}
-@keyframes peakpulse{
-  0%,100%{box-shadow:none}50%{box-shadow:0 0 10px rgba(200,255,0,.35)}}
+#phasePill{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:3px;
+  text-transform:uppercase;padding:5px 14px;border-radius:20px;border:1px solid;transition:all .6s;}
+.pill-warm-up{color:rgba(100,160,255,.9);border-color:rgba(100,160,255,.3);background:rgba(100,160,255,.05)}
+.pill-first-build{color:rgba(140,80,255,.9);border-color:rgba(140,80,255,.4);background:rgba(140,80,255,.06)}
+.pill-first-peak{color:#fff;border-color:rgba(200,120,255,.6);background:rgba(180,80,255,.12);
+  animation:peakglow 1s ease-in-out infinite}
+.pill-breakdown{color:rgba(100,200,255,.9);border-color:rgba(100,200,255,.3);background:rgba(100,200,255,.05)}
+.pill-second-build{color:rgba(140,80,255,.9);border-color:rgba(140,80,255,.4);background:rgba(140,80,255,.06)}
+.pill-second-peak{color:#fff;border-color:rgba(220,140,255,.7);background:rgba(180,80,255,.15);
+  animation:peakglow .7s ease-in-out infinite}
+.pill-outro{color:rgba(255,255,255,.2);border-color:rgba(255,255,255,.1);background:transparent}
+@keyframes peakglow{0%,100%{box-shadow:none}50%{box-shadow:0 0 24px rgba(180,80,255,.7)}}
 
-/* ── WAVEFORM + PLAYHEAD ───────────────────────────────────── */
-.ww{padding:6px 18px;position:relative;border-bottom:1px solid var(--b);
-  user-select:none;-webkit-user-select:none}
-#wc{width:100%;height:42px;display:block;border-radius:5px;background:var(--s2);
-  cursor:col-resize}
-.ph{position:absolute;top:6px;bottom:6px;width:2px;
-  background:var(--g);box-shadow:0 0 8px var(--g);
-  pointer-events:none;border-radius:1px}
-.ph.scrubbing{background:white;box-shadow:0 0 12px white}
-.ph-handle{position:absolute;top:50%;transform:translate(-50%,-50%);
-  width:12px;height:12px;border-radius:50%;
-  background:var(--g);box-shadow:0 0 8px var(--g);
-  pointer-events:none;transition:transform .1s}
-.ph-handle.scrubbing{transform:translate(-50%,-50%) scale(1.5);background:white;box-shadow:0 0 12px white}
-.ww-tooltip{position:absolute;top:-22px;transform:translateX(-50%);
-  font-family:'IBM Plex Mono',monospace;font-size:9px;
-  background:rgba(0,0,0,.8);color:var(--t);padding:2px 6px;border-radius:4px;
-  pointer-events:none;opacity:0;transition:opacity .15s;white-space:nowrap}
-.ww-tooltip.show{opacity:1}
-.times{display:flex;justify-content:space-between;
-  font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-top:3px}
-.times .cur{color:var(--t)}
-
-/* ── EQ METERS (visual de lo que hace el EQ durante el mix) ── */
-.eq-row{padding:5px 18px;border-bottom:1px solid var(--b);
-  display:flex;gap:8px;align-items:center;opacity:0;transition:opacity .4s}
-.eq-row.on{opacity:1}
-.eq-lbl{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);
-  letter-spacing:1px;text-transform:uppercase;width:18px;flex-shrink:0}
-.eq-band{flex:1;height:3px;border-radius:2px;background:var(--s2);overflow:hidden;position:relative}
-.eq-fill{height:100%;border-radius:2px;transition:width .15s linear}
-.eq-fill.lo{background:linear-gradient(90deg,#ff3b5c,#ff6b35)}
-.eq-fill.mid{background:linear-gradient(90deg,#ff9500,var(--g))}
-.eq-fill.hi{background:linear-gradient(90deg,var(--g),var(--c))}
-.eq-sep{width:1px;background:var(--b);height:14px;flex-shrink:0}
-
-/* ── SESSION ARC ───────────────────────────────────────────── */
-.arc{padding:6px 18px;border-bottom:1px solid var(--b);
-  display:flex;align-items:center;gap:10px}
-.arc-lbl{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);
-  letter-spacing:1px;text-transform:uppercase;width:32px;flex-shrink:0}
-.arc-track{flex:1;height:18px;background:var(--s2);border-radius:4px;
-  position:relative;overflow:hidden}
-/* Curva de energía de la sesión dibujada como fondo */
-.arc-track::before{content:'';position:absolute;inset:0;
-  background:linear-gradient(90deg,
-    rgba(0,240,255,.15) 0%,
-    rgba(200,255,0,.25) 30%,
-    rgba(200,255,0,.4)  48%,
-    rgba(255,149,0,.2)  58%,
-    rgba(200,255,0,.35) 72%,
-    rgba(200,255,0,.45) 88%,
-    rgba(0,240,255,.1)  100%
-  );}
-.arc-cursor{position:absolute;top:0;bottom:0;width:3px;
-  background:white;box-shadow:0 0 8px white;
-  transition:left .9s cubic-bezier(.22,1,.36,1);border-radius:2px}
-.arc-phase{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);
-  flex-shrink:0;min-width:60px;text-align:right}
-
-/* ── MIX IN PROGRESS ───────────────────────────────────────── */
-.mix-row{padding:6px 18px;
-  border-bottom:1px solid rgba(200,255,0,.06);
-  font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;
+/* Mix indicator */
+#mixIndicator{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:3px;
+  text-transform:uppercase;padding:5px 14px;border-radius:20px;
   display:none;align-items:center;gap:8px;
-  transition:background .4s,color .4s,border-color .4s}
-.mix-row.on{display:flex}
-/* Guetta: verde lima agresivo */
-.mix-row.style-guetta{
-  background:rgba(200,255,0,.03);color:var(--g);
-  border-bottom-color:rgba(200,255,0,.08)}
-/* Avicii: naranja cálido suave */
-.mix-row.style-avicii{
-  background:rgba(255,149,0,.03);color:var(--o);
-  border-bottom-color:rgba(255,149,0,.08)}
-/* Progressive: cyan técnico */
-.mix-row.style-progressive{
-  background:rgba(0,240,255,.03);color:var(--c);
-  border-bottom-color:rgba(0,240,255,.08)}
-.mix-dot{width:5px;height:5px;border-radius:50%;
-  animation:blink .5s step-end infinite;flex-shrink:0}
-.style-guetta .mix-dot{background:var(--g)}
-.style-avicii .mix-dot{background:var(--o)}
-.style-progressive .mix-dot{background:var(--c)}
+  color:rgba(100,200,255,.9);border:1px solid rgba(100,200,255,.3);background:rgba(100,200,255,.05);}
+#mixIndicator.on{display:flex;}
+.mix-dot-ind{width:5px;height:5px;border-radius:50%;background:currentColor;
+  animation:blink .5s step-end infinite;}
 @keyframes blink{50%{opacity:0}}
-.mix-prog{flex:1;height:3px;background:var(--b);border-radius:2px;overflow:hidden}
-.mix-fill{height:100%;border-radius:2px;width:0%;transition:width .2s linear}
-.style-guetta .mix-fill{background:linear-gradient(90deg,var(--c),var(--g))}
-.style-avicii .mix-fill{background:linear-gradient(90deg,#ff6b35,var(--o))}
-.mix-label{font-size:8px;flex-shrink:0;opacity:.7;font-weight:700;letter-spacing:2px}
-.mix-info{color:var(--dim);flex-shrink:0;font-size:8px}
 
-/* ── NEXT UP ───────────────────────────────────────────────── */
-.nxt{padding:7px 18px;background:rgba(0,240,255,.018);
-  border-bottom:1px solid rgba(0,240,255,.05);
-  display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.nxt-lbl{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:2px;
-  color:var(--c);text-transform:uppercase;flex-shrink:0}
-.nxt-nm{font-size:12px;font-weight:600;flex:1;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nxt-sc{font-family:'IBM Plex Mono',monospace;font-size:8px;
-  padding:2px 6px;border-radius:7px;border:1px solid rgba(0,240,255,.18);
-  color:var(--c);flex-shrink:0}
-.nxt-t{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);flex-shrink:0}
-
-/* ── STATUS ────────────────────────────────────────────────── */
-.st{padding:7px 18px;display:flex;align-items:center;
-  justify-content:space-between;flex-wrap:wrap;gap:6px}
-.st-l{display:flex;align-items:center;gap:7px}
-.bx{background:var(--s2);border:1px solid var(--b);border-radius:7px;
-  padding:4px 11px;text-align:center;font-family:'IBM Plex Mono',monospace}
-.bx .v{font-size:17px;color:var(--g);font-weight:700;line-height:1}
-.bx .l{font-size:7px;color:var(--dim);letter-spacing:2px}
-.live{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:2px;
-  text-transform:uppercase;padding:2px 8px;border-radius:10px;
-  border:1px solid var(--g);color:var(--g);animation:blink 1.4s step-end infinite}
-.mod{font-family:'IBM Plex Mono',monospace;font-size:8px;padding:2px 8px;
-  border-radius:10px;border:1px solid}
-.mod.ok{border-color:rgba(0,240,255,.3);color:var(--c)}
-.mod.fb{border-color:var(--dim);color:var(--dim)}
-.skip-btn{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;
-  padding:3px 10px;border-radius:8px;border:1px solid rgba(200,255,0,.3);
-  background:rgba(200,255,0,.06);color:var(--g);cursor:pointer;transition:all .15s;}
-.skip-btn:hover{background:rgba(200,255,0,.15);border-color:var(--g)}
-.skip-btn:disabled{opacity:.3;cursor:not-allowed}
-#log{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);
-  max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-/* ── LIBRARY ───────────────────────────────────────────────── */
-.lib{background:var(--s1);border:1px solid var(--b);border-radius:14px;
-  overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column}
-.lib-h{padding:7px 14px;border-bottom:1px solid var(--b);
-  display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.lib-h h2{font-family:'IBM Plex Mono',monospace;font-size:8px;
-  letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
-.lib-h .cnt{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--g)}
-.tlist{overflow-y:auto;flex:1}
-.tlist::-webkit-scrollbar{width:2px}
-.tlist::-webkit-scrollbar-thumb{background:var(--b);border-radius:2px}
-.tk{display:grid;grid-template-columns:18px 1fr 32px 44px 28px 32px;
-  align-items:center;gap:5px;padding:5px 14px;
-  border-bottom:1px solid rgba(28,32,64,.5);transition:background .1s}
-.tk:hover{background:var(--s2)}
-.tk.cur{background:rgba(200,255,0,.045);border-left:2px solid var(--g)}
-.tk.nxt{background:rgba(0,240,255,.02);border-left:2px solid rgba(0,240,255,.35)}
-.tk.done{opacity:.28}
-.tn{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-align:center}
-.tt{font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.te{height:2px;border-radius:2px;background:var(--b);overflow:hidden}
-.tef{height:100%;background:linear-gradient(90deg,var(--c),var(--g));border-radius:2px}
-.tb{font-family:'IBM Plex Mono',monospace;font-size:8px;text-align:right}
-.tb.ok{color:var(--g)}.tb.no{color:var(--dim)}
-.ts{font-family:'IBM Plex Mono',monospace;font-size:8px;text-align:right}
-.ts.hi{color:var(--g)}.ts.mi{color:var(--c)}.ts.lo{color:var(--dim)}
-.td{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-align:right}
-.empty{padding:28px;text-align:center;color:var(--dim)}
-.empty code{font-family:'IBM Plex Mono',monospace;color:var(--g);font-size:9px}
-
-/* ── TIMELINE DE SESIÓN ─────────────────────────────────────── */
-.timeline{background:var(--s1);border:1px solid var(--b);border-radius:14px;
-  overflow:hidden;flex-shrink:0;padding:8px 14px}
-.tl-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.tl-h span{font-family:'IBM Plex Mono',monospace;font-size:8px;
-  letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
-.tl-track{position:relative;height:28px;background:var(--s2);border-radius:5px;overflow:hidden}
-/* Curva de energía de sesión como fondo */
-.tl-energy-curve{position:absolute;inset:0;opacity:.25}
-.tl-blocks{position:absolute;inset:0;display:flex}
-.tl-block{height:100%;position:relative;border-right:1px solid var(--bg);
-  cursor:pointer;transition:filter .15s;flex-shrink:0}
-.tl-block:hover{filter:brightness(1.4)}
-.tl-block.playing{box-shadow:inset 0 0 0 1px white}
-.tl-block.done{opacity:.5}
-.tl-block.future{opacity:.3}
-.tl-head{position:absolute;top:0;bottom:0;width:2px;background:white;
-  box-shadow:0 0 6px white;pointer-events:none;transition:left .1s linear}
-.tl-labels{display:flex;margin-top:3px;position:relative;height:14px}
-.tl-lbl{position:absolute;font-family:'IBM Plex Mono',monospace;font-size:7px;
-  color:var(--dim);transform:translateX(-50%);white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis;max-width:80px}
-.tl-lbl.cur{color:var(--g)}
-
-/* ── CUE / PREVIEW ──────────────────────────────────────────── */
-.cue-btn{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1px;
-  padding:3px 9px;border-radius:8px;
-  border:1px solid rgba(176,96,255,.35);
-  background:rgba(176,96,255,.08);color:var(--p);
-  cursor:pointer;transition:all .15s;flex-shrink:0}
-.cue-btn:hover{background:rgba(176,96,255,.2);border-color:var(--p)}
-.cue-btn.cueing{background:rgba(176,96,255,.25);border-color:var(--p);
-  animation:peakpulse .8s ease-in-out infinite}
-.cue-btn:disabled{opacity:.3;cursor:not-allowed}
-
-/* ── BEAT indicator ─────────────────────────────────────────── */
-.beat-dot{width:6px;height:6px;border-radius:50%;background:var(--g);
-  opacity:0;transition:opacity .05s;flex-shrink:0}
-.beat-dot.flash{opacity:1}
+/* Elementos invisibles para compat JS */
+.beat-dot{display:none}
+#app,#tlWrap{display:none!important}
+#eqRow,#mixRow,#nxtRow,#ww,#wc,#ph,#phHandle{display:none!important}
+#viz{position:absolute;left:-9999px;opacity:0;width:1px;height:1px;}
 </style>
 </head>
 <body>
 
 <!-- IDLE -->
 <div id="idle">
-  <div class="idle-logo">DJ AI</div>
-  <div class="idle-sub">Sesión autónoma · mezcla inteligente en vivo</div>
+  <div class="idle-logo">NEXUS</div>
+  <div class="idle-sub">AI DJ · Sesión autónoma</div>
   <button class="play-btn" id="btnStart" disabled>▶</button>
   <div class="idle-info" id="idleInfo">Cargando biblioteca...</div>
 </div>
 
-<!-- PLAYER -->
-<div id="app">
-
-  <canvas id="viz"></canvas>
-
-  <div class="card">
-
-    <!-- NOW PLAYING -->
-    <div class="np">
-      <div class="vinyl" id="vinyl">
-        <div class="vinyl-groove"></div>
-        <div class="vinyl-groove2"></div>
-        <div class="vinyl-dot"></div>
+<!-- STAGE -->
+<div id="stage">
+  <canvas id="vizMain"></canvas>
+  <canvas id="particles"></canvas>
+  <div id="hud">
+    <div class="hud-left">
+      <div class="hud-label">Now Playing</div>
+      <div id="npTitle">—</div>
+      <div class="hud-meta">
+        <span class="hud-bpm" id="npBpm"></span>
+        <span class="hud-key" id="npKey" style="display:none"></span>
+        <span class="hud-estilo" id="npEstilo" style="display:none"></span>
+        <span class="hud-dur" id="npDur"></span>
       </div>
+    </div>
+    <div class="hud-right">
+      <div id="phasePill" class="pill-warm-up">WARM</div>
+      <div id="mixIndicator"><div class="mix-dot-ind"></div><span id="mixLabel">MIX</span></div>
+      <div id="likeRow">
+        <button class="like-btn" id="btnLike" onclick="sendLike('like')" title="Me gusta">👍</button>
+        <button class="like-btn" id="btnDislike" onclick="sendLike('dislike')" title="No me gusta">👎</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ELEMENTOS INVISIBLES PARA JS -->
+<div id="app" style="display:none">
+  <canvas id="viz"></canvas>
+  <div class="card">
+    <div class="np">
+      <div id="vinyl"></div>
       <div class="np-info">
-        <div class="np-lbl">Now playing</div>
-        <div class="np-title" id="npTitle">—</div>
+        <div id="npTitleHidden">—</div>
         <div class="np-meta">
-          <span class="bpm" id="npBpm">—</span>
-          <span class="egy" id="npEgy">—</span>
-          <span class="key" id="npKey" style="display:none">—</span>
-          <span class="dm"  id="npDur">—</span>
-          <span class="pill" id="phasePill">warm-up</span>
+          <span id="npBpmHidden">—</span>
+          <span id="npEgy">—</span>
+          <span id="npKeyHidden">—</span>
+          <span id="npDurHidden">—</span>
+          <span id="phasePillHidden">warm-up</span>
         </div>
       </div>
     </div>
-
-    <!-- WAVEFORM -->
-    <div class="ww" id="ww">
+    <div id="ww" style="display:none">
       <canvas id="wc"></canvas>
-      <div class="ph" id="ph" style="left:18px">
-        <div class="ph-handle" id="phHandle"></div>
-      </div>
-      <div class="ww-tooltip" id="wwTooltip">0:00</div>
-      <div class="times">
-        <span class="cur" id="tCur">0:00</span>
-        <span id="tTot">0:00</span>
-      </div>
+      <div id="ph"><div id="phHandle"></div></div>
+      <div id="wwTooltip">0:00</div>
+      <div class="times"><span id="tCur">0:00</span><span id="tTot">0:00</span></div>
     </div>
-
-    <!-- EQ BANDS (visible durante el mix) -->
-    <div class="eq-row" id="eqRow">
-      <div class="eq-lbl">LO</div>
-      <div class="eq-band"><div class="eq-fill lo" id="eqLo" style="width:100%"></div></div>
-      <div class="eq-sep"></div>
-      <div class="eq-lbl" style="width:24px">MID</div>
-      <div class="eq-band"><div class="eq-fill mid" id="eqMid" style="width:100%"></div></div>
-      <div class="eq-sep"></div>
-      <div class="eq-lbl">HI</div>
-      <div class="eq-band"><div class="eq-fill hi" id="eqHi" style="width:100%"></div></div>
+    <div id="eqRow">
+      <div><div id="eqLo" style="width:100%"></div></div>
+      <div><div id="eqMid" style="width:100%"></div></div>
+      <div><div id="eqHi" style="width:100%"></div></div>
     </div>
-
-    <!-- SESSION ARC -->
     <div class="arc">
-      <div class="arc-lbl">Arco</div>
-      <div class="arc-track">
-        <div class="arc-cursor" id="arcCursor" style="left:0%"></div>
-      </div>
-      <div class="arc-phase" id="arcPhase">warm-up</div>
+      <div><div id="arcCursor" style="left:0%"></div></div>
+      <div id="arcPhase">warm-up</div>
     </div>
-
-    <!-- MIX IN PROGRESS -->
-    <div class="mix-row" id="mixRow">
-      <div class="mix-dot"></div>
-      <div class="mix-label" id="mixStyleLabel">⚡</div>
-      <div class="mix-prog"><div class="mix-fill" id="mixFill"></div></div>
-      <div class="mix-info" id="mixInfo">mezclando...</div>
+    <div id="mixRow">
+      <div id="mixStyleLabel">⚡</div>
+      <div><div id="mixFill"></div></div>
+      <div id="mixInfo">mezclando...</div>
     </div>
-
-    <!-- NEXT UP -->
-    <div class="nxt" id="nxtRow" style="display:none">
-      <div class="nxt-lbl">IA Next</div>
-      <div class="nxt-nm" id="nxtNm">—</div>
-      <div class="nxt-sc" id="nxtSc">—</div>
-      <div class="nxt-t"  id="nxtT">—</div>
-      <button class="cue-btn" id="btnCue" disabled title="Preview 5s de la siguiente">👂 CUE</button>
+    <div id="nxtRow">
+      <div id="nxtNm">—</div>
+      <div id="nxtSc">—</div>
+      <div id="nxtT">—</div>
+      <button id="btnCue" disabled></button>
     </div>
-
-    <!-- STATUS -->
-    <div class="st">
-      <div class="st-l">
-        <div class="bx"><div class="v" id="bpmVal">—</div><div class="l">BPM</div></div>
-        <div class="live">● LIVE</div>
-        <div class="beat-dot" id="beatDot"></div>
-        <div class="mod" id="modB">—</div>
-        <button class="skip-btn" id="btnSkip" disabled title="Saltar al mix ahora">⏭ MIX NOW</button>
-      </div>
+    <div>
+      <div><div id="bpmVal">—</div></div>
+      <div id="beatDot"></div>
+      <div id="modB">—</div>
+      <button id="btnSkip" disabled></button>
       <div id="log">—</div>
     </div>
-
-  </div><!-- .card -->
-
-  <!-- TIMELINE DE SESIÓN -->
-  <div class="timeline" id="tlWrap" style="display:none">
-    <div class="tl-h">
-      <span>Timeline · sesión</span>
-      <span id="tlDur">—</span>
-    </div>
-    <div class="tl-track" id="tlTrack">
-      <canvas class="tl-energy-curve" id="tlCurve"></canvas>
-      <div class="tl-blocks" id="tlBlocks"></div>
-      <div class="tl-head"   id="tlHead"  style="left:0%"></div>
-    </div>
-    <div class="tl-labels" id="tlLabels"></div>
   </div>
-
-  <!-- LIBRARY -->
+  <div id="tlWrap">
+    <canvas id="tlCurve"></canvas>
+    <div id="tlBlocks"></div>
+    <div id="tlHead" style="left:0%"></div>
+    <div id="tlLabels"></div>
+    <span id="tlDur">—</span>
+  </div>
   <div class="lib">
-    <div class="lib-h">
-      <h2>🎵 Biblioteca</h2>
-      <span class="cnt" id="libCount">—</span>
-    </div>
-    <div class="tlist" id="tlist">
-      <div class="empty"><p>Cargando...</p></div>
-    </div>
+    <span id="libCount">—</span>
+    <div id="tlist"></div>
   </div>
-
-</div><!-- #app -->
-
+</div>
 <script>
 // ════════════════════════════════════════════════════════════════
 //  DJ AI  ·  Audio Engine
@@ -943,7 +808,7 @@ let ctx  = null;
 const PHASE_ORDER = ['warm-up','first-build','first-peak','breakdown','second-build','second-peak','outro'];
 const PHASE_LABELS = {'warm-up':'WARM','first-build':'BUILD','first-peak':'PEAK 1',
   'breakdown':'DOWN','second-build':'BUILD 2','second-peak':'PEAK 2','outro':'OUTRO'};
-const STYLE_LABELS = { guetta: '⚡ GUETTA', avicii: '🌅 AVICII', progressive: '〰 PROG' };
+const STYLE_LABELS = { guetta: '⚡ GUETTA', avicii: '🌅 AVICII', progressive: '〰 PROG', fusion: '✦ FUSION' };
 const STYLE_ICONS  = { guetta: '⚡', avicii: '🌅', progressive: '〰' };
 
 const S = {
@@ -1038,6 +903,7 @@ async function boot() {
   S.lib  = await lr.json();
   const m = await mr.json();
   S.modOk = m.ok;
+  await loadPrefs();
 
   const mb = document.getElementById('modB');
   mb.textContent = S.modOk ? 'MÓDULOS OK' : 'FALLBACK';
@@ -1161,7 +1027,8 @@ async function boot() {
 document.getElementById('btnStart').addEventListener('click', async () => {
   ic();
   document.getElementById('idle').classList.add('off');
-  document.getElementById('app').classList.add('on');
+  document.getElementById('stage').classList.add('on');
+  initClubVisuals();
   const first = chooseFirst();
   await begin(first);
 });
@@ -1386,6 +1253,13 @@ function getTime() {
 //    EQ neutro — sin highpass/lowpass agresivo
 //    BPM casi idéntico → sin pitch shifting apreciable
 //    Reverb mínimo (0.10)
+//
+//  FUSION:
+//    Blend largo (32-38s): ambas canciones suenan juntas al ~80% vol
+//    durante el 60% central del fade → se fusionan en una textura.
+//    EQ complementario: saliente cede agudos, entrante cede graves.
+//    Se activa ~35% de las veces cuando BPM diff ≤ 6.
+//    Reverb medio (0.22)
 // ════════════════════════════════════════════════════════════
 async function doMix() {
   if (S.mixing || !S.playing) return;
@@ -1420,7 +1294,7 @@ async function doMix() {
 
   // Reverb — Progressive casi nada, Avicii mucho, Guetta moderado
   if (S.reverb && S.reverbGain) {
-    const reverbPeak = style === 'avicii' ? 0.35 : style === 'progressive' ? 0.10 : 0.18;
+    const reverbPeak = style === 'avicii' ? 0.35 : style === 'progressive' ? 0.10 : style === 'fusion' ? 0.22 : 0.18;
     const rg = S.reverbGain.gain;
     rg.cancelScheduledValues(ctx.currentTime);
     rg.setValueAtTime(0, ctx.currentTime);
@@ -1460,6 +1334,10 @@ async function doMix() {
   } else if (style === 'avicii') {
     // Entrante empieza con graves abiertos — melodía llega primero
     dIn.hipass.frequency.setValueAtTime(20, t0);
+  } else if (style === 'fusion') {
+    // Fusion: ambas pistas suenan abiertas y equilibradas desde el inicio
+    dIn.hipass.frequency.setValueAtTime(20, t0);
+    dOut.hipass.frequency.setValueAtTime(20, t0);
   } else {
     // Guetta: graves de la entrante cortados hasta el bass swap
     dIn.hipass.frequency.setValueAtTime(320, t0);
@@ -1499,6 +1377,28 @@ async function doMix() {
       vOut = Math.cos(f * Math.PI / 2);
       vIn  = Math.sin(f * Math.PI / 2);
 
+    } else if (style === 'fusion') {
+      // ── FUSION: ambas pistas suenan casi al mismo volumen durante
+      // la mayor parte del blend. Curva en forma de meseta:
+      //   - Los primeros 20%: la entrante sube suavemente
+      //   - Del 20% al 80%: las dos conviven casi al mismo nivel (~0.85)
+      //     aplicando equal-power en esa zona para mantener energía
+      //   - El último 20%: la saliente baja suavemente
+      // El resultado es una superposición larga donde ambas canciones
+      // se fusionan en una sola textura.
+      if (f < 0.20) {
+        vOut = 1.0;
+        vIn  = Math.sin((f / 0.20) * Math.PI / 2);
+      } else if (f < 0.80) {
+        const mid = (f - 0.20) / 0.60;  // 0..1 en zona central
+        vOut = Math.cos(mid * Math.PI / 2) * 0.3 + 0.7;   // 1.0 → 0.7
+        vIn  = Math.sin(mid * Math.PI / 2) * 0.3 + 0.7;   // 0.7 → 1.0
+      } else {
+        const tail = (f - 0.80) / 0.20;
+        vOut = Math.cos(tail * Math.PI / 2) * 0.7;
+        vIn  = 1.0;
+      }
+
     } else if (style === 'avicii') {
       // ── AVICII: fade simétrico tipo coseno con sigmoide temprana
       vOut = Math.pow(Math.cos(f * Math.PI / 2), 1.2);
@@ -1529,6 +1429,34 @@ async function doMix() {
       dOut.lopass.frequency.setValueAtTime(Math.max(8000, loFreq), tAt);
       // Entrante: sin tocar nada — suena completa y limpia
       dIn.hipass.frequency.setValueAtTime(20, tAt);
+
+    } else if (style === 'fusion') {
+      // ── FUSION EQ: las dos pistas se complementan por frecuencias
+      // En la zona central (20%-80%) se hace EQ complementario:
+      //   - Saliente: graves plenos, agudos ligeramente reducidos
+      //   - Entrante: agudos plenos, graves ligeramente reducidos
+      // Esto evita acumulación de bajos y crea una mezcla más limpia
+      // mientras las dos canciones suenan juntas.
+      if (f < 0.20) {
+        // Entrada: la entrante llega desde abajo, EQ neutro
+        dOut.lopass.frequency.setValueAtTime(20000, tAt);
+        dIn.hipass.frequency.setValueAtTime(20, tAt);
+      } else if (f < 0.80) {
+        // Zona de fusión: EQ complementario suave
+        const mid = (f - 0.20) / 0.60;
+        // Saliente: agudos se van reduciendo levemente
+        const outLoFreq = 20000 * Math.pow(5000/20000, mid * 0.6);
+        dOut.lopass.frequency.setValueAtTime(Math.max(5000, outLoFreq), tAt);
+        // Entrante: hipass que desaparece rápido para dejar bajos limpios
+        const inHpFreq = 80 * Math.pow(20/80, Math.min(1, mid * 2));
+        dIn.hipass.frequency.setValueAtTime(Math.max(20, inHpFreq), tAt);
+      } else {
+        // Salida: saliente pierde agudos completamente
+        const tail = (f - 0.80) / 0.20;
+        const outLoFreq = 5000 * Math.pow(400/5000, tail);
+        dOut.lopass.frequency.setValueAtTime(Math.max(400, outLoFreq), tAt);
+        dIn.hipass.frequency.setValueAtTime(20, tAt);
+      }
 
     } else if (style === 'avicii') {
       // OUT lopass: mantiene cuerpo hasta el final
@@ -1616,22 +1544,11 @@ function loop() {
   const t   = getTime();
   const dur = S.cur ? (S.cur.duracion_segundos || 0) : 0;
 
-  // Playhead — no mover mientras el usuario arrastra
-  const wW = document.getElementById('wc').offsetWidth;
-  if (!S._dragging || !S._dragging()) {
-    const pad = 18;
-    document.getElementById('ph').style.left   = (pad + (dur > 0 ? (t/dur)*wW : 0)) + 'px';
-    document.getElementById('tCur').textContent = fmt(t);
-  }
-  document.getElementById('tTot').textContent  = fmt(dur);
-
-  // Vinyl spin
-  document.getElementById('vinyl').classList.toggle('spin', S.playing && !S.mixing);
-
-  // Mix progress bar
+  // Mix progress bar (oculto, solo para compat)
   if (S.mixing) {
     const pct = Math.min(100, ((ctx.currentTime - S.mixStart) / S.mixDur) * 100);
-    document.getElementById('mixFill').style.width = pct + '%';
+    const mf = document.getElementById('mixFill');
+    if(mf) mf.style.width = pct + '%';
     updateEQVisual(pct / 100);
   }
 
@@ -1681,34 +1598,6 @@ function loop() {
   // Refrescar plan cada 20s para mantenerlo actualizado
   if (!S.mixing && S.cur && S.nxt && Math.round(t) % 20 === 0 && t > 8) {
     askNext(S.cur, t);
-  }
-
-  // ── Detección de beat en tiempo real ───────────────────────
-  // Analiza la energía de sub-bass (bins 0-4 ≈ 20-80Hz) cada frame.
-  // Si supera el umbral adaptativo → beat detectado → flash visual.
-  // El umbral se adapta al nivel medio de los últimos 30 beats.
-  if (!S.mixing && S.playing && t > 2) {
-    const dk = S.decks[S.deck];
-    if (dk && dk.analyser) {
-      const fdata = new Uint8Array(dk.analyser.frequencyBinCount);
-      dk.analyser.getByteFrequencyData(fdata);
-      // Sub-bass energy (primeros 4 bins)
-      const subE = (fdata[0] + fdata[1] + fdata[2] + fdata[3]) / (4 * 255);
-      S.beatHistory.push(subE);
-      if (S.beatHistory.length > 60) S.beatHistory.shift();
-      const avg = S.beatHistory.reduce((a,b)=>a+b,0) / S.beatHistory.length;
-      S.beatThresh = avg * 1.5;
-
-      const now = ctx.currentTime;
-      const minInterval = S.cur && S.cur.bpm ? 60/S.cur.bpm * 0.7 : 0.25;
-      if (subE > S.beatThresh && subE > 0.1 && (now - S.beatLastTime) > minInterval) {
-        S.beatLastTime = now;
-        // Flash visual del beat dot
-        const dot = document.getElementById('beatDot');
-        dot.classList.add('flash');
-        setTimeout(() => dot.classList.remove('flash'), 80);
-      }
-    }
   }
 
   // ── Update timeline playhead ─────────────────────────────────
@@ -1781,20 +1670,33 @@ function hideEQ() {
 
 // ── UI helpers ────────────────────────────────────────────────
 function updateNP(t, phase) {
-  document.getElementById('npTitle').textContent = t.name;
-  document.getElementById('npBpm').textContent   = t.bpm  ? t.bpm.toFixed(1)+' BPM' : '—';
-  document.getElementById('npEgy').textContent   = t.energia ? 'E'+t.energia : '';
-  document.getElementById('npDur').textContent   = t.duracion_segundos ? fmt(t.duracion_segundos) : '';
-  document.getElementById('bpmVal').textContent  = t.bpm ? Math.round(t.bpm) : '—';
-
+  // HUD visible
+  const titleEl = document.getElementById('npTitle');
+  if(titleEl) titleEl.textContent = t.name;
+  const bpmEl = document.getElementById('npBpm');
+  if(bpmEl) bpmEl.textContent = t.bpm ? t.bpm.toFixed(1)+' BPM' : '';
+  const durEl = document.getElementById('npDur');
+  if(durEl) durEl.textContent = t.duracion_segundos ? fmt(t.duracion_segundos) : '';
   const keyEl = document.getElementById('npKey');
-  if (t.key) { keyEl.textContent = t.key; keyEl.style.display = 'inline'; }
-  else keyEl.style.display = 'none';
+  if(keyEl){ if(t.key){keyEl.textContent=t.key;keyEl.style.display='inline';}else keyEl.style.display='none'; }
+  const estiloEl = document.getElementById('npEstilo');
+  if(estiloEl){ if(t.estilo){estiloEl.textContent=t.estilo;estiloEl.style.display='inline';}else estiloEl.style.display='none'; }
 
+  // BPM box (oculto, compat)
+  const bv = document.getElementById('bpmVal');
+  if(bv) bv.textContent = t.bpm ? Math.round(t.bpm) : '—';
+
+  // Phase pill HUD
   const pill = document.getElementById('phasePill');
   const p = phase || S.nxtPhase || 'warm-up';
-  pill.textContent = PHASE_LABELS[p] || p;
-  pill.setAttribute('class', 'pill pill-' + p);
+  if(pill){ pill.textContent = PHASE_LABELS[p]||p; pill.setAttribute('class','pill-'+p); }
+
+  // EQ visual reset
+  const egyEl = document.getElementById('npEgy');
+  if(egyEl) egyEl.textContent = t.energia ? 'E'+t.energia : '';
+
+  // Like/dislike state
+  updateLikeUI(t.file);
 }
 
 function updateArc(phase, targetE) {
@@ -1819,17 +1721,79 @@ function showNext(t, plan, score, phase) {
 function hideNext() { document.getElementById('nxtRow').style.display = 'none'; }
 
 function showMixing(name, dur, style) {
-  const row   = document.getElementById('mixRow');
-  const label = document.getElementById('mixStyleLabel');
-  row.classList.add('on');
-  row.classList.remove('style-guetta', 'style-avicii', 'style-progressive');
-  row.classList.add('style-' + (style || 'guetta'));
-  label.textContent = STYLE_LABELS[style] || '⚡ GUETTA';
-  document.getElementById('mixInfo').textContent = `→ ${name} · ${dur.toFixed(0)}s`;
-  document.getElementById('mixFill').style.width = '0%';
-  document.getElementById('eqRow').classList.add('on');
+  // Panel oculto (compat JS)
+  const row = document.getElementById('mixRow');
+  if(row){ row.classList.add('on'); row.classList.remove('style-guetta','style-avicii','style-progressive','style-fusion'); row.classList.add('style-'+(style||'guetta')); }
+  const lbl = document.getElementById('mixStyleLabel');
+  if(lbl) lbl.textContent = STYLE_LABELS[style]||'⚡';
+  const mi = document.getElementById('mixInfo');
+  if(mi) mi.textContent = `→ ${name} · ${dur.toFixed(0)}s`;
+  const mf = document.getElementById('mixFill');
+  if(mf) mf.style.width = '0%';
+  const eq = document.getElementById('eqRow');
+  if(eq) eq.classList.add('on');
+
+  // HUD visible
+  const ind = document.getElementById('mixIndicator');
+  const mlb = document.getElementById('mixLabel');
+  if(ind && mlb){
+    ind.className = 'on style-'+(style||'guetta');
+    mlb.textContent = (STYLE_LABELS[style]||'MIX').replace(/^.+\s/,''); // solo la palabra
+  }
 }
-function hideMixing() { document.getElementById('mixRow').classList.remove('on'); }
+function hideMixing() {
+  const row = document.getElementById('mixRow');
+  if(row) row.classList.remove('on');
+  const ind = document.getElementById('mixIndicator');
+  if(ind) ind.className = '';
+}
+
+// ── Like / Dislike ────────────────────────────────────────────
+// S.prefs: {filename: 1||-1}  cargado al arrancar y actualizado en vivo
+S.prefs = {};
+
+async function loadPrefs() {
+  try {
+    const r = await fetch('/api/prefs');
+    S.prefs = await r.json();
+  } catch(e) {}
+}
+
+async function sendLike(action) {
+  if (!S.cur) return;
+  const file = S.cur.file;
+  // Toggle: si ya tiene esa acción, la borra (clear)
+  const current = S.prefs[file];
+  const sendAction = (action === 'like' && current === 1) || (action === 'dislike' && current === -1)
+    ? 'clear' : action;
+
+  try {
+    await fetch('/api/like', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ file, action: sendAction })
+    });
+    if (sendAction === 'like')    S.prefs[file] = 1;
+    else if (sendAction === 'dislike') S.prefs[file] = -1;
+    else delete S.prefs[file];
+    updateLikeUI(file);
+    // Feedback visual breve en el título
+    const titleEl = document.getElementById('npTitle');
+    if (titleEl) {
+      const orig = titleEl.textContent;
+      titleEl.textContent = sendAction === 'like' ? '👍 ¡Guardado!' : sendAction === 'dislike' ? '👎 Anotado' : '✓ Borrado';
+      setTimeout(() => { titleEl.textContent = orig; }, 1400);
+    }
+  } catch(e) {}
+}
+
+function updateLikeUI(file) {
+  const pref = S.prefs[file] || 0;
+  const bl = document.getElementById('btnLike');
+  const bd = document.getElementById('btnDislike');
+  if (bl) { bl.classList.toggle('active-like', pref === 1); }
+  if (bd) { bd.classList.toggle('active-dislike', pref === -1); }
+}
 
 function renderLib() {
   const list = document.getElementById('tlist');
@@ -1847,11 +1811,12 @@ function renderLib() {
     const sC   = sc===null ? '' : sc>70?'hi':sc>40?'mi':'lo';
     return `<div class="tk ${iC?'cur':''} ${iN?'nxt':''} ${done?'done':''}">
       <div class="tn">${iC?'▶':iN?'→':done?'✓':i+1}</div>
-      <div class="tt">${t.name}</div>
+      <div class="tt">${t.name}${t.estilo?` <span class="tk-estilo">${t.estilo}</span>`:''}</div>
       <div class="te"><div class="tef" style="width:${t.energia||50}%"></div></div>
       <div class="tb ${bOk?'ok':'no'}">${t.bpm?t.bpm.toFixed(0)+'bpm':'—'}</div>
       <div class="ts ${sC}">${sc!==null?sc:'—'}</div>
       <div class="td">${t.duracion_segundos?fmt(t.duracion_segundos):'—'}</div>
+      <div class="tpref">${(S.prefs[t.file]===1)?'👍':(S.prefs[t.file]===-1)?'👎':''}</div>
     </div>`;
   }).join('');
 }
@@ -1902,49 +1867,237 @@ function drawWave(buf, track) {
   }
 }
 
-// ── Spectrum visualizer ───────────────────────────────────────
-function drawViz() {
-  const c = document.getElementById('viz'), dpr = devicePixelRatio||1;
-  if(c.width!==c.offsetWidth*dpr){c.width=c.offsetWidth*dpr;c.height=c.offsetHeight*dpr;}
-  const g = c.getContext('2d'), W=c.offsetWidth, H=c.offsetHeight;
-  g.setTransform(dpr,0,0,dpr,0,0);
+// ══════════════════════════════════════════════════════════════
+//  NEXUS VISUALS — visualizador galáctico
+// ══════════════════════════════════════════════════════════════
+const CV = {
+  particles: [], stars: [],
+  beatEnergy: 0, smoothEnergy: 0,
+  hue: 270, targetHue: 270,
+  rotation: 0, lastBeat: 0, beamAngle: 0, nebulaPulse: 0,
+};
 
-  // Fade out fondo (efecto de cola)
-  g.fillStyle = 'rgba(7,8,15,.55)';
-  g.fillRect(0,0,W,H);
-
-  // Dibuja ambos decks durante el crossfade (superpuestos)
-  const drawDeck = (dkId, colorFn) => {
-    const dk = S.decks[dkId];
-    if (!dk || !dk.analyser) return;
-    const d = new Uint8Array(dk.analyser.frequencyBinCount);
-    dk.analyser.getByteFrequencyData(d);
-    const bw = (W / d.length) * 1.2;
-    for(let i=0;i<d.length;i++){
-      const v=d[i]/255, bh=v*H*0.96;
-      if(bh < 1) continue;
-      const col = colorFn(i/d.length, v);
-      g.fillStyle = col;
-      // Barra + reflejo especular
-      g.fillRect(i*bw, H-bh, bw-0.5, bh);
-      g.globalAlpha = 0.12;
-      g.fillRect(i*bw, H, bw-0.5, -bh*0.25);
-      g.globalAlpha = 1;
-    }
-  };
-
-  const colorOut = (x, v) => `rgba(200,255,0,${(0.25+v*0.75).toFixed(2)})`;
-  const colorIn  = (x, v) => `rgba(0,240,255,${(0.2+v*0.7).toFixed(2)})`;
-
-  if (S.mixing) {
-    const other = S.deck === 'A' ? 'B' : 'A';
-    drawDeck(other, colorIn);
-    drawDeck(S.deck, colorOut);
-  } else {
-    drawDeck(S.deck, colorOut);
+function initClubVisuals() {
+  const pm = document.getElementById('vizMain');
+  const pp = document.getElementById('particles');
+  function resize() {
+    pm.width = pp.width = window.innerWidth*(devicePixelRatio||1);
+    pm.height= pp.height= window.innerHeight*(devicePixelRatio||1);
+    pm.style.width = pp.style.width = window.innerWidth+'px';
+    pm.style.height= pp.style.height= window.innerHeight+'px';
   }
+  window.addEventListener('resize', resize); resize();
+  for(let i=0;i<220;i++) CV.stars.push(mkStar());
+  for(let i=0;i<60;i++) CV.particles.push(mkParticle(false));
 }
 
+function mkStar(){
+  const W=window.innerWidth, H=window.innerHeight;
+  return{x:Math.random()*W,y:Math.random()*H,size:Math.pow(Math.random(),3)*2.5+0.3,
+    brightness:Math.random(),twinkle:Math.random()*Math.PI*2,
+    twinkleSpeed:0.02+Math.random()*0.04,hue:220+Math.random()*120};
+}
+
+function mkParticle(fromBeat){
+  const W=window.innerWidth, H=window.innerHeight;
+  const angle=Math.random()*Math.PI*2;
+  const speed=fromBeat?3+Math.random()*5:0.2+Math.random()*0.6;
+  return{x:fromBeat?W/2+(Math.random()-.5)*120:Math.random()*W,
+    y:fromBeat?H*.5+(Math.random()-.5)*120:Math.random()*H,
+    vx:Math.cos(angle)*speed*(fromBeat?1:.3),
+    vy:Math.sin(angle)*speed*(fromBeat?1:.3)-(fromBeat?1:.1),
+    life:1,decay:fromBeat?.015+Math.random()*.015:.002+Math.random()*.003,
+    size:fromBeat?Math.random()*5+2:Math.random()*1.8+.4,
+    hue:250+Math.random()*80,sat:fromBeat?100:60+Math.random()*40,beat:!!fromBeat};
+}
+
+function drawViz(){
+  if(!S.playing||!ctx) return;
+  const pm=document.getElementById('vizMain');
+  const pp=document.getElementById('particles');
+  if(!pm||!pp) return;
+  const dpr=devicePixelRatio||1;
+  const W=pm.width/dpr, H=pm.height/dpr;
+  const gm=pm.getContext('2d'), gp=pp.getContext('2d');
+  gm.setTransform(dpr,0,0,dpr,0,0);
+  gp.setTransform(dpr,0,0,dpr,0,0);
+
+  const dk=S.decks[S.deck];
+  let freqData=null,subE=0,midE=0,hiE=0,avgE=0;
+  if(dk&&dk.analyser){
+    freqData=new Uint8Array(dk.analyser.frequencyBinCount);
+    dk.analyser.getByteFrequencyData(freqData);
+    const n=freqData.length;
+    for(let i=0;i<n;i++){
+      const v=freqData[i]/255; avgE+=v;
+      if(i<n*.08) subE+=v; else if(i<n*.35) midE+=v; else hiE+=v;
+    }
+    avgE/=n; subE/=n*.08; midE/=n*.27; hiE/=n*.65;
+  }
+  CV.smoothEnergy+=(avgE-CV.smoothEnergy)*.10;
+  CV.beatEnergy+=(subE-CV.beatEnergy)*.20;
+  CV.nebulaPulse+=.008;
+
+  S.beatHistory.push(subE);
+  if(S.beatHistory.length>25) S.beatHistory.shift();
+  const avgHist=S.beatHistory.reduce((a,b)=>a+b,0)/S.beatHistory.length;
+  const now=ctx.currentTime;
+  const isBeat=subE>avgHist*1.5&&subE>.18&&(now-S.beatLastTime)>.18&&S.playing;
+  if(isBeat){
+    S.beatLastTime=now; CV.lastBeat=now;
+    for(let i=0;i<28;i++) CV.particles.push(mkParticle(true));
+    const title=document.getElementById('npTitle');
+    if(title){title.classList.add('beat-pulse');setTimeout(()=>title.classList.remove('beat-pulse'),130);}
+    const bd=document.getElementById('beatDot');
+    if(bd){bd.classList.add('flash');setTimeout(()=>bd.classList.remove('flash'),80);}
+  }
+
+  const phaseHues={'warm-up':220,'first-build':260,'first-peak':285,
+    'breakdown':190,'second-build':265,'second-peak':295,'outro':240};
+  CV.targetHue=phaseHues[S.nxtPhase||'warm-up']||270;
+  CV.hue+=(CV.targetHue-CV.hue)*.008;
+
+  const cx=W/2, cy=H/2;
+  const beatAge=now-CV.lastBeat;
+
+  // Fondo espacio
+  gm.fillStyle=`rgba(0,0,${Math.round(3+CV.smoothEnergy*6)},${.18+CV.smoothEnergy*.05})`;
+  gm.fillRect(0,0,W,H);
+
+  // Nebula
+  const np=CV.nebulaPulse;
+  const nr1=gm.createRadialGradient(cx+Math.sin(np*.7)*W*.15,cy+Math.cos(np*.5)*H*.15,0,cx+Math.sin(np*.7)*W*.15,cy+Math.cos(np*.5)*H*.15,Math.min(W,H)*.55);
+  nr1.addColorStop(0,`hsla(${CV.hue},80%,22%,${.06+CV.smoothEnergy*.08})`);
+  nr1.addColorStop(1,'transparent');
+  gm.fillStyle=nr1; gm.fillRect(0,0,W,H);
+  const nr2=gm.createRadialGradient(cx+Math.cos(np*.4)*W*.2,cy+Math.sin(np*.6)*H*.2,0,cx+Math.cos(np*.4)*W*.2,cy+Math.sin(np*.6)*H*.2,Math.min(W,H)*.38);
+  nr2.addColorStop(0,`hsla(${CV.hue+45},90%,18%,${.05+CV.smoothEnergy*.05})`);
+  nr2.addColorStop(1,'transparent');
+  gm.fillStyle=nr2; gm.fillRect(0,0,W,H);
+
+  // Estrellas
+  for(const s of CV.stars){
+    s.twinkle+=s.twinkleSpeed+CV.smoothEnergy*.02;
+    const b=s.brightness*(.5+.5*Math.sin(s.twinkle));
+    const g2=b*(.4+CV.beatEnergy*.6);
+    gm.fillStyle=`hsla(${s.hue},60%,${85+b*15}%,${b*.9})`;
+    gm.beginPath(); gm.arc(s.x,s.y,s.size*(.8+g2*.5),0,Math.PI*2); gm.fill();
+    if(b>.7&&s.size>1){
+      gm.fillStyle=`hsla(${s.hue},80%,90%,${b*.18})`;
+      gm.beginPath(); gm.arc(s.x,s.y,s.size*2.8,0,Math.PI*2); gm.fill();
+    }
+  }
+
+  // Visualizador
+  if(freqData){
+    const isPeak=S.nxtPhase==='first-peak'||S.nxtPhase==='second-peak';
+    CV.rotation+=.003+CV.smoothEnergy*.012;
+    if(isPeak){
+      // Corona orbital
+      const bins=freqData.length, step=Math.PI*2/bins;
+      const baseR=Math.min(W,H)*.18*(1+CV.smoothEnergy*.2);
+      gm.save(); gm.translate(cx,cy);
+      gm.strokeStyle=`hsla(${CV.hue},80%,60%,${.08+CV.beatEnergy*.12})`; gm.lineWidth=1;
+      gm.beginPath(); gm.arc(0,0,baseR,0,Math.PI*2); gm.stroke();
+      for(let i=0;i<bins;i++){
+        const v=freqData[i]/255; if(v<.04) continue;
+        const ang=step*i+CV.rotation;
+        const r0=baseR, r1=r0+v*Math.min(W,H)*.3*(1+CV.smoothEnergy*.3);
+        const h=CV.hue+(i/bins)*60-30;
+        gm.strokeStyle=`hsla(${h},100%,${50+v*35}%,${.5+v*.5})`;
+        gm.lineWidth=1+v*2.5;
+        gm.beginPath();
+        gm.moveTo(Math.cos(ang)*r0,Math.sin(ang)*r0);
+        gm.lineTo(Math.cos(ang)*r1,Math.sin(ang)*r1);
+        gm.stroke();
+      }
+      const core=gm.createRadialGradient(0,0,0,0,0,baseR*.55);
+      core.addColorStop(0,`hsla(${CV.hue},100%,88%,${.1+CV.beatEnergy*.22})`);
+      core.addColorStop(1,'transparent');
+      gm.fillStyle=core; gm.beginPath(); gm.arc(0,0,baseR*.55,0,Math.PI*2); gm.fill();
+      gm.restore();
+    } else {
+      // Barras espectrales simétricas
+      const bins=freqData.length, bw=W/bins*1.5, mirror=W/2;
+      for(let i=0;i<bins;i++){
+        const v=freqData[i]/255;
+        const bh=v*H*.55*(1+CV.smoothEnergy*.35);
+        if(bh<1) continue;
+        const xL=mirror-i*bw-bw, xR=mirror+i*bw;
+        const h=CV.hue+(i/bins)*50;
+        const l=40+v*45, a=.25+v*.75;
+        const grad=gm.createLinearGradient(0,H,0,H-bh);
+        grad.addColorStop(0,`hsla(${h},80%,${l*.6}%,${a*.3})`);
+        grad.addColorStop(.65,`hsla(${h},100%,${l}%,${a})`);
+        grad.addColorStop(1,`hsla(${h+20},100%,${l+20}%,${Math.min(1,a*1.3)})`);
+        gm.fillStyle=grad;
+        gm.fillRect(xL,H-bh,bw-.5,bh); gm.fillRect(xR,H-bh,bw-.5,bh);
+        if(v>.45){
+          const tp=(v-.45)*1.8;
+          gm.fillStyle=`rgba(255,255,255,${tp*.7})`;
+          gm.fillRect(xL,H-bh-2,bw-.5,3); gm.fillRect(xR,H-bh-2,bw-.5,3);
+        }
+        gm.fillStyle=`hsla(${h},80%,${l}%,${a*.055})`;
+        gm.fillRect(xL,H,bw-.5,-bh*.22); gm.fillRect(xR,H,bw-.5,-bh*.22);
+      }
+    }
+  }
+
+  // Haces de luz
+  CV.beamAngle+=.005+CV.smoothEnergy*.018;
+  for(let b=0;b<4;b++){
+    const ang=CV.beamAngle+b*Math.PI*.5;
+    const h=CV.hue+b*35;
+    const beam=gm.createLinearGradient(cx,cy,cx+Math.cos(ang)*W,cy+Math.sin(ang)*H);
+    beam.addColorStop(0,`hsla(${h},100%,70%,${.05+CV.smoothEnergy*.07})`);
+    beam.addColorStop(.5,`hsla(${h},90%,55%,${.02+CV.smoothEnergy*.03})`);
+    beam.addColorStop(1,'transparent');
+    gm.fillStyle=beam;
+    const w2=.03+CV.smoothEnergy*.02;
+    gm.beginPath(); gm.moveTo(cx,cy);
+    gm.lineTo(cx+Math.cos(ang-w2)*W*1.3,cy+Math.sin(ang-w2)*H*1.3);
+    gm.lineTo(cx+Math.cos(ang+w2)*W*1.3,cy+Math.sin(ang+w2)*H*1.3);
+    gm.closePath(); gm.fill();
+  }
+
+  // Ondas beat
+  if(beatAge<1.4){
+    const t2=beatAge/1.4;
+    for(let r=0;r<3;r++){
+      const td=Math.max(0,t2-r*.08);
+      gm.strokeStyle=`hsla(${CV.hue+r*25},100%,78%,${(1-td)*.4})`;
+      gm.lineWidth=(1-td)*3;
+      gm.beginPath(); gm.arc(cx,cy,td*Math.min(W,H)*.6,0,Math.PI*2); gm.stroke();
+    }
+  }
+
+  // Glow central beat
+  if(beatAge<.35){
+    const bf=1-beatAge/.35;
+    const bgr=gm.createRadialGradient(cx,cy,0,cx,cy,Math.min(W,H)*.42);
+    bgr.addColorStop(0,`hsla(${CV.hue},100%,85%,${bf*.28})`);
+    bgr.addColorStop(.5,`hsla(${CV.hue+20},90%,60%,${bf*.09})`);
+    bgr.addColorStop(1,'transparent');
+    gm.fillStyle=bgr; gm.fillRect(0,0,W,H);
+  }
+
+  // Partículas
+  gp.clearRect(0,0,W,H);
+  CV.particles=CV.particles.filter(p=>p.life>0);
+  for(const p of CV.particles){
+    p.x+=p.vx; p.y+=p.vy;
+    p.vy+=p.beat?-.03:.012; p.vx*=.98; p.vy*=.99;
+    p.life-=p.decay;
+    const a=p.life*(p.beat?.92:.38);
+    if(p.beat&&p.size>2){
+      gp.fillStyle=`hsla(${p.hue},${p.sat}%,82%,${a*.18})`;
+      gp.beginPath(); gp.arc(p.x,p.y,p.size*p.life*2.8,0,Math.PI*2); gp.fill();
+    }
+    gp.fillStyle=`hsla(${p.hue},${p.sat}%,75%,${a})`;
+    gp.beginPath(); gp.arc(p.x,p.y,p.size*p.life,0,Math.PI*2); gp.fill();
+  }
+  while(CV.particles.length<80) CV.particles.push(mkParticle(false));
+}
 function logMsg(m) { document.getElementById('log').textContent = m; }
 
 // ── Track color palette ───────────────────────────────────────

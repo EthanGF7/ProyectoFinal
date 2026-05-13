@@ -1,0 +1,27 @@
+# Dependencias del backend Python para Discoteca Online
+
+# Framework web
+fastapi==0.104.1
+uvicorn==0.24.0
+
+# Base de datos y ORM
+supabase==2.0.2
+python-dotenv==1.0.0
+
+# Autenticación y seguridad
+passlib==1.7.4
+python-jose==3.3.0
+bcrypt==4.1.2
+
+numpy==1.24.4
+
+# Procesamiento de archivos de audio
+pydub==0.25.1
+mutagen==1.47.0
+
+# Procesamiento de imágenes
+Pillow==10.1.0
+
+# Utilidades
+requests==2.31.0
+python-multipart==0.0.6

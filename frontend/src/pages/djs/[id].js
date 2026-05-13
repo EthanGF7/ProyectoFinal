@@ -1,9 +1,10 @@
 // Ficha pública de un DJ con sus playlists
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import BarraNavegacion from '../../components/BarraNavegacion';
 import { useNeonCardEffects } from '../../hooks/useNeonCardEffects';
+import DjAiPlayer from '../../components/DjAiPlayer';
 
 const formatDate = (value) => {
   if (!value) return null;
@@ -20,6 +21,9 @@ export default function FichaDj() {
   const { id } = router.query;
   const [dj, setDj] = useState(null);
   const [playlists, setPlaylists] = useState([]);
+  const [audioFiles, setAudioFiles] = useState([]);
+  const [currentTrack, setCurrentTrack] = useState(null);
+  const [playerVisible, setPlayerVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -45,6 +49,8 @@ export default function FichaDj() {
         const payload = await response.json();
         setDj(payload.dj || null);
         setPlaylists(payload.playlists || []);
+        setAudioFiles(payload.audioFiles || []);
+        setCurrentTrack((payload.audioFiles || [])[0] || null);
       } catch (err) {
         console.error('[djs/:id] Error cargando DJ:', err);
         setError(err.message || 'No se pudo cargar la ficha del DJ');
@@ -61,6 +67,7 @@ export default function FichaDj() {
     const segments = [dj.estilo_musical, dj.estilo_visual].filter((value) => value);
     return segments.join(' · ');
   }, [dj]);
+
 
   if (loading) {
     return (
@@ -112,6 +119,35 @@ export default function FichaDj() {
               ← Volver al catálogo de DJs
             </Link>
           </header>
+
+          {playerVisible && id && (
+            <DjAiPlayer djId={id} onClose={() => setPlayerVisible(false)} />
+          )}
+
+          <section className="dj-player-section">
+            <header className="dj-subheader player-header">
+              <div>
+                <h2>Player del DJ</h2>
+                <p>Sesión autónoma con mezcla inteligente.</p>
+              </div>
+              <div className="player-actions">
+                {dj.isLocal && (
+                  <button
+                    type="button"
+                    className="player-toggle-button"
+                    onClick={() => setPlayerVisible((v) => !v)}
+                  >
+                    {playerVisible ? '✕ Cerrar cabina' : '▶ Abrir cabina'}
+                  </button>
+                )}
+              </div>
+            </header>
+            {!dj.isLocal && (
+              <div className="admin-empty">
+                Este DJ aún no tiene cabina local disponible.
+              </div>
+            )}
+          </section>
 
           <section className="dj-playlists-public">
             <header className="dj-subheader">

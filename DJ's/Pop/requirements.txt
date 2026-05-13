@@ -1,0 +1,21 @@
+# DJ AI - Dependencias del proyecto
+
+# Análisis y procesamiento de audio
+librosa>=0.10.0
+soundfile>=0.12.0
+numpy>=1.24.0
+
+# Para formatos de audio adicionales
+audioread>=3.0.0
+pydub>=0.25.0  # Opcional: para manejo de mp3
+
+# Reproducción de audio
+sounddevice>=0.4.6  # Para reproducir en tiempo real
+
+# Utilidades
+scipy>=1.10.0
+
+# Nota: Si tienes problemas instalando librosa en Windows,
+# puede ser necesario instalar ffmpeg primero:
+# conda install -c conda-forge ffmpeg (si usas Anaconda)
+# o descargar desde: https://ffmpeg.org/download.html

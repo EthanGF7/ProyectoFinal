@@ -2,6 +2,8 @@
 """
 DJ AI - Live Player  |  python player.py  |  Dale Play. La IA hace todo.
 """
+import argparse
+import os
 import sys, json, time, threading, webbrowser, random, math
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
@@ -580,4 +582,10 @@ def main():
         print("\n­ƒæï")
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Nexus AI DJ Player")
+    parser.add_argument("--port", type=int, default=None,
+                        help="Port (default: auto-fallback from 8765)")
+    args = parser.parse_args()
+
+    PORT = args.port or int(os.environ.get("DJ_PORT", PORT))
     main()

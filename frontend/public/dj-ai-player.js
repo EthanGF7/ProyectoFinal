@@ -131,10 +131,19 @@ function ic() {
 
 // ── Boot ─────────────────────────────────────────────────────
 async function boot() {
-  const [lr, mr] = await Promise.all([fetch('/api/djs/' + window.__DJ_AI_ID + '/library'), Promise.resolve({ json: () => Promise.resolve({ ok: false }) })]);
-  S.lib  = await lr.json();
-  const m = await mr.json();
-  S.modOk = m.ok;
+  let libData = [];
+  try {
+    const lr = await fetch('/api/djs/' + window.__DJ_AI_ID + '/library');
+    if (!lr.ok) throw new Error('HTTP ' + lr.status);
+    libData = await lr.json();
+    if (!Array.isArray(libData)) libData = [];
+    S.modOk = true;
+  } catch (e) {
+    console.warn('[DjAI] No se pudo cargar la librería:', e);
+    libData = [];
+    S.modOk = false;
+  }
+  S.lib = libData;
 
   const mb = document.getElementById('modB');
   mb.textContent = S.modOk ? 'MÓDULOS OK' : 'FALLBACK';
@@ -1002,7 +1011,7 @@ function drawWave(buf, track) {
 // ── Spectrum visualizer ───────────────────────────────────────
 function drawViz() {
   const c = document.getElementById('viz'), dpr = devicePixelRatio||1;
-  if(c.width!==c.offsetWidth*dpr){c.width=c.outputWidth*dpr;c.height=c.offsetHeight*dpr;}
+  if(c.width!==c.offsetWidth*dpr){c.width=c.offsetWidth*dpr;c.height=c.offsetHeight*dpr;}
   const g = c.getContext('2d'), W=c.offsetWidth, H=c.offsetHeight;
   g.setTransform(dpr,0,0,dpr,0,0);
 

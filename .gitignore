@@ -64,7 +64,9 @@ typings/
 
 # dotenv environment variables file
 .env
+.env.local
 .env.test
+.env.*.local
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -86,3 +88,35 @@ typings/
 
 # DynamoDB Local files
 .dynamodb/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.venv
+venv/
+env/
+ENV/
+*.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temp directories
+temp/
+tmp/
+

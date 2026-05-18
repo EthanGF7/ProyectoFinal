@@ -83,7 +83,7 @@ export const useAppUser = () => {
       loadAppUser();
     });
 
-    return () => authListener?.subscription?.unsubscribe();
+    return () => authListener?.unsubscribe();
   }, [loadAppUser]);
 
   return { appUser, supabaseUser, loading, error, refresh: loadAppUser };

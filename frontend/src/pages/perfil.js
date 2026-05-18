@@ -69,7 +69,7 @@ export default function PaginaPerfil() {
       }
     });
 
-    return () => subscription?.subscription?.unsubscribe();
+    return () => subscription?.unsubscribe();
   }, []);
 
   const handleLogout = async () => {

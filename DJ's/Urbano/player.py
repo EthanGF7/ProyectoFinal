@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+
+
 """
 DJ AI - Live Player  |  python player.py  |  Dale Play. La IA hace todo.
 """
@@ -16,7 +18,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Inicia el player local del DJ')
 parser.add_argument('--port', type=int, default=8765, help='Puerto HTTP del player')
 args = parser.parse_args()
-PORT      = args.port
+PORT = args.port
 
 sys.path.insert(0, str(SRC_DIR))
 
@@ -398,6 +400,13 @@ LIBRARY = load_library()
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
 
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+
     def do_GET(self):
         p  = urllib.parse.urlparse(self.path)
         qs = urllib.parse.parse_qs(p.query)
@@ -462,6 +471,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", f"{ct}; charset=utf-8")
         self.send_header("Content-Length", len(data))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
         self.wfile.write(data)
 
@@ -474,481 +486,289 @@ HTML = r"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>DJ AI</title>
+<title>URBANO SESSION</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@300;400;700&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;600&display=swap');
-:root{
-  --bg:#07080f; --s1:#0d0f1c; --s2:#12152a; --b:#1c2040;
-  --g:#c8ff00;  --c:#00f0ff;  --r:#ff3b5c; --o:#ff9500; --p:#b060ff;
-  --t:#dde2ff;  --dim:#3d4466;
-}
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;overflow:hidden}
-body{background:var(--bg);color:var(--t);font-family:'DM Sans',sans-serif;
-  display:flex;align-items:center;justify-content:center;}
-body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
-  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.035) 3px,rgba(0,0,0,.035) 4px);}
+html,body{height:100%;overflow:hidden;background:#060606;}
+body{font-family:'Space Grotesk',sans-serif;}
 
-/* ── IDLE ──────────────────────────────────────────────────── */
+/* ── GRAIN TEXTURE ─────────────────────────────────────── */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  opacity:0.045;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:200px 200px;}
+
+/* ── IDLE ─────────────────────────────────────────────── */
 #idle{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:28px;z-index:100;background:var(--bg);
-  transition:opacity .9s,visibility .9s;}
+  justify-content:center;gap:28px;z-index:100;background:#060606;
+  transition:opacity 1.4s,visibility 1.4s;}
 #idle.off{opacity:0;visibility:hidden;pointer-events:none}
 
-.idle-logo{font-family:'Bebas Neue',sans-serif;
-  font-size:clamp(72px,15vw,140px);letter-spacing:12px;
-  background:linear-gradient(135deg,var(--g) 30%,var(--c));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  animation:logopulse 3s ease-in-out infinite;}
-@keyframes logopulse{
-  0%,100%{filter:drop-shadow(0 0 20px rgba(200,255,0,.3))}
-  50%    {filter:drop-shadow(0 0 60px rgba(200,255,0,.7)) drop-shadow(0 0 120px rgba(0,240,255,.3))}}
+.idle-logo{
+  font-family:'Anton',sans-serif;
+  font-size:clamp(56px,12vw,120px);letter-spacing:8px;text-transform:uppercase;
+  color:#e8ff00;
+  text-shadow:
+    0 0 20px rgba(232,255,0,0.9),
+    0 0 60px rgba(232,255,0,0.5),
+    0 0 120px rgba(232,255,0,0.2),
+    2px 2px 0 rgba(0,0,0,0.9);
+  animation:urbanpulse 3s ease-in-out infinite;}
+@keyframes urbanpulse{
+  0%,100%{text-shadow:0 0 20px rgba(232,255,0,0.9),0 0 60px rgba(232,255,0,0.5),0 0 120px rgba(232,255,0,0.2),2px 2px 0 rgba(0,0,0,0.9);}
+  50%{text-shadow:0 0 40px rgba(232,255,0,1),0 0 100px rgba(232,255,0,0.8),0 0 200px rgba(232,255,0,0.4),2px 2px 0 rgba(0,0,0,0.9);}}
 
-.idle-sub{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:4px;
-  color:var(--dim);text-transform:uppercase;}
+.idle-sub{
+  font-family:'Space Grotesk',sans-serif;font-weight:300;font-size:10px;letter-spacing:8px;
+  color:rgba(232,255,0,0.35);text-transform:uppercase;}
 
-.play-btn{width:100px;height:100px;border-radius:50%;background:var(--g);border:none;
-  cursor:pointer;font-size:38px;color:#000;font-weight:900;
+.play-btn{width:90px;height:90px;border-radius:4px;
+  background:transparent;border:2px solid rgba(232,255,0,0.5);
+  cursor:pointer;font-size:30px;color:#e8ff00;
   display:flex;align-items:center;justify-content:center;
-  box-shadow:0 0 50px rgba(200,255,0,.4),0 0 100px rgba(200,255,0,.15);
-  transition:all .25s;position:relative;}
-.play-btn::before{content:'';position:absolute;inset:-4px;border-radius:50%;
-  border:1px solid rgba(200,255,0,.2);animation:ringgrow 2s ease-out infinite;}
-@keyframes ringgrow{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.4);opacity:0}}
-.play-btn:hover{transform:scale(1.09);box-shadow:0 0 80px rgba(200,255,0,.7),0 0 160px rgba(200,255,0,.25)}
-.play-btn:disabled{opacity:.3;cursor:not-allowed;transform:none;animation:none}
-.play-btn:disabled::before{display:none}
-.idle-info{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);}
-.idle-info b{color:var(--g)}
+  box-shadow:0 0 30px rgba(232,255,0,0.2),inset 0 0 20px rgba(232,255,0,0.04);
+  transition:all .2s;position:relative;clip-path:polygon(0 0,96% 0,100% 4%,100% 100%,4% 100%,0 96%);}
+.play-btn:hover{border-color:rgba(232,255,0,0.9);
+  box-shadow:0 0 60px rgba(232,255,0,0.6),inset 0 0 30px rgba(232,255,0,0.12);
+  transform:scale(1.04);}
+.play-btn:disabled{opacity:.15;cursor:not-allowed;}
 
-/* ── APP ───────────────────────────────────────────────────── */
-#app{width:100%;max-width:860px;padding:12px;opacity:0;transition:opacity 1s;
-  pointer-events:none;display:flex;flex-direction:column;gap:8px;height:100vh;max-height:100vh;}
-#app.on{opacity:1;pointer-events:all}
+.idle-info{font-family:'Space Grotesk',sans-serif;font-size:11px;
+  color:rgba(255,255,255,0.2);letter-spacing:2px;}
+.idle-info b{color:rgba(232,255,0,0.6)}
 
-/* MAIN CARD */
-.card{background:var(--s1);border:1px solid var(--b);border-radius:16px;overflow:hidden;flex-shrink:0}
+/* ── STAGE ─────────────────────────────────────────────── */
+#stage{position:fixed;inset:0;z-index:1;opacity:0;transition:opacity 1.6s;background:#060606;}
+#stage.on{opacity:1;}
 
-/* ── VIZ (spectrum arriba) ─────────────────────────────────── */
-#viz{width:100%;height:52px;display:block;border-radius:10px 10px 0 0;
-  background:var(--bg);border:1px solid var(--b);border-bottom:none;flex-shrink:0}
+#vizMain{position:absolute;inset:0;width:100%;height:100%;}
+#particles{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
 
-/* ── NOW PLAYING ───────────────────────────────────────────── */
-.np{padding:12px 18px 10px;border-bottom:1px solid var(--b);
-  display:flex;align-items:center;gap:14px}
+/* ── HUD — cartel urbano ──────────────────────────────── */
+#hud{position:absolute;top:0;left:0;right:0;bottom:0;
+  pointer-events:none;z-index:10;}
 
-/* Vinyl animado */
-.vinyl{width:52px;height:52px;border-radius:50%;flex-shrink:0;position:relative;
-  background:
-    radial-gradient(circle at 50% 50%,
-      #333 0%,#333 16%,transparent 17%,
-      rgba(255,255,255,.04) 35%,transparent 36%,
-      rgba(255,255,255,.02) 55%,transparent 56%,
-      #1a1a1a 80%
-    );
-  border:1px solid #2a2a2a;}
-.vinyl.spin{animation:vspin 1.8s linear infinite}
-@keyframes vspin{to{transform:rotate(360deg)}}
-.vinyl-dot{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:10px;height:10px;border-radius:50%;
-  background:radial-gradient(var(--g),rgba(200,255,0,.4));
-  box-shadow:0 0 8px var(--g)}
-.vinyl-groove{position:absolute;inset:6px;border-radius:50%;
-  border:1px solid rgba(255,255,255,.04)}
-.vinyl-groove2{position:absolute;inset:14px;border-radius:50%;
-  border:1px solid rgba(255,255,255,.03)}
+/* Now playing — esquina inferior izquierda, estilo etiqueta industrial */
+#nowPlaying{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:32px 48px 40px;
+  background:linear-gradient(to top,rgba(6,6,6,0.96) 0%,rgba(6,6,6,0.5) 60%,transparent 100%);}
 
-.np-info{flex:1;min-width:0}
-.np-lbl{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:3px;
-  color:var(--dim);text-transform:uppercase;margin-bottom:2px}
-.np-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(22px,3.8vw,34px);
-  letter-spacing:1px;line-height:1;margin-bottom:3px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.np-meta{display:flex;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:10px;
-  flex-wrap:wrap;align-items:center}
-.np-meta .bpm{color:var(--g);font-weight:700}
-.np-meta .egy{color:var(--c)}
-.np-meta .key{color:var(--p);font-size:9px;
-  padding:1px 5px;border-radius:5px;border:1px solid rgba(176,96,255,.25)}
-.np-meta .dm{color:var(--dim)}
+.hud-label{
+  font-family:'Space Grotesk',sans-serif;font-weight:300;font-size:8px;letter-spacing:7px;
+  text-transform:uppercase;color:rgba(232,255,0,0.45);margin-bottom:10px;
+  display:flex;align-items:center;gap:10px;}
+.hud-label::before{content:'';width:24px;height:1px;background:rgba(232,255,0,0.3);}
 
-/* Phase pill */
-.pill{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1px;
-  text-transform:uppercase;padding:2px 8px;border-radius:8px;flex-shrink:0;
-  border:1px solid}
-.pill-warm-up     {color:var(--c);border-color:rgba(0,240,255,.25);background:rgba(0,240,255,.06)}
-.pill-first-build {color:var(--g);border-color:rgba(200,255,0,.2);background:rgba(200,255,0,.05)}
-.pill-first-peak  {color:var(--g);border-color:rgba(200,255,0,.4);background:rgba(200,255,0,.1);
-  animation:peakpulse 1.2s ease-in-out infinite}
-.pill-breakdown   {color:var(--o);border-color:rgba(255,149,0,.3);background:rgba(255,149,0,.07)}
-.pill-second-build{color:var(--g);border-color:rgba(200,255,0,.25);background:rgba(200,255,0,.06)}
-.pill-second-peak {color:var(--g);border-color:rgba(200,255,0,.5);background:rgba(200,255,0,.12);
-  animation:peakpulse .9s ease-in-out infinite}
-.pill-outro       {color:var(--dim);border-color:rgba(61,68,102,.4);background:rgba(61,68,102,.1)}
-@keyframes peakpulse{
-  0%,100%{box-shadow:none}50%{box-shadow:0 0 10px rgba(200,255,0,.35)}}
+#npTitle{
+  font-family:'Anton',sans-serif;
+  font-size:clamp(24px,4vw,58px);letter-spacing:3px;line-height:1;
+  color:#fff;text-transform:uppercase;
+  text-shadow:0 0 40px rgba(232,255,0,0.2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:text-shadow .06s;
+  animation:titleSlide .5s cubic-bezier(0.16,1,0.3,1) forwards;}
+@keyframes titleSlide{0%{opacity:0;transform:translateX(-12px)}100%{opacity:1;transform:translateX(0)}}
+#npTitle.beat-pulse{text-shadow:0 0 60px rgba(232,255,0,0.8),0 0 100px rgba(232,255,0,0.4);}
 
-/* ── WAVEFORM + PLAYHEAD ───────────────────────────────────── */
-.ww{padding:6px 18px;position:relative;border-bottom:1px solid var(--b);
-  user-select:none;-webkit-user-select:none}
-#wc{width:100%;height:42px;display:block;border-radius:5px;background:var(--s2);
-  cursor:col-resize}
-.ph{position:absolute;top:6px;bottom:6px;width:2px;
-  background:var(--g);box-shadow:0 0 8px var(--g);
-  pointer-events:none;border-radius:1px}
-.ph.scrubbing{background:white;box-shadow:0 0 12px white}
-.ph-handle{position:absolute;top:50%;transform:translate(-50%,-50%);
-  width:12px;height:12px;border-radius:50%;
-  background:var(--g);box-shadow:0 0 8px var(--g);
-  pointer-events:none;transition:transform .1s}
-.ph-handle.scrubbing{transform:translate(-50%,-50%) scale(1.5);background:white;box-shadow:0 0 12px white}
-.ww-tooltip{position:absolute;top:-22px;transform:translateX(-50%);
-  font-family:'IBM Plex Mono',monospace;font-size:9px;
-  background:rgba(0,0,0,.8);color:var(--t);padding:2px 6px;border-radius:4px;
-  pointer-events:none;opacity:0;transition:opacity .15s;white-space:nowrap}
-.ww-tooltip.show{opacity:1}
-.times{display:flex;justify-content:space-between;
-  font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);margin-top:3px}
-.times .cur{color:var(--t)}
+.hud-meta{display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap;}
 
-/* ── EQ METERS (visual de lo que hace el EQ durante el mix) ── */
-.eq-row{padding:5px 18px;border-bottom:1px solid var(--b);
-  display:flex;gap:8px;align-items:center;opacity:0;transition:opacity .4s}
-.eq-row.on{opacity:1}
-.eq-lbl{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);
-  letter-spacing:1px;text-transform:uppercase;width:18px;flex-shrink:0}
-.eq-band{flex:1;height:3px;border-radius:2px;background:var(--s2);overflow:hidden;position:relative}
-.eq-fill{height:100%;border-radius:2px;transition:width .15s linear}
-.eq-fill.lo{background:linear-gradient(90deg,#ff3b5c,#ff6b35)}
-.eq-fill.mid{background:linear-gradient(90deg,#ff9500,var(--g))}
-.eq-fill.hi{background:linear-gradient(90deg,var(--g),var(--c))}
-.eq-sep{width:1px;background:var(--b);height:14px;flex-shrink:0}
+.hud-bpm{
+  font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;
+  color:rgba(232,255,0,0.8);text-transform:uppercase;}
 
-/* ── SESSION ARC ───────────────────────────────────────────── */
-.arc{padding:6px 18px;border-bottom:1px solid var(--b);
-  display:flex;align-items:center;gap:10px}
-.arc-lbl{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);
-  letter-spacing:1px;text-transform:uppercase;width:32px;flex-shrink:0}
-.arc-track{flex:1;height:18px;background:var(--s2);border-radius:4px;
-  position:relative;overflow:hidden}
-/* Curva de energía de la sesión dibujada como fondo */
-.arc-track::before{content:'';position:absolute;inset:0;
-  background:linear-gradient(90deg,
-    rgba(0,240,255,.15) 0%,
-    rgba(200,255,0,.25) 30%,
-    rgba(200,255,0,.4)  48%,
-    rgba(255,149,0,.2)  58%,
-    rgba(200,255,0,.35) 72%,
-    rgba(200,255,0,.45) 88%,
-    rgba(0,240,255,.1)  100%
-  );}
-.arc-cursor{position:absolute;top:0;bottom:0;width:3px;
-  background:white;box-shadow:0 0 8px white;
-  transition:left .9s cubic-bezier(.22,1,.36,1);border-radius:2px}
-.arc-phase{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);
-  flex-shrink:0;min-width:60px;text-align:right}
+.hud-key{
+  font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;
+  color:rgba(0,255,136,0.9);
+  padding:2px 10px;border:1px solid rgba(0,255,136,0.3);
+  background:rgba(0,255,136,0.05);}
 
-/* ── MIX IN PROGRESS ───────────────────────────────────────── */
-.mix-row{padding:6px 18px;
-  border-bottom:1px solid rgba(200,255,0,.06);
-  font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;
+.hud-dur{font-family:'Space Grotesk',sans-serif;font-size:10px;color:rgba(255,255,255,0.15);letter-spacing:1px;}
+
+.hud-estilo{
+  font-family:'Space Grotesk',sans-serif;font-size:8px;font-weight:700;letter-spacing:3px;text-transform:uppercase;
+  color:rgba(255,50,120,0.9);padding:2px 10px;border:1px solid rgba(255,50,120,0.3);
+  background:rgba(255,50,120,0.06);}
+
+/* Like buttons */
+#likeRow{position:absolute;top:32px;right:48px;display:flex;gap:8px;align-items:center;}
+.like-btn{
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.1);
+  width:34px;height:34px;cursor:pointer;font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;pointer-events:all;}
+.like-btn:hover{border-color:rgba(232,255,0,0.5);background:rgba(232,255,0,0.06);transform:scale(1.1);}
+.like-btn.active-like{border-color:rgba(80,220,120,.6);background:rgba(80,220,120,.1);box-shadow:0 0 14px rgba(80,220,120,.3);}
+.like-btn.active-dislike{border-color:rgba(255,80,80,.6);background:rgba(255,80,80,.1);box-shadow:0 0 14px rgba(255,80,80,.3);}
+
+/* Phase + mix — esquina superior izquierda */
+#statusBar{position:absolute;top:32px;left:48px;display:flex;flex-direction:column;gap:8px;}
+
+#phasePill{
+  font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:8px;letter-spacing:4px;
+  text-transform:uppercase;padding:4px 14px;border:1px solid;
+  display:inline-flex;align-items:center;gap:6px;width:fit-content;
+  transition:all .6s;}
+.pill-warm-up{color:rgba(100,200,255,.8);border-color:rgba(100,200,255,.25);background:rgba(100,200,255,.04)}
+.pill-first-build{color:rgba(232,255,0,.8);border-color:rgba(232,255,0,.3);background:rgba(232,255,0,.04)}
+.pill-first-peak{color:#e8ff00;border-color:rgba(232,255,0,.7);background:rgba(232,255,0,.1);
+  animation:peakglow .8s ease-in-out infinite}
+.pill-breakdown{color:rgba(0,255,136,.8);border-color:rgba(0,255,136,.25);background:rgba(0,255,136,.04)}
+.pill-second-build{color:rgba(232,255,0,.8);border-color:rgba(232,255,0,.3);background:rgba(232,255,0,.05)}
+.pill-second-peak{color:#e8ff00;border-color:rgba(232,255,0,.8);background:rgba(232,255,0,.12);
+  animation:peakglow .55s ease-in-out infinite}
+.pill-outro{color:rgba(255,255,255,.15);border-color:rgba(255,255,255,.08);background:transparent}
+@keyframes peakglow{0%,100%{box-shadow:none}50%{box-shadow:0 0 24px rgba(232,255,0,.7),0 0 60px rgba(232,255,0,.2)}}
+
+#mixIndicator{
+  font-family:'Space Grotesk',sans-serif;font-size:8px;letter-spacing:4px;
+  text-transform:uppercase;padding:4px 14px;
   display:none;align-items:center;gap:8px;
-  transition:background .4s,color .4s,border-color .4s}
-.mix-row.on{display:flex}
-/* Guetta: verde lima agresivo */
-.mix-row.style-guetta{
-  background:rgba(200,255,0,.03);color:var(--g);
-  border-bottom-color:rgba(200,255,0,.08)}
-/* Avicii: naranja cálido suave */
-.mix-row.style-avicii{
-  background:rgba(255,149,0,.03);color:var(--o);
-  border-bottom-color:rgba(255,149,0,.08)}
-/* Progressive: cyan técnico */
-.mix-row.style-progressive{
-  background:rgba(0,240,255,.03);color:var(--c);
-  border-bottom-color:rgba(0,240,255,.08)}
-.mix-dot{width:5px;height:5px;border-radius:50%;
-  animation:blink .5s step-end infinite;flex-shrink:0}
-.style-guetta .mix-dot{background:var(--g)}
-.style-avicii .mix-dot{background:var(--o)}
-.style-progressive .mix-dot{background:var(--c)}
+  color:rgba(0,255,136,.9);border:1px solid rgba(0,255,136,.3);background:rgba(0,255,136,.05);}
+#mixIndicator.on{display:flex;}
+.mix-dot-ind{width:5px;height:5px;background:currentColor;animation:blink .4s step-end infinite;}
 @keyframes blink{50%{opacity:0}}
-.mix-prog{flex:1;height:3px;background:var(--b);border-radius:2px;overflow:hidden}
-.mix-fill{height:100%;border-radius:2px;width:0%;transition:width .2s linear}
-.style-guetta .mix-fill{background:linear-gradient(90deg,var(--c),var(--g))}
-.style-avicii .mix-fill{background:linear-gradient(90deg,#ff6b35,var(--o))}
-.mix-label{font-size:8px;flex-shrink:0;opacity:.7;font-weight:700;letter-spacing:2px}
-.mix-info{color:var(--dim);flex-shrink:0;font-size:8px}
 
-/* ── NEXT UP ───────────────────────────────────────────────── */
-.nxt{padding:7px 18px;background:rgba(0,240,255,.018);
-  border-bottom:1px solid rgba(0,240,255,.05);
-  display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.nxt-lbl{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:2px;
-  color:var(--c);text-transform:uppercase;flex-shrink:0}
-.nxt-nm{font-size:12px;font-weight:600;flex:1;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nxt-sc{font-family:'IBM Plex Mono',monospace;font-size:8px;
-  padding:2px 6px;border-radius:7px;border:1px solid rgba(0,240,255,.18);
-  color:var(--c);flex-shrink:0}
-.nxt-t{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);flex-shrink:0}
+/* Mode tag */
+#modeTag{
+  position:absolute;top:32px;left:50%;transform:translateX(-50%);
+  font-family:'Space Grotesk',sans-serif;font-weight:300;font-size:8px;letter-spacing:6px;text-transform:uppercase;
+  color:rgba(255,255,255,0.18);
+  pointer-events:none;z-index:10;transition:opacity .8s;}
 
-/* ── STATUS ────────────────────────────────────────────────── */
-.st{padding:7px 18px;display:flex;align-items:center;
-  justify-content:space-between;flex-wrap:wrap;gap:6px}
-.st-l{display:flex;align-items:center;gap:7px}
-.bx{background:var(--s2);border:1px solid var(--b);border-radius:7px;
-  padding:4px 11px;text-align:center;font-family:'IBM Plex Mono',monospace}
-.bx .v{font-size:17px;color:var(--g);font-weight:700;line-height:1}
-.bx .l{font-size:7px;color:var(--dim);letter-spacing:2px}
-.live{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:2px;
-  text-transform:uppercase;padding:2px 8px;border-radius:10px;
-  border:1px solid var(--g);color:var(--g);animation:blink 1.4s step-end infinite}
-.mod{font-family:'IBM Plex Mono',monospace;font-size:8px;padding:2px 8px;
-  border-radius:10px;border:1px solid}
-.mod.ok{border-color:rgba(0,240,255,.3);color:var(--c)}
-.mod.fb{border-color:var(--dim);color:var(--dim)}
-.skip-btn{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;
-  padding:3px 10px;border-radius:8px;border:1px solid rgba(200,255,0,.3);
-  background:rgba(200,255,0,.06);color:var(--g);cursor:pointer;transition:all .15s;}
-.skip-btn:hover{background:rgba(200,255,0,.15);border-color:var(--g)}
-.skip-btn:disabled{opacity:.3;cursor:not-allowed}
-#log{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);
-  max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Progress strip — decorativa 2px */
+#progressBar{
+  position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:rgba(255,255,255,0.04);
+  pointer-events:none;z-index:20;overflow:hidden;}
+#progressFill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,rgba(232,255,0,0.6),rgba(0,255,136,0.5));
+  transition:width .4s linear;}
 
-/* ── LIBRARY ───────────────────────────────────────────────── */
-.lib{background:var(--s1);border:1px solid var(--b);border-radius:14px;
-  overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column}
-.lib-h{padding:7px 14px;border-bottom:1px solid var(--b);
-  display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.lib-h h2{font-family:'IBM Plex Mono',monospace;font-size:8px;
-  letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
-.lib-h .cnt{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--g)}
-.tlist{overflow-y:auto;flex:1}
-.tlist::-webkit-scrollbar{width:2px}
-.tlist::-webkit-scrollbar-thumb{background:var(--b);border-radius:2px}
-.tk{display:grid;grid-template-columns:18px 1fr 32px 44px 28px 32px;
-  align-items:center;gap:5px;padding:5px 14px;
-  border-bottom:1px solid rgba(28,32,64,.5);transition:background .1s}
-.tk:hover{background:var(--s2)}
-.tk.cur{background:rgba(200,255,0,.045);border-left:2px solid var(--g)}
-.tk.nxt{background:rgba(0,240,255,.02);border-left:2px solid rgba(0,240,255,.35)}
-.tk.done{opacity:.28}
-.tn{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-align:center}
-.tt{font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.te{height:2px;border-radius:2px;background:var(--b);overflow:hidden}
-.tef{height:100%;background:linear-gradient(90deg,var(--c),var(--g));border-radius:2px}
-.tb{font-family:'IBM Plex Mono',monospace;font-size:8px;text-align:right}
-.tb.ok{color:var(--g)}.tb.no{color:var(--dim)}
-.ts{font-family:'IBM Plex Mono',monospace;font-size:8px;text-align:right}
-.ts.hi{color:var(--g)}.ts.mi{color:var(--c)}.ts.lo{color:var(--dim)}
-.td{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);text-align:right}
-.empty{padding:28px;text-align:center;color:var(--dim)}
-.empty code{font-family:'IBM Plex Mono',monospace;color:var(--g);font-size:9px}
-
-/* ── TIMELINE DE SESIÓN ─────────────────────────────────────── */
-.timeline{background:var(--s1);border:1px solid var(--b);border-radius:14px;
-  overflow:hidden;flex-shrink:0;padding:8px 14px}
-.tl-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.tl-h span{font-family:'IBM Plex Mono',monospace;font-size:8px;
-  letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
-.tl-track{position:relative;height:28px;background:var(--s2);border-radius:5px;overflow:hidden}
-/* Curva de energía de sesión como fondo */
-.tl-energy-curve{position:absolute;inset:0;opacity:.25}
-.tl-blocks{position:absolute;inset:0;display:flex}
-.tl-block{height:100%;position:relative;border-right:1px solid var(--bg);
-  cursor:pointer;transition:filter .15s;flex-shrink:0}
-.tl-block:hover{filter:brightness(1.4)}
-.tl-block.playing{box-shadow:inset 0 0 0 1px white}
-.tl-block.done{opacity:.5}
-.tl-block.future{opacity:.3}
-.tl-head{position:absolute;top:0;bottom:0;width:2px;background:white;
-  box-shadow:0 0 6px white;pointer-events:none;transition:left .1s linear}
-.tl-labels{display:flex;margin-top:3px;position:relative;height:14px}
-.tl-lbl{position:absolute;font-family:'IBM Plex Mono',monospace;font-size:7px;
-  color:var(--dim);transform:translateX(-50%);white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis;max-width:80px}
-.tl-lbl.cur{color:var(--g)}
-
-/* ── CUE / PREVIEW ──────────────────────────────────────────── */
-.cue-btn{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:1px;
-  padding:3px 9px;border-radius:8px;
-  border:1px solid rgba(176,96,255,.35);
-  background:rgba(176,96,255,.08);color:var(--p);
-  cursor:pointer;transition:all .15s;flex-shrink:0}
-.cue-btn:hover{background:rgba(176,96,255,.2);border-color:var(--p)}
-.cue-btn.cueing{background:rgba(176,96,255,.25);border-color:var(--p);
-  animation:peakpulse .8s ease-in-out infinite}
-.cue-btn:disabled{opacity:.3;cursor:not-allowed}
-
-/* ── BEAT indicator ─────────────────────────────────────────── */
-.beat-dot{width:6px;height:6px;border-radius:50%;background:var(--g);
-  opacity:0;transition:opacity .05s;flex-shrink:0}
-.beat-dot.flash{opacity:1}
+/* Invisible compat */
+.beat-dot{display:none}
+#app,#tlWrap{display:none!important}
+#eqRow,#mixRow,#nxtRow,#ww,#wc,#ph,#phHandle{display:none!important}
+#viz{position:absolute;left:-9999px;opacity:0;width:1px;height:1px;}
 </style>
 </head>
 <body>
 
 <!-- IDLE -->
 <div id="idle">
-  <div class="idle-logo">DJ AI</div>
-  <div class="idle-sub">Sesión autónoma · mezcla inteligente en vivo</div>
+  <div class="idle-logo">URBANO</div>
+  <div class="idle-sub">AI DJ · Sesión autónoma</div>
   <button class="play-btn" id="btnStart" disabled>▶</button>
   <div class="idle-info" id="idleInfo">Cargando biblioteca...</div>
 </div>
 
-<!-- PLAYER -->
-<div id="app">
-
-  <canvas id="viz"></canvas>
-
-  <div class="card">
-
-    <!-- NOW PLAYING -->
-    <div class="np">
-      <div class="vinyl" id="vinyl">
-        <div class="vinyl-groove"></div>
-        <div class="vinyl-groove2"></div>
-        <div class="vinyl-dot"></div>
+<!-- STAGE -->
+<div id="stage">
+  <canvas id="vizMain"></canvas>
+  <canvas id="particles"></canvas>
+  <div id="hud">
+    <div id="statusBar">
+      <div id="phasePill" class="pill-warm-up">WARM</div>
+      <div id="mixIndicator"><div class="mix-dot-ind"></div><span id="mixLabel">MIX</span></div>
+    </div>
+    <div id="likeRow">
+      <button class="like-btn" id="btnLike" onclick="sendLike('like')" title="Me gusta">👍</button>
+      <button class="like-btn" id="btnDislike" onclick="sendLike('dislike')" title="No me gusta">👎</button>
+    </div>
+    <div id="modeTag">— GLITCH —</div>
+    <div id="nowPlaying">
+      <div class="hud-label">Ahora Suena</div>
+      <div id="npTitle">—</div>
+      <div class="hud-meta">
+        <span class="hud-bpm" id="npBpm"></span>
+        <span class="hud-key" id="npKey" style="display:none"></span>
+        <span class="hud-estilo" id="npEstilo" style="display:none"></span>
+        <span class="hud-dur" id="npDur"></span>
       </div>
+    </div>
+  </div>
+  <div id="progressBar"><div id="progressFill"></div></div>
+</div>
+
+<!-- INVISIBLE COMPAT -->
+<div id="app" style="display:none">
+  <canvas id="viz"></canvas>
+  <div class="card">
+    <div class="np">
+      <div id="vinyl"></div>
       <div class="np-info">
-        <div class="np-lbl">Now playing</div>
-        <div class="np-title" id="npTitle">—</div>
+        <div id="npTitleHidden">—</div>
         <div class="np-meta">
-          <span class="bpm" id="npBpm">—</span>
-          <span class="egy" id="npEgy">—</span>
-          <span class="key" id="npKey" style="display:none">—</span>
-          <span class="dm"  id="npDur">—</span>
-          <span class="pill" id="phasePill">warm-up</span>
+          <span id="npBpmHidden">—</span>
+          <span id="npEgy">—</span>
+          <span id="npKeyHidden">—</span>
+          <span id="npDurHidden">—</span>
+          <span id="phasePillHidden">warm-up</span>
         </div>
       </div>
     </div>
-
-    <!-- WAVEFORM -->
-    <div class="ww" id="ww">
+    <div id="ww" style="display:none">
       <canvas id="wc"></canvas>
-      <div class="ph" id="ph" style="left:18px">
-        <div class="ph-handle" id="phHandle"></div>
-      </div>
-      <div class="ww-tooltip" id="wwTooltip">0:00</div>
-      <div class="times">
-        <span class="cur" id="tCur">0:00</span>
-        <span id="tTot">0:00</span>
-      </div>
+      <div id="ph"><div id="phHandle"></div></div>
+      <div id="wwTooltip">0:00</div>
+      <div class="times"><span id="tCur">0:00</span><span id="tTot">0:00</span></div>
     </div>
-
-    <!-- EQ BANDS (visible durante el mix) -->
-    <div class="eq-row" id="eqRow">
-      <div class="eq-lbl">LO</div>
-      <div class="eq-band"><div class="eq-fill lo" id="eqLo" style="width:100%"></div></div>
-      <div class="eq-sep"></div>
-      <div class="eq-lbl" style="width:24px">MID</div>
-      <div class="eq-band"><div class="eq-fill mid" id="eqMid" style="width:100%"></div></div>
-      <div class="eq-sep"></div>
-      <div class="eq-lbl">HI</div>
-      <div class="eq-band"><div class="eq-fill hi" id="eqHi" style="width:100%"></div></div>
+    <div id="eqRow">
+      <div><div id="eqLo" style="width:100%"></div></div>
+      <div><div id="eqMid" style="width:100%"></div></div>
+      <div><div id="eqHi" style="width:100%"></div></div>
     </div>
-
-    <!-- SESSION ARC -->
     <div class="arc">
-      <div class="arc-lbl">Arco</div>
-      <div class="arc-track">
-        <div class="arc-cursor" id="arcCursor" style="left:0%"></div>
-      </div>
-      <div class="arc-phase" id="arcPhase">warm-up</div>
+      <div><div id="arcCursor" style="left:0%"></div></div>
+      <div id="arcPhase">warm-up</div>
     </div>
-
-    <!-- MIX IN PROGRESS -->
-    <div class="mix-row" id="mixRow">
-      <div class="mix-dot"></div>
-      <div class="mix-label" id="mixStyleLabel">⚡</div>
-      <div class="mix-prog"><div class="mix-fill" id="mixFill"></div></div>
-      <div class="mix-info" id="mixInfo">mezclando...</div>
+    <div id="mixRow">
+      <div id="mixStyleLabel">⚡</div>
+      <div><div id="mixFill"></div></div>
+      <div id="mixInfo">mezclando...</div>
     </div>
-
-    <!-- NEXT UP -->
-    <div class="nxt" id="nxtRow" style="display:none">
-      <div class="nxt-lbl">IA Next</div>
-      <div class="nxt-nm" id="nxtNm">—</div>
-      <div class="nxt-sc" id="nxtSc">—</div>
-      <div class="nxt-t"  id="nxtT">—</div>
-      <button class="cue-btn" id="btnCue" disabled title="Preview 5s de la siguiente">👂 CUE</button>
+    <div id="nxtRow">
+      <div id="nxtNm">—</div>
+      <div id="nxtSc">—</div>
+      <div id="nxtT">—</div>
+      <button id="btnCue" disabled></button>
     </div>
-
-    <!-- STATUS -->
-    <div class="st">
-      <div class="st-l">
-        <div class="bx"><div class="v" id="bpmVal">—</div><div class="l">BPM</div></div>
-        <div class="live">● LIVE</div>
-        <div class="beat-dot" id="beatDot"></div>
-        <div class="mod" id="modB">—</div>
-        <button class="skip-btn" id="btnSkip" disabled title="Saltar al mix ahora">⏭ MIX NOW</button>
-      </div>
+    <div>
+      <div><div id="bpmVal">—</div></div>
+      <div id="beatDot"></div>
+      <div id="modB">—</div>
+      <button id="btnSkip" disabled></button>
       <div id="log">—</div>
     </div>
-
-  </div><!-- .card -->
-
-  <!-- TIMELINE DE SESIÓN -->
-  <div class="timeline" id="tlWrap" style="display:none">
-    <div class="tl-h">
-      <span>Timeline · sesión</span>
-      <span id="tlDur">—</span>
-    </div>
-    <div class="tl-track" id="tlTrack">
-      <canvas class="tl-energy-curve" id="tlCurve"></canvas>
-      <div class="tl-blocks" id="tlBlocks"></div>
-      <div class="tl-head"   id="tlHead"  style="left:0%"></div>
-    </div>
-    <div class="tl-labels" id="tlLabels"></div>
   </div>
-
-  <!-- LIBRARY -->
+  <div id="tlWrap">
+    <canvas id="tlCurve"></canvas>
+    <div id="tlBlocks"></div>
+    <div id="tlHead" style="left:0%"></div>
+    <div id="tlLabels"></div>
+    <span id="tlDur">—</span>
+  </div>
   <div class="lib">
-    <div class="lib-h">
-      <h2>🎵 Biblioteca</h2>
-      <span class="cnt" id="libCount">—</span>
-    </div>
-    <div class="tlist" id="tlist">
-      <div class="empty"><p>Cargando...</p></div>
-    </div>
+    <span id="libCount">—</span>
+    <div id="tlist"></div>
   </div>
-
-</div><!-- #app -->
+</div>
 
 <script>
 // ════════════════════════════════════════════════════════════════
-//  DJ AI  ·  Audio Engine
-//
-//  Grafo de audio por deck:
-//
-//    BufferSource → preGain
-//                     → hipass (EQ kick: corta graves pista entrante)
-//                       → lopass (EQ high-kill: corta agudos pista saliente)
-//                         → masterGain
-//                           → compressor
-//                             → analyser
-//                               → destination
-//
-//  Durante el crossfade (técnica DJ):
-//    OUT: gainA 1→0 (curva cóncava lenta)
-//         lopass baja 20kHz→400Hz  (quita agudos/mids)
-//
-//    IN:  gainB 0→1 (sigmoide TARDÍA: casi nada hasta t=55%, luego aparece)
-//         hipass baja 350Hz→20Hz (los graves entran DESPUÉS del resto)
-//         = "bass swap": se escuchan los graves de la entrante solo cuando
-//           la saliente ya ha desaparecido casi por completo → drop limpio
-//
-//  EQ visual: 3 barras (lo/mid/hi) muestran lo que está pasando
+//  DJ AI · Audio Engine (lógica Python intacta)
 // ════════════════════════════════════════════════════════════════
-
 const AC = window.AudioContext || window.webkitAudioContext;
-let ctx  = null;
+let ctx = null;
 
 const PHASE_ORDER = ['warm-up','first-build','first-peak','breakdown','second-build','second-peak','outro'];
 const PHASE_LABELS = {'warm-up':'WARM','first-build':'BUILD','first-peak':'PEAK 1',
   'breakdown':'DOWN','second-build':'BUILD 2','second-peak':'PEAK 2','outro':'OUTRO'};
-const STYLE_LABELS = { guetta: '⚡ GUETTA', avicii: '🌅 AVICII', progressive: '〰 PROG' };
+const STYLE_LABELS = { guetta: '⚡ GUETTA', avicii: '🌅 AVICII', progressive: '〰 PROG', fusion: '✦ FUSION' };
 const STYLE_ICONS  = { guetta: '⚡', avicii: '🌅', progressive: '〰' };
 
 const S = {
@@ -957,1108 +777,639 @@ const S = {
   played: [], playedSet: new Set(), count: 0,
   playing: false, mixing: false,
   mixStart: 0, mixDur: 8,
-  deck: 'A',
-  startAt: 0,
-  bufs: {},
-  // Deck nodes: S.decks.A = { src, preGain, hipass, lopass, gain, analyser }
-  decks: { A: {}, B: {} },
-  modOk: false,
-
-  // Silence detection
-  silenceStart: null,
-  lastRms: 1.0,
-  silenceTriggered: false,
-
-  // Beat detection
-  beatLastTime: 0,       // ctx.currentTime del último beat detectado
-  beatThresh: 0.15,      // umbral dinámico de energía de sub-bass
-  beatHistory: [],       // últimas energías para calcular umbral adaptativo
-  lastBpm: 0,            // BPM estimado en tiempo real
-
-  // Session timeline
-  sessionTracks: [],     // [{track, startCtxTime, color}] orden real de reproducción
-  sessionStartTime: 0,   // ctx.currentTime cuando empezó la sesión
-
-  // Mix trigger
+  deck: 'A', startAt: 0, bufs: {},
+  decks: { A: {}, B: {} }, modOk: false,
+  silenceStart: null, lastRms: 1.0, silenceTriggered: false,
+  beatLastTime: 0, beatThresh: 0.15, beatHistory: [], lastBpm: 0,
+  sessionTracks: [], sessionStartTime: 0,
   _beatSnapScheduled: false,
-
-  // Cue (preview siguiente)
-  cueing: false,
-  cueSrc: null,
-  cueGain: null,
+  cueing: false, cueSrc: null, cueGain: null,
 };
 
-// ── Init ─────────────────────────────────────────────────────
 function ic() {
   if (!ctx) {
-    ctx  = new AC();
-    // Master compressor — limita el volumen total, evita clipping durante el mix
+    ctx = new AC();
     S.comp = ctx.createDynamicsCompressor();
-    S.comp.threshold.value = -14;
-    S.comp.knee.value      = 6;
-    S.comp.ratio.value     = 4;
-    S.comp.attack.value    = 0.003;
-    S.comp.release.value   = 0.25;
-    // Master analyser (para el visualizador principal)
-    S.mAnl = ctx.createAnalyser();
-    S.mAnl.fftSize = 1024;
-    S.comp.connect(S.mAnl);
-    S.mAnl.connect(ctx.destination);
+    S.comp.threshold.value = -14; S.comp.knee.value = 6;
+    S.comp.ratio.value = 4; S.comp.attack.value = 0.003; S.comp.release.value = 0.25;
+    S.mAnl = ctx.createAnalyser(); S.mAnl.fftSize = 1024;
+    S.comp.connect(S.mAnl); S.mAnl.connect(ctx.destination);
   }
   if (ctx.state === 'suspended') ctx.resume();
-
-  // Reverb (ConvolverNode con impulse response sintético)
   if (!S.reverb) {
-    S.reverb    = ctx.createConvolver();
-    S.reverbGain = ctx.createGain();
-    S.reverbGain.gain.value = 0;  // empieza apagado, se activa en el mix
-
-    // Generar impulse response exponencial (sala grande ~2.5s)
-    const rate = ctx.sampleRate;
-    const len  = Math.floor(rate * 2.5);
-    const ir   = ctx.createBuffer(2, len, rate);
-    for (let ch = 0; ch < 2; ch++) {
-      const d = ir.getChannelData(ch);
-      for (let i = 0; i < len; i++) {
-        d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i/len, 2.5);
-      }
-    }
-    S.reverb.buffer = ir;
-    S.comp.connect(S.reverbGain);
-    S.reverbGain.connect(S.reverb);
-    S.reverb.connect(ctx.destination);
+    S.reverb = ctx.createConvolver(); S.reverbGain = ctx.createGain(); S.reverbGain.gain.value = 0;
+    const rate=ctx.sampleRate, len=Math.floor(rate*2.5), ir=ctx.createBuffer(2,len,rate);
+    for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.5);}
+    S.reverb.buffer=ir; S.comp.connect(S.reverbGain); S.reverbGain.connect(S.reverb); S.reverb.connect(ctx.destination);
   }
-
-  // Cue output (auriculares DJ — va directo a destination con gain propio)
-  if (!S.cueOutGain) {
-    S.cueOutGain = ctx.createGain();
-    S.cueOutGain.gain.value = 0.85;
-    S.cueOutGain.connect(ctx.destination);
-  }
+  if (!S.cueOutGain) { S.cueOutGain=ctx.createGain(); S.cueOutGain.gain.value=0.85; S.cueOutGain.connect(ctx.destination); }
 }
 
-// ── Boot ─────────────────────────────────────────────────────
 async function boot() {
-  const [lr, mr] = await Promise.all([fetch('/api/library'), fetch('/api/modules')]);
-  S.lib  = await lr.json();
-  const m = await mr.json();
-  S.modOk = m.ok;
-
-  const mb = document.getElementById('modB');
-  mb.textContent = S.modOk ? 'MÓDULOS OK' : 'FALLBACK';
-  mb.className   = 'mod ' + (S.modOk ? 'ok' : 'fb');
-
-  document.getElementById('libCount').textContent = S.lib.length + ' canciones';
-  document.getElementById('idleInfo').innerHTML =
-    `<b>${S.lib.length}</b> canción${S.lib.length!==1?'es':''} · arco automático`;
-  document.getElementById('btnStart').disabled = S.lib.length === 0;
-  if (!S.lib.length)
-    document.getElementById('idleInfo').textContent = 'Pon MP3/WAV en musica/canciones/';
+  const [lr,mr] = await Promise.all([fetch('/api/library'),fetch('/api/modules')]);
+  S.lib = await lr.json(); const m=await mr.json(); S.modOk=m.ok;
+  await loadPrefs();
+  document.getElementById('modB').textContent = S.modOk?'MÓDULOS OK':'FALLBACK';
+  document.getElementById('libCount').textContent = S.lib.length+' canciones';
+  document.getElementById('idleInfo').innerHTML=`<b>${S.lib.length}</b> canción${S.lib.length!==1?'es':''}`;
+  document.getElementById('btnStart').disabled = S.lib.length===0;
+  if(!S.lib.length) document.getElementById('idleInfo').textContent='Pon MP3/WAV en musica/canciones/';
   renderLib();
 }
 
-// ── Scrubbing (arrastrar playhead) ────────────────────────────
 {
-  const ww      = document.getElementById('ww');
-  const ph      = document.getElementById('ph');
-  const handle  = document.getElementById('phHandle');
-  const tooltip = document.getElementById('wwTooltip');
-  let dragging  = false;
-
-  function scrubPos(e) {
-    const rect = ww.getBoundingClientRect();
-    const pad  = 18; // padding del .ww en px
-    const x    = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left - pad;
-    const w    = rect.width - pad * 2;
-    return Math.max(0, Math.min(1, x / w));
-  }
-
-  function seekTo(frac) {
-    const dur = S.cur ? (S.cur.duracion_segundos || 0) : 0;
-    if (!dur || !S.playing || !ctx) return;
-    const newTime = frac * dur;
-
-    const dk  = S.deck;
-    const trk = S.cur;
-    if (!trk || !S.bufs[trk.file]) return;
-
-    const d = S.decks[dk];
-    if (d.src) {
-      // Marcar como seek para que onended no dispare doMix
-      d.src.onended = null;
-      try { d.src.stop(); } catch(e) {}
-      d.src = null;
-    }
-
-    const src = ctx.createBufferSource();
-    src.buffer = S.bufs[trk.file];
-    src.playbackRate.value = 1.0;
-    src.connect(d.preGain);
-    src.start(0, newTime);
-    d.src       = src;
-    d.startedAt = ctx.currentTime - newTime;
-    S.startAt   = d.startedAt;
-    S.silenceStart     = null;
-    S.silenceTriggered = false;
-
-    src.onended = () => {
-      if (S.playing && dk === S.deck && !S.mixing) doMix();
-    };
-  }
-
-  function onMove(e) {
-    if (!S.playing) return;
-    e.preventDefault();
-    const frac = scrubPos(e);
-    const dur  = S.cur ? (S.cur.duracion_segundos || 0) : 0;
-    const wc   = document.getElementById('wc');
-    const w    = wc.offsetWidth;
-
-    // Mover playhead visualmente
-    ph.style.left = (18 + frac * w) + 'px';
-
-    // Tooltip con tiempo
-    const t = frac * dur;
-    tooltip.textContent = fmt(t);
-    tooltip.style.left  = (18 + frac * w) + 'px';
-    tooltip.classList.add('show');
-
-    if (dragging) {
-      // Actualizar tiempo en pantalla en tiempo real
-      document.getElementById('tCur').textContent = fmt(t);
-    }
-  }
-
-  function onDown(e) {
-    if (!S.playing || S.mixing) return;
-    dragging = true;
-    ph.classList.add('scrubbing');
-    handle.classList.add('scrubbing');
-    onMove(e);
-  }
-
-  function onUp(e) {
-    if (!dragging) return;
-    dragging = false;
-    ph.classList.remove('scrubbing');
-    handle.classList.remove('scrubbing');
-    tooltip.classList.remove('show');
-    const frac = scrubPos(e.changedTouches ? {clientX: e.changedTouches[0].clientX} : e);
-    seekTo(frac);
-  }
-
-  ww.addEventListener('mousedown',  onDown);
-  ww.addEventListener('touchstart', onDown, {passive:false});
-  window.addEventListener('mousemove', e => { if (dragging) onMove(e); });
-  window.addEventListener('touchmove', e => { if (dragging) onMove(e); }, {passive:false});
-  window.addEventListener('mouseup',   onUp);
-  window.addEventListener('touchend',  onUp);
-
-  // Hover: mostrar tooltip sin arrastrar
-  ww.addEventListener('mousemove', e => { if (!dragging && S.playing) onMove(e); });
-  ww.addEventListener('mouseleave', () => { if (!dragging) tooltip.classList.remove('show'); });
-
-  // Guardar referencia para que el loop sepa si está scrubbing
-  S._dragging = () => dragging;
+  const ww=document.getElementById('ww'),ph=document.getElementById('ph'),
+    handle=document.getElementById('phHandle'),tooltip=document.getElementById('wwTooltip');
+  let dragging=false;
+  function scrubPos(e){const rect=ww.getBoundingClientRect(),pad=18,
+    x=(e.touches?e.touches[0].clientX:e.clientX)-rect.left-pad,w=rect.width-pad*2;
+    return Math.max(0,Math.min(1,x/w));}
+  function seekTo(frac){const dur=S.cur?(S.cur.duracion_segundos||0):0;
+    if(!dur||!S.playing||!ctx)return;const newTime=frac*dur,dk=S.deck,trk=S.cur;
+    if(!trk||!S.bufs[trk.file])return;const d=S.decks[dk];
+    if(d.src){d.src.onended=null;try{d.src.stop();}catch(e){}}
+    const src=ctx.createBufferSource();src.buffer=S.bufs[trk.file];src.playbackRate.value=1.0;
+    src.connect(d.preGain);src.start(0,newTime);d.src=src;d.startedAt=ctx.currentTime-newTime;
+    S.startAt=d.startedAt;S.silenceStart=null;S.silenceTriggered=false;
+    src.onended=()=>{if(S.playing&&dk===S.deck&&!S.mixing)doMix();};}
+  function onMove(e){if(!S.playing)return;e.preventDefault();const frac=scrubPos(e),
+    dur=S.cur?(S.cur.duracion_segundos||0):0,wc=document.getElementById('wc'),w=wc.offsetWidth;
+    ph.style.left=(18+frac*w)+'px';tooltip.textContent=fmt(frac*dur);
+    tooltip.style.left=(18+frac*w)+'px';tooltip.classList.add('show');
+    if(dragging)document.getElementById('tCur').textContent=fmt(frac*dur);}
+  function onDown(e){if(!S.playing||S.mixing)return;dragging=true;ph.classList.add('scrubbing');onMove(e);}
+  function onUp(e){if(!dragging)return;dragging=false;ph.classList.remove('scrubbing');
+    tooltip.classList.remove('show');seekTo(scrubPos(e.changedTouches?{clientX:e.changedTouches[0].clientX}:e));}
+  ww.addEventListener('mousedown',onDown);ww.addEventListener('touchstart',onDown,{passive:false});
+  window.addEventListener('mousemove',e=>{if(dragging)onMove(e);});
+  window.addEventListener('touchmove',e=>{if(dragging)onMove(e);},{passive:false});
+  window.addEventListener('mouseup',onUp);window.addEventListener('touchend',onUp);
+  ww.addEventListener('mousemove',e=>{if(!dragging&&S.playing)onMove(e);});
+  ww.addEventListener('mouseleave',()=>{if(!dragging)tooltip.classList.remove('show');});
+  S._dragging=()=>dragging;
 }
 
-// ── Start ─────────────────────────────────────────────────────
 document.getElementById('btnStart').addEventListener('click', async () => {
   ic();
   document.getElementById('idle').classList.add('off');
-  document.getElementById('app').classList.add('on');
-  const first = chooseFirst();
+  document.getElementById('stage').classList.add('on');
+  initUrbanoVisuals();
+  const first=chooseFirst();
   await begin(first);
 });
 
-function chooseFirst() {
-  if (!S.lib.length) return null;
-  // Warm-up: energía baja-media, primer cuartil
-  const s = [...S.lib].sort((a,b)=>(a.energia||50)-(b.energia||50));
-  return s[Math.floor(s.length * 0.18)] || s[0];
+function chooseFirst(){if(!S.lib.length)return null;const s=[...S.lib].sort((a,b)=>(a.energia||50)-(b.energia||50));return s[Math.floor(s.length*0.18)]||s[0];}
+
+async function begin(t){
+  S.cur=t;S.curFile=t.file;S.deck='A';S.playing=true;S.startAt=0;
+  S.played.push(t.file);S.playedSet.add(t.file);S.count=1;
+  S.sessionStartTime=ctx.currentTime;
+  S.sessionTracks=[{track:t,startCtxTime:ctx.currentTime,color:trackColor(0)}];
+  updateNP(t,'warm-up');const startPos=t.start_position??0;
+  await playDeck('A',t,startPos);logMsg(`Iniciando: ${t.name}`);
+  document.getElementById('btnSkip').disabled=false;
+  renderLib();renderTimeline();loop();askNext(t,0);
 }
 
-async function begin(t) {
-  S.cur = t; S.curFile = t.file; S.deck = 'A';
-  S.playing = true; S.startAt = 0;
-  S.played.push(t.file); S.playedSet.add(t.file); S.count = 1;
-  S.sessionStartTime = ctx.currentTime;
-  S.sessionTracks = [{ track: t, startCtxTime: ctx.currentTime, color: trackColor(0) }];
-  updateNP(t, 'warm-up');
-  const startPos = t.start_position ?? 0;
-  await playDeck('A', t, startPos);
-  logMsg(`Iniciando desde ${fmt(startPos)}: ${t.name}`);
-  document.getElementById('btnSkip').disabled = false;
-  renderLib();
-  renderTimeline();
-  loop();
-  askNext(t, 0);
-}
+document.getElementById('btnSkip').addEventListener('click',()=>{if(!S.mixing&&S.playing)doMix();});
 
-// Botón de skip: salta directamente al mix (para testing)
-document.getElementById('btnSkip').addEventListener('click', () => {
-  if (!S.mixing && S.playing) doMix();
+document.getElementById('btnCue').addEventListener('click',async()=>{
+  if(!S.nxt)return;const btn=document.getElementById('btnCue');
+  if(S.cueing){if(S.cueSrc){try{S.cueSrc.stop();}catch(e){}}if(S.cueGain)S.cueGain.gain.setValueAtTime(0,ctx.currentTime);
+    S.cueing=false;btn.classList.remove('cueing');btn.textContent='👂 CUE';return;}
+  try{const buf=await loadBuf(S.nxt),enterAt=S.nxtPlan?(S.nxtPlan.start_next_time||0):0,CUE_DUR=8;
+    S.cueGain=ctx.createGain();S.cueGain.gain.setValueAtTime(0,ctx.currentTime);
+    S.cueGain.gain.linearRampToValueAtTime(0.6,ctx.currentTime+0.3);S.cueGain.connect(S.cueOutGain);
+    S.cueSrc=ctx.createBufferSource();S.cueSrc.buffer=buf;S.cueSrc.connect(S.cueGain);S.cueSrc.start(0,enterAt);
+    S.cueGain.gain.setValueAtTime(0.6,ctx.currentTime+CUE_DUR-1);
+    S.cueGain.gain.linearRampToValueAtTime(0,ctx.currentTime+CUE_DUR);S.cueSrc.stop(ctx.currentTime+CUE_DUR);
+    S.cueSrc.onended=()=>{S.cueing=false;btn.classList.remove('cueing');btn.textContent='👂 CUE';S.cueSrc=null;};
+    S.cueing=true;btn.classList.add('cueing');btn.textContent='■ STOP';}catch(e){}
 });
 
-// ── CUE: preview de la siguiente pista ───────────────────────
-// Reproduce 5s de la siguiente canción (desde puede_empezar_mezcla)
-// en paralelo, en voz baja, para que el DJ pueda oírla.
-// Pulsar de nuevo para parar.
-document.getElementById('btnCue').addEventListener('click', async () => {
-  if (!S.nxt) return;
-  const btn = document.getElementById('btnCue');
-
-  if (S.cueing) {
-    // Parar cue
-    if (S.cueSrc)  { try{S.cueSrc.stop();}catch(e){} S.cueSrc = null; }
-    if (S.cueGain) { S.cueGain.gain.setValueAtTime(0, ctx.currentTime); }
-    S.cueing = false;
-    btn.classList.remove('cueing');
-    btn.textContent = '👂 CUE';
-    return;
-  }
-
-  // Cargar buffer
-  try {
-    const buf = await loadBuf(S.nxt);
-    const enterAt = S.nxtPlan ? (S.nxtPlan.start_next_time || 0) : 0;
-    const CUE_DUR = 8; // segundos de preview
-
-    S.cueGain = ctx.createGain();
-    S.cueGain.gain.setValueAtTime(0, ctx.currentTime);
-    S.cueGain.gain.linearRampToValueAtTime(0.6, ctx.currentTime + 0.3);
-    S.cueGain.connect(S.cueOutGain);
-
-    S.cueSrc = ctx.createBufferSource();
-    S.cueSrc.buffer = buf;
-    S.cueSrc.connect(S.cueGain);
-    S.cueSrc.start(0, enterAt);
-
-    // Auto-fade y stop tras CUE_DUR segundos
-    S.cueGain.gain.setValueAtTime(0.6, ctx.currentTime + CUE_DUR - 1);
-    S.cueGain.gain.linearRampToValueAtTime(0, ctx.currentTime + CUE_DUR);
-    S.cueSrc.stop(ctx.currentTime + CUE_DUR);
-    S.cueSrc.onended = () => {
-      S.cueing = false;
-      btn.classList.remove('cueing');
-      btn.textContent = '👂 CUE';
-      S.cueSrc = null;
-    };
-
-    S.cueing = true;
-    btn.classList.add('cueing');
-    btn.textContent = '■ STOP';
-    logMsg(`👂 Preview: ${S.nxt.name}`);
-  } catch(e) {
-    logMsg('Error cargando preview');
-  }
-});
-
-// ── Ask server for next track ─────────────────────────────────
-async function askNext(t, ct) {
-  if (!t) return;
-  try {
-    const pe  = encodeURIComponent(JSON.stringify([...S.playedSet]));
-    // Pasar las últimas 3 canciones con su key para anti-repetición de tonalidad
-    const pl  = encodeURIComponent(JSON.stringify(
-      S.played.slice(-3).map(f => ({ file: f, key: (S.lib.find(x=>x.file===f)||{}).key||'' }))
-    ));
-    const url = `/api/next?current=${encodeURIComponent(t.file)}&time=${ct.toFixed(1)}&played=${pe}&count=${S.count}&played_list=${pl}`;
-    const d   = await (await fetch(url)).json();
-    if (d.error) { S.nxt = null; hideNext(); return; }
-    S.nxt = d.track; S.nxtPlan = d.plan; S.nxtScore = d.score; S.nxtPhase = d.phase;
-    showNext(d.track, d.plan, d.score, d.phase);
-    updateArc(d.phase, d.target_energy);
-    preload(d.track);
-    renderLib();
-  } catch(e) {}
+async function askNext(t,ct){
+  if(!t)return;
+  try{const pe=encodeURIComponent(JSON.stringify([...S.playedSet]));
+    const pl=encodeURIComponent(JSON.stringify(S.played.slice(-3).map(f=>({file:f,key:(S.lib.find(x=>x.file===f)||{}).key||''}))));
+    const url=`/api/next?current=${encodeURIComponent(t.file)}&time=${ct.toFixed(1)}&played=${pe}&count=${S.count}&played_list=${pl}`;
+    const d=await(await fetch(url)).json();
+    if(d.error){S.nxt=null;hideNext();return;}
+    S.nxt=d.track;S.nxtPlan=d.plan;S.nxtScore=d.score;S.nxtPhase=d.phase;
+    showNext(d.track,d.plan,d.score,d.phase);updateArc(d.phase,d.target_energy);preload(d.track);renderLib();}catch(e){}
 }
 
-// ── Buffer cache ──────────────────────────────────────────────
-async function loadBuf(t) {
-  if (S.bufs[t.file]) return S.bufs[t.file];
-  ic();
-  const ab  = await (await fetch('/audio/'+encodeURIComponent(t.file))).arrayBuffer();
-  const buf = await ctx.decodeAudioData(ab);
-  return S.bufs[t.file] = buf;
+async function loadBuf(t){
+  if(S.bufs[t.file])return S.bufs[t.file];ic();
+  const ab=await(await fetch('/audio/'+encodeURIComponent(t.file))).arrayBuffer();
+  const buf=await ctx.decodeAudioData(ab);return S.bufs[t.file]=buf;
 }
-async function preload(t) {
-  if (!t || S.bufs[t.file]) return;
-  try { ic(); await loadBuf(t); } catch(e) {}
-}
+async function preload(t){if(!t||S.bufs[t.file])return;try{ic();await loadBuf(t);}catch(e){}}
 
-// ── Create / reset deck audio graph ──────────────────────────
-function resetGraph(dk) {
-  const d = S.decks[dk];
-  if (d.src)  { try{d.src.stop();}catch(e){} d.src = null; }
-
-  // Recrear nodos (evita problemas con nodos usados)
-  d.preGain  = ctx.createGain();
-  d.hipass   = ctx.createBiquadFilter();
-  d.lopass   = ctx.createBiquadFilter();
-  d.analyser = ctx.createAnalyser();
-  d.analyser.fftSize = 256;
-
-  d.hipass.type = 'highpass';  d.hipass.Q.value = 0.71;
-  d.lopass.type = 'lowpass';   d.lopass.Q.value = 0.71;
-
-  // Chain: preGain → hipass → lopass → analyser → compressor
-  d.preGain.connect(d.hipass);
-  d.hipass.connect(d.lopass);
-  d.lopass.connect(d.analyser);
-  d.analyser.connect(S.comp);
-
+function resetGraph(dk){
+  const d=S.decks[dk];if(d.src){try{d.src.stop();}catch(e){}}
+  d.preGain=ctx.createGain();d.hipass=ctx.createBiquadFilter();d.lopass=ctx.createBiquadFilter();
+  d.analyser=ctx.createAnalyser();d.analyser.fftSize=256;
+  d.hipass.type='highpass';d.hipass.Q.value=0.71;d.lopass.type='lowpass';d.lopass.Q.value=0.71;
+  d.preGain.connect(d.hipass);d.hipass.connect(d.lopass);d.lopass.connect(d.analyser);d.analyser.connect(S.comp);
   return d;
 }
 
-// ── Play a track on a deck ────────────────────────────────────
-async function playDeck(dk, track, offset = 0) {
-  const buf = await loadBuf(track);
-  // Si la pista no tiene duración en el JSON, usar la del AudioBuffer
-  // Esto garantiza que el trigger del mix funcione aunque no haya JSON
-  if (!track.duracion_segundos || track.duracion_segundos === 0) {
-    track.duracion_segundos = buf.duration;
-  }
-  const d   = resetGraph(dk);
-
-  const src = ctx.createBufferSource();
-  src.buffer = buf;
-
-  // BPM matching: si la entrante tiene BPM distinto, empezar en el ratio
-  // que la hace sonar al mismo tempo que la saliente, y programar un ramp
-  // gradual a 1.0 para que al terminar el fade suene a su tempo original.
-  if (dk !== S.deck && track.bpm && S.cur && S.cur.bpm && track.bpm > 0) {
-    const ratio = S.cur.bpm / track.bpm;
-    src.playbackRate.setValueAtTime(ratio, ctx.currentTime);
-    // Guardar el ramp para cuando se conozca cfDur en doMix
-    // (lo haremos desde doMix con d.src ya disponible)
-    d._bpmRatio = ratio;
-    d._bpmTarget = 1.0;
-  } else {
-    src.playbackRate.value = 1.0;
-    d._bpmRatio  = 1.0;
-    d._bpmTarget = 1.0;
-  }
-
-  src.connect(d.preGain);
-  d.preGain.gain.setValueAtTime(dk === S.deck ? 1 : 0, ctx.currentTime);
-
-  // Deck entrante: graves cortados hasta que la IA los abra (bass swap)
-  d.hipass.frequency.setValueAtTime(dk === S.deck ? 20  : 320, ctx.currentTime);
-  d.lopass.frequency.setValueAtTime(20000, ctx.currentTime);
-
-  src.start(0, offset);
-  d.src = src;
-
-  // Guardar el momento de inicio de ESTE deck para poder calcular su tiempo
-  d.startedAt = ctx.currentTime - offset;
-
-  if (dk === S.deck) {
-    S.startAt = d.startedAt;
-    drawWave(buf, track);
-  }
-
-  src.onended = () => {
-    if (S.playing && dk === S.deck && !S.mixing) doMix();
-  };
+async function playDeck(dk,track,offset=0){
+  const buf=await loadBuf(track);
+  if(!track.duracion_segundos||track.duracion_segundos===0)track.duracion_segundos=buf.duration;
+  const d=resetGraph(dk);const src=ctx.createBufferSource();src.buffer=buf;
+  if(dk!==S.deck&&track.bpm&&S.cur&&S.cur.bpm&&track.bpm>0){
+    const ratio=S.cur.bpm/track.bpm;src.playbackRate.setValueAtTime(ratio,ctx.currentTime);
+    d._bpmRatio=ratio;d._bpmTarget=1.0;
+  }else{src.playbackRate.value=1.0;d._bpmRatio=1.0;d._bpmTarget=1.0;}
+  src.connect(d.preGain);d.preGain.gain.setValueAtTime(dk===S.deck?1:0,ctx.currentTime);
+  d.hipass.frequency.setValueAtTime(dk===S.deck?20:320,ctx.currentTime);
+  d.lopass.frequency.setValueAtTime(20000,ctx.currentTime);
+  src.start(0,offset);d.src=src;d.startedAt=ctx.currentTime-offset;
+  if(dk===S.deck){S.startAt=d.startedAt;drawWave(buf,track);}
+  src.onended=()=>{if(S.playing&&dk===S.deck&&!S.mixing)doMix();};
 }
 
-function getTime() {
-  return !S.playing || !ctx ? 0 : Math.max(0, ctx.currentTime - S.startAt);
-}
+function getTime(){return !S.playing||!ctx?0:Math.max(0,ctx.currentTime-S.startAt);}
 
-// ════════════════════════════════════════════════════════════
-//  D O M I X — Triple style: Guetta / Avicii / Progressive
-//
-//  GUETTA:
-//    OUT: gain cóncava suavizada (pow 0.9)
-//         lopass 20kHz→400Hz (mata agudos progresivamente)
-//    IN:  sigmoide TARDÍA (aparece de golpe en el 65%)
-//         hipass 320Hz→20Hz con bass swap abrupto en el 60%
-//         → Drop percibido físicamente
-//
-//  AVICII:
-//    OUT: gain coseno suave (sale en arco simétrico)
-//         hipass 20Hz→800Hz (pierde graves gradualmente = "se va")
-//    IN:  sigmoide TEMPRANA (empieza a oírse desde el 20%)
-//         graves abiertos desde el principio
-//         → La melodía de la entrante llega ANTES que el beat
-//    Reverb: más pronunciado (0.35 vs 0.18)
-//
-//  PROGRESSIVE:
-//    Equal-power puro: vOut=cos(f·π/2), vIn=sin(f·π/2)
-//    → En cualquier punto del fade: vOut²+vIn²=1 (sin bajón matemático)
-//    EQ neutro — sin highpass/lowpass agresivo
-//    BPM casi idéntico → sin pitch shifting apreciable
-//    Reverb mínimo (0.10)
-// ════════════════════════════════════════════════════════════
-async function doMix() {
-  if (S.mixing || !S.playing) return;
-  const nxt = S.nxt;
-  if (!nxt) {
-    askNext(S.cur, getTime());
-    setTimeout(() => { if (!S.mixing && S.nxt) doMix(); }, 1200);
-    return;
-  }
-
-  const plan    = S.nxtPlan;
-  const cfDur   = plan ? (plan.mix_duration || 8) : 8;
-  const enterAt = plan ? (plan.start_next_time || 0) : 0;
-  const style   = plan ? (plan.style || 'guetta') : 'guetta';
-
-  // Detener CUE si está activo antes de empezar la mezcla
-  if (S.cueing && S.cueSrc) {
-    try { S.cueSrc.stop(); } catch(e) {}
-    S.cueSrc = null;
-    S.cueing = false;
-    document.getElementById('btnCue').classList.remove('cueing');
-    document.getElementById('btnCue').textContent = '👂 CUE';
-  }
-
-  S.mixing   = true;
-  S.mixStart = ctx.currentTime;
-  S.mixDur   = cfDur;
-  S.mixStyle = style;
-
-  showMixing(nxt.name, cfDur, style);
-  logMsg(`${STYLE_LABELS[style]||style} · ⇄ ${nxt.name} · ${cfDur.toFixed(0)}s`);
-
-  // Reverb — Progressive casi nada, Avicii mucho, Guetta moderado
-  if (S.reverb && S.reverbGain) {
-    const reverbPeak = style === 'avicii' ? 0.35 : style === 'progressive' ? 0.10 : 0.18;
-    const rg = S.reverbGain.gain;
-    rg.cancelScheduledValues(ctx.currentTime);
-    rg.setValueAtTime(0, ctx.currentTime);
-    rg.linearRampToValueAtTime(reverbPeak,     ctx.currentTime + cfDur * 0.25);
-    rg.linearRampToValueAtTime(reverbPeak*0.5, ctx.currentTime + cfDur * 0.75);
-    rg.linearRampToValueAtTime(0,              ctx.currentTime + cfDur * 1.0);
-  }
-
-  const out = S.deck;
-  const inp = out === 'A' ? 'B' : 'A';
-
-  await playDeck(inp, nxt, enterAt);
-  const inpStartedAt = ctx.currentTime - enterAt;
-
-  const t0    = ctx.currentTime;
-  const dOut  = S.decks[out];
-  const dIn   = S.decks[inp];
-  const steps = Math.round(cfDur * 30);
-
-  // Anclar estado inicial
-  dOut.preGain.gain.cancelScheduledValues(t0);
-  dIn.preGain.gain.cancelScheduledValues(t0);
-  dOut.hipass.frequency.cancelScheduledValues(t0);
-  dOut.lopass.frequency.cancelScheduledValues(t0);
-  dIn.hipass.frequency.cancelScheduledValues(t0);
-  dIn.lopass.frequency.cancelScheduledValues(t0);
-
-  dOut.preGain.gain.setValueAtTime(1,     t0);
-  dIn.preGain.gain.setValueAtTime(0,      t0);
-  dOut.lopass.frequency.setValueAtTime(20000, t0);
-  dOut.hipass.frequency.setValueAtTime(20,    t0);
-  dIn.lopass.frequency.setValueAtTime(20000, t0);
-
-  if (style === 'progressive') {
-    // EQ completamente neutro — las pistas suenan completas
-    dIn.hipass.frequency.setValueAtTime(20, t0);
-  } else if (style === 'avicii') {
-    // Entrante empieza con graves abiertos — melodía llega primero
-    dIn.hipass.frequency.setValueAtTime(20, t0);
-  } else {
-    // Guetta: graves de la entrante cortados hasta el bass swap
-    dIn.hipass.frequency.setValueAtTime(320, t0);
-  }
-
-  // BPM ramp (solo Guetta/Avicii — Progressive tiene BPM casi igual)
-  if (style !== 'progressive' && dIn.src && dIn._bpmRatio && dIn._bpmRatio !== 1.0) {
-    dIn.src.playbackRate.cancelScheduledValues(t0);
-    dIn.src.playbackRate.setValueAtTime(dIn._bpmRatio, t0);
-    dIn.src.playbackRate.exponentialRampToValueAtTime(1.0, t0 + cfDur);
-  }
-
-  // ── Nodo de compensación de volumen (anti-bajón) ─────────────
-  // Guetta/Avicii: las curvas no son equal-power → puede haber hueco.
-  // Progressive: equal-power puro → sin hueco (pero lo dejamos activo
-  // para uniformidad y por si el compresor pump).
-  if (!S.compGain) {
-    S.compGain = ctx.createGain();
-    S.compGain.gain.value = 1;
-    S.comp.disconnect(S.mAnl);
-    S.comp.connect(S.compGain);
-    S.compGain.connect(S.mAnl);
-  }
-  S.compGain.gain.cancelScheduledValues(t0);
-  S.compGain.gain.setValueAtTime(1, t0);
-
-  for (let i = 0; i <= steps; i++) {
-    const f   = i / steps;
-    const tAt = t0 + f * cfDur;
-
-    let vOut, vIn;
-
-    if (style === 'progressive') {
-      // ── PROGRESSIVE: equal-power puro ──────────────────────
-      // Garantía matemática: vOut²+vIn²=1 en todo momento.
-      // No hay bajón posible — es la base del DJ mixing técnico.
-      vOut = Math.cos(f * Math.PI / 2);
-      vIn  = Math.sin(f * Math.PI / 2);
-
-    } else if (style === 'avicii') {
-      // ── AVICII: fade simétrico tipo coseno con sigmoide temprana
-      vOut = Math.pow(Math.cos(f * Math.PI / 2), 1.2);
-      vIn  = 1 / (1 + Math.exp(-10 * (f - 0.35)));
-
-    } else {
-      // ── GUETTA: asimétrico, drop abrupto ───────────────────
-      // OUT: cóncava suavizada — pow(0.9) mantiene volumen en la primera mitad
-      vOut = Math.pow(1 - f, 0.9);
-      // IN: sigmoide TARDÍA — aparece de golpe en el 65%
-      vIn  = 1 / (1 + Math.exp(-16 * (f - 0.65)));
+async function doMix(){
+  if(S.mixing||!S.playing)return;const nxt=S.nxt;
+  if(!nxt){askNext(S.cur,getTime());setTimeout(()=>{if(!S.mixing&&S.nxt)doMix();},1200);return;}
+  const plan=S.nxtPlan,cfDur=plan?(plan.mix_duration||8):8,enterAt=plan?(plan.start_next_time||0):0,
+    style=plan?(plan.style||'guetta'):'guetta';
+  if(S.cueing&&S.cueSrc){try{S.cueSrc.stop();}catch(e){}S.cueSrc=null;S.cueing=false;
+    document.getElementById('btnCue').classList.remove('cueing');document.getElementById('btnCue').textContent='👂 CUE';}
+  S.mixing=true;S.mixStart=ctx.currentTime;S.mixDur=cfDur;S.mixStyle=style;
+  showMixing(nxt.name,cfDur,style);logMsg(`${STYLE_LABELS[style]||style} · ⇄ ${nxt.name} · ${cfDur.toFixed(0)}s`);
+  if(S.reverb&&S.reverbGain){
+    const rp=style==='avicii'?.35:style==='progressive'?.10:style==='fusion'?.22:.18;
+    const rg=S.reverbGain.gain;rg.cancelScheduledValues(ctx.currentTime);rg.setValueAtTime(0,ctx.currentTime);
+    rg.linearRampToValueAtTime(rp,ctx.currentTime+cfDur*0.25);
+    rg.linearRampToValueAtTime(rp*0.5,ctx.currentTime+cfDur*0.75);
+    rg.linearRampToValueAtTime(0,ctx.currentTime+cfDur);}
+  const out=S.deck,inp=out==='A'?'B':'A';
+  await playDeck(inp,nxt,enterAt);
+  const t0=ctx.currentTime,dOut=S.decks[out],dIn=S.decks[inp],steps=Math.round(cfDur*30);
+  dOut.preGain.gain.cancelScheduledValues(t0);dIn.preGain.gain.cancelScheduledValues(t0);
+  [dOut,dIn].forEach(d=>{d.hipass.frequency.cancelScheduledValues(t0);d.lopass.frequency.cancelScheduledValues(t0);});
+  dOut.preGain.gain.setValueAtTime(1,t0);dIn.preGain.gain.setValueAtTime(0,t0);
+  dOut.lopass.frequency.setValueAtTime(20000,t0);dOut.hipass.frequency.setValueAtTime(20,t0);
+  dIn.lopass.frequency.setValueAtTime(20000,t0);
+  if(style==='progressive'||style==='avicii'||style==='fusion')dIn.hipass.frequency.setValueAtTime(20,t0);
+  else dIn.hipass.frequency.setValueAtTime(320,t0);
+  if(style!=='progressive'&&dIn.src&&dIn._bpmRatio&&dIn._bpmRatio!==1.0){
+    dIn.src.playbackRate.cancelScheduledValues(t0);dIn.src.playbackRate.setValueAtTime(dIn._bpmRatio,t0);
+    dIn.src.playbackRate.exponentialRampToValueAtTime(1.0,t0+cfDur);}
+  if(!S.compGain){S.compGain=ctx.createGain();S.compGain.gain.value=1;
+    S.comp.disconnect(S.mAnl);S.comp.connect(S.compGain);S.compGain.connect(S.mAnl);}
+  S.compGain.gain.cancelScheduledValues(t0);S.compGain.gain.setValueAtTime(1,t0);
+  for(let i=0;i<=steps;i++){
+    const f=i/steps,tAt=t0+f*cfDur;
+    let vOut,vIn;
+    if(style==='progressive'){vOut=Math.cos(f*Math.PI/2);vIn=Math.sin(f*Math.PI/2);}
+    else if(style==='fusion'){
+      if(f<0.20){vOut=1;vIn=Math.sin((f/0.20)*Math.PI/2);}
+      else if(f<0.80){const mid=(f-0.20)/0.60;vOut=Math.cos(mid*Math.PI/2)*0.3+0.7;vIn=Math.sin(mid*Math.PI/2)*0.3+0.7;}
+      else{const tail=(f-0.80)/0.20;vOut=Math.cos(tail*Math.PI/2)*0.7;vIn=1.0;}
+    }else if(style==='avicii'){
+      vOut=Math.cos(f*Math.PI/2);vIn=f<0.20?Math.sin((f/0.20)*0.52):Math.sin(((f-0.20)/0.80)*Math.PI/2+0.52);vIn=Math.min(1,vIn);
+    }else{
+      vOut=f<0.30?1:Math.cos(((f-0.30)/0.70)*Math.PI/2);vIn=1/(1+Math.exp(-12*(f-0.65)));
     }
+    dOut.preGain.gain.setValueAtTime(Math.max(0,vOut),tAt);dIn.preGain.gain.setValueAtTime(Math.max(0,vIn),tAt);
+    if(style==='guetta'){
+      if(f<0.60)dIn.hipass.frequency.setValueAtTime(320,tAt);
+      else dIn.hipass.frequency.exponentialRampToValueAtTime(20,tAt);
+      dOut.lopass.frequency.setValueAtTime(Math.max(400,20000*(1-f*1.2)),tAt);
+    }else if(style==='avicii'){dOut.hipass.frequency.setValueAtTime(20+f*780,tAt);
+    }else if(style==='fusion'){dOut.lopass.frequency.setValueAtTime(Math.max(2000,20000*(1-f*.5)),tAt);}
+    S.compGain.gain.setValueAtTime(style==='progressive'?1:1+Math.sin(f*Math.PI)*0.06,tAt);
+  }
+  dOut.preGain.gain.setValueAtTime(0,t0+cfDur);dIn.preGain.gain.setValueAtTime(1,t0+cfDur);
+  setTimeout(async()=>{
+    const d2=S.decks[out];if(d2.src){d2.src.onended=null;try{d2.src.stop();}catch(e){}}
+    S.deck=inp;S.cur=nxt;S.curFile=nxt.file;S.startAt=S.decks[inp].startedAt;
+    S.mixing=false;S.mixStyle=null;
+    S.played.push(nxt.file);S.playedSet.add(nxt.file);S.count++;
+    S.sessionTracks.push({track:nxt,startCtxTime:ctx.currentTime,color:trackColor(S.sessionTracks.length)});
+    S.silenceStart=null;S.silenceTriggered=false;
+    hideMixing();updateNP(nxt,'');renderLib();renderTimeline();askNext(nxt,0);
+  },cfDur*1000+200);
+}
 
-    dOut.preGain.gain.setValueAtTime(Math.max(0, vOut), tAt);
-    dIn.preGain.gain.setValueAtTime(Math.min(1, vIn),   tAt);
-
-    // Gain de compensación: normaliza la potencia combinada a ≥ 1.
-    // Progressive: power=1 siempre (sin ajuste necesario).
-    // Guetta/Avicii: puede bajar — este nodo lo compensa.
-    const power = Math.sqrt(vOut * vOut + vIn * vIn);
-    const cGain = power > 0.01 ? Math.min(1.35, 1 / power) : 1;
-    S.compGain.gain.setValueAtTime(cGain, tAt);
-
-    if (style === 'progressive') {
-      // EQ neutro: solo un leve lowpass a la saliente en la segunda mitad
-      // para que no haya superposición de frecuencias altas que cause comb filtering
-      const loFreq = f > 0.5 ? (20000 * Math.pow(8000/20000, (f-0.5)*2)) : 20000;
-      dOut.lopass.frequency.setValueAtTime(Math.max(8000, loFreq), tAt);
-      // Entrante: sin tocar nada — suena completa y limpia
-      dIn.hipass.frequency.setValueAtTime(20, tAt);
-
-    } else if (style === 'avicii') {
-      // OUT lopass: mantiene cuerpo hasta el final
-      const loFreq = 20000 * Math.pow(800/20000, Math.pow(f, 1.4));
-      dOut.lopass.frequency.setValueAtTime(Math.max(700, loFreq), tAt);
-      // OUT hipass: pierde graves gradualmente ("se va")
-      const outHpFreq = 20 * Math.pow(600/20, Math.pow(f, 1.8));
-      dOut.hipass.frequency.setValueAtTime(Math.min(600, outHpFreq), tAt);
-      // IN hipass: ya abierto, desaparece rápido
-      const inHpFreq = 80 * Math.pow(20/80, Math.pow(f * 2, 1.5));
-      dIn.hipass.frequency.setValueAtTime(Math.max(20, inHpFreq), tAt);
-
-    } else {
-      // GUETTA EQ
-      // OUT lopass: agudos mueren progresivamente
-      const loFreq = 20000 * Math.pow(500/20000, Math.pow(f, 0.7));
-      dOut.lopass.frequency.setValueAtTime(Math.max(400, loFreq), tAt);
-      // IN hipass: bass swap abrupto en el 60%
-      let hpFreq;
-      if (f < 0.60) {
-        hpFreq = 320 * Math.pow(200/320, f/0.60);
-      } else {
-        const bassF = (f - 0.60) / 0.40;
-        hpFreq = 200 * Math.pow(20/200, Math.pow(bassF, 1.5));
-      }
-      dIn.hipass.frequency.setValueAtTime(Math.max(20, hpFreq), tAt);
+function loop(){
+  if(!S.playing)return;requestAnimationFrame(loop);
+  const t=getTime(),dur=S.cur?(S.cur.duracion_segundos||0):0;
+  if(dur>0){const pf=document.getElementById('progressFill');if(pf)pf.style.width=Math.min(100,(t/dur)*100)+'%';}
+  document.getElementById('tCur').textContent=fmt(t);
+  if(dur)document.getElementById('tTot').textContent=fmt(dur);
+  if(S.mAnl){
+    const fbuf=new Uint8Array(S.mAnl.frequencyBinCount);S.mAnl.getByteFrequencyData(fbuf);
+    const subEnd=Math.floor(fbuf.length*0.05);let subE=0;
+    for(let i=0;i<subEnd;i++)subE+=fbuf[i]/255;subE/=Math.max(subEnd,1);
+    S.beatHistory.push(subE);if(S.beatHistory.length>30)S.beatHistory.shift();
+    const avg=S.beatHistory.reduce((a,b)=>a+b,0)/S.beatHistory.length;
+    S.beatThresh=avg*1.35+0.05;
+    const now=ctx.currentTime;
+    if(subE>S.beatThresh&&(now-S.beatLastTime)>0.25){
+      S.beatLastTime=now;UV.lastBeat=now;
+      const tt=document.getElementById('npTitle');
+      if(tt){tt.classList.add('beat-pulse');setTimeout(()=>tt.classList.remove('beat-pulse'),120);}
     }
+    let total=0;for(let i=0;i<fbuf.length;i++)total+=fbuf[i]/255;
+    UV.smoothEnergy+=(total/fbuf.length-UV.smoothEnergy)*0.12;UV.rawFreq=fbuf;
   }
-
-  // A mitad del fade: actualizar UI
-  setTimeout(async () => {
-    updateNP(nxt, S.nxtPhase);
-    if (S.bufs[nxt.file]) drawWave(S.bufs[nxt.file], nxt);
-  }, cfDur * 500);
-
-  // Al final del fade: cambiar deck activo
-  setTimeout(async () => {
-    S.deck    = inp;
-    S.startAt = inpStartedAt;
-    S.cur  = nxt; S.curFile = nxt.file;
-    S.played.push(nxt.file); S.playedSet.add(nxt.file); S.count++;
-    S.nxt  = null; S.nxtPlan = null;
-    S.sessionTracks.push({
-      track: nxt,
-      startCtxTime: inpStartedAt,
-      color: trackColor(S.sessionTracks.length)
-    });
-    document.getElementById('btnCue').disabled = true;
-    await askNext(nxt, getTime());
-    renderLib();
-    renderTimeline();
-  }, cfDur * 950);
-
-  // Fin: apagar deck saliente limpiamente
-  setTimeout(() => {
-    const dO = S.decks[out];
-    if (dO.preGain) {
-      dO.preGain.gain.cancelScheduledValues(ctx.currentTime);
-      dO.preGain.gain.setValueAtTime(0, ctx.currentTime);
-    }
-    if (dO.src) { try{dO.src.stop();}catch(e){} dO.src = null; }
-    if (dO.hipass) dO.hipass.frequency.setValueAtTime(20,    ctx.currentTime);
-    if (dO.lopass) dO.lopass.frequency.setValueAtTime(20000, ctx.currentTime);
-
-    // Volver el gain de compensación a 1 limpiamente
-    if (S.compGain) {
-      S.compGain.gain.cancelScheduledValues(ctx.currentTime);
-      S.compGain.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.3);
-    }
-
-    S.mixing           = false;
-    S.silenceStart     = null;
-    S.silenceTriggered = false;
-    hideMixing();
-    hideEQ();
-    logMsg(`Reproduciendo: ${S.cur.name}`);
-  }, cfDur * 1000 + 250);
+  if(S.mixing){const elapsed=ctx.currentTime-S.mixStart,frac=Math.min(1,elapsed/Math.max(S.mixDur,1));
+    document.getElementById('mixFill').style.width=(frac*100)+'%';updateEQVisual(frac);}
+  if(!S.mixing&&S.playing&&!S._beatSnapScheduled&&S.nxt&&S.nxtPlan&&dur>0){
+    const startMix=S.nxtPlan.start_current_time||(dur-(S.nxtPlan.mix_duration||8));
+    if(t>=startMix-0.3&&t<startMix+3){S._beatSnapScheduled=true;
+      setTimeout(()=>{if(!S.mixing&&S.playing)doMix();S._beatSnapScheduled=false;},Math.max(0,(startMix-t)*1000));}}
+  if(!S.mixing&&S.playing&&dur>0&&t>=dur-0.5&&!S._beatSnapScheduled){
+    S._beatSnapScheduled=true;setTimeout(()=>{if(!S.mixing&&S.playing)doMix();S._beatSnapScheduled=false;},Math.max(0,(dur-t)*1000));}
+  if(S.count===1&&!S.mixing&&S.nxt&&!S._beatSnapScheduled)askNext(S.cur,t);
+  if(S.playing&&S.sessionTracks.length>0){
+    const elapsed=ctx.currentTime-S.sessionStartTime;
+    const totalEst=S.sessionTracks.reduce((acc,st)=>acc+(st.track.duracion_segundos||180),0);
+    const pct=Math.min(99,(elapsed/Math.max(totalEst,1))*100);
+    const tlHead=document.getElementById('tlHead');if(tlHead)tlHead.style.left=pct+'%';}
+  if(!S.mixing&&S.playing&&t>5&&!(S._dragging&&S._dragging())){
+    const dk=S.decks[S.deck];
+    if(dk&&dk.analyser){
+      const buf2=new Uint8Array(dk.analyser.frequencyBinCount);dk.analyser.getByteFrequencyData(buf2);
+      let sum=0;for(let i=0;i<buf2.length;i++)sum+=(buf2[i]/255)*(buf2[i]/255);
+      const rms=Math.sqrt(sum/buf2.length),progress=dur>0?t/dur:0;
+      if(rms<0.03&&progress>0.30&&!S.silenceTriggered){
+        if(S.silenceStart===null)S.silenceStart=ctx.currentTime;
+        else if((ctx.currentTime-S.silenceStart)*1000>1800){S.silenceTriggered=true;S.silenceStart=null;doMix();}
+      }else if(rms>=0.03){S.silenceStart=null;S.silenceTriggered=false;}}}
+  drawUrbanoViz();
 }
 
-// ── Animation loop ────────────────────────────────────────────
-function loop() {
-  requestAnimationFrame(loop);
-  if (!S.playing || !ctx) return;
-
-  const t   = getTime();
-  const dur = S.cur ? (S.cur.duracion_segundos || 0) : 0;
-
-  // Playhead — no mover mientras el usuario arrastra
-  const wW = document.getElementById('wc').offsetWidth;
-  if (!S._dragging || !S._dragging()) {
-    const pad = 18;
-    document.getElementById('ph').style.left   = (pad + (dur > 0 ? (t/dur)*wW : 0)) + 'px';
-    document.getElementById('tCur').textContent = fmt(t);
-  }
-  document.getElementById('tTot').textContent  = fmt(dur);
-
-  // Vinyl spin
-  document.getElementById('vinyl').classList.toggle('spin', S.playing && !S.mixing);
-
-  // Mix progress bar
-  if (S.mixing) {
-    const pct = Math.min(100, ((ctx.currentTime - S.mixStart) / S.mixDur) * 100);
-    document.getElementById('mixFill').style.width = pct + '%';
-    updateEQVisual(pct / 100);
-  }
-
-  // ── Trigger del mix ─────────────────────────────────────────
-  // No disparar mientras el usuario está arrastrando el playhead
-  if (!S.mixing && S.nxt && dur > 0 && !(S._dragging && S._dragging())) {
-    const cf         = S.nxtPlan ? (S.nxtPlan.mix_duration || 8) : 8;
-    const puedeSalir = S.cur ? (parseFloat(S.cur.puede_salir) || 0) : 0;
-    const planExit   = S.nxtPlan ? (parseFloat(S.nxtPlan.exit_at) || 0) : 0;
-
-    let trig;
-    if (puedeSalir > 0) {
-      trig = puedeSalir - cf;
-    } else if (planExit > 0) {
-      trig = planExit - cf;
-    } else {
-      trig = dur - cf - 2;
-    }
-    trig = Math.max(trig, dur * 0.73);
-
-    // Beat-snapping: si el trigger está a menos de 1 beat de distancia,
-    // esperar al beat más cercano para arrancar alineado con el ritmo.
-    // Usa los beat_times del JSON si están disponibles.
-    if (t >= trig - 0.5 && t < trig + 2.5 && !S._beatSnapScheduled) {
-      S._beatSnapScheduled = true;
-      const beatTimes = S.cur ? (S.cur.beat_times || []) : [];
-      let snapTarget = trig;
-
-      if (beatTimes.length > 0) {
-        // Encontrar el beat más próximo dentro de ±1.5s del trigger ideal
-        let bestDist = 9999, bestBeat = trig;
-        for (const bt of beatTimes) {
-          const dist = Math.abs(bt - trig);
-          if (dist < bestDist && dist < 1.5) { bestDist = dist; bestBeat = bt; }
-        }
-        snapTarget = bestBeat;
-      }
-
-      const delay = Math.max(0, (snapTarget - t) * 1000);
-      setTimeout(() => {
-        S._beatSnapScheduled = false;
-        if (!S.mixing && S.nxt) doMix();
-      }, delay);
-    }
-  }
-
-  // Refrescar plan cada 20s para mantenerlo actualizado
-  if (!S.mixing && S.cur && S.nxt && Math.round(t) % 20 === 0 && t > 8) {
-    askNext(S.cur, t);
-  }
-
-  // ── Detección de beat en tiempo real ───────────────────────
-  // Analiza la energía de sub-bass (bins 0-4 ≈ 20-80Hz) cada frame.
-  // Si supera el umbral adaptativo → beat detectado → flash visual.
-  // El umbral se adapta al nivel medio de los últimos 30 beats.
-  if (!S.mixing && S.playing && t > 2) {
-    const dk = S.decks[S.deck];
-    if (dk && dk.analyser) {
-      const fdata = new Uint8Array(dk.analyser.frequencyBinCount);
-      dk.analyser.getByteFrequencyData(fdata);
-      // Sub-bass energy (primeros 4 bins)
-      const subE = (fdata[0] + fdata[1] + fdata[2] + fdata[3]) / (4 * 255);
-      S.beatHistory.push(subE);
-      if (S.beatHistory.length > 60) S.beatHistory.shift();
-      const avg = S.beatHistory.reduce((a,b)=>a+b,0) / S.beatHistory.length;
-      S.beatThresh = avg * 1.5;
-
-      const now = ctx.currentTime;
-      const minInterval = S.cur && S.cur.bpm ? 60/S.cur.bpm * 0.7 : 0.25;
-      if (subE > S.beatThresh && subE > 0.1 && (now - S.beatLastTime) > minInterval) {
-        S.beatLastTime = now;
-        // Flash visual del beat dot
-        const dot = document.getElementById('beatDot');
-        dot.classList.add('flash');
-        setTimeout(() => dot.classList.remove('flash'), 80);
-      }
-    }
-  }
-
-  // ── Update timeline playhead ─────────────────────────────────
-  if (S.playing && S.sessionTracks.length > 0) {
-    const elapsed = ctx.currentTime - S.sessionStartTime;
-    const totalEst = S.sessionTracks.reduce((acc, st) => {
-      return acc + (st.track.duracion_segundos || 180);
-    }, 0);
-    const pct = Math.min(99, (elapsed / Math.max(totalEst, 1)) * 100);
-    const tlHead = document.getElementById('tlHead');
-    if (tlHead) tlHead.style.left = pct + '%';
-  }
-
-  // ── Detección de silencio / caída de canción ─────────────────
-  if (!S.mixing && S.playing && t > 5 && !(S._dragging && S._dragging())) {
-    const dk = S.decks[S.deck];
-    if (dk && dk.analyser) {
-      const buf = new Uint8Array(dk.analyser.frequencyBinCount);
-      dk.analyser.getByteFrequencyData(buf);
-      // RMS normalizado 0-1
-      let sum = 0;
-      for (let i = 0; i < buf.length; i++) sum += (buf[i]/255) * (buf[i]/255);
-      const rms = Math.sqrt(sum / buf.length);
-
-      const SILENCE_THRESHOLD = 0.03;   // por debajo de esto = silencio percibido
-      const SILENCE_MS        = 1800;   // debe durar 1.8s para confirmar
-      const MIN_PROGRESS      = 0.30;   // ignorar antes del 30% de la canción
-
-      const progress = dur > 0 ? t / dur : 0;
-
-      if (rms < SILENCE_THRESHOLD && progress > MIN_PROGRESS && !S.silenceTriggered) {
-        if (S.silenceStart === null) {
-          S.silenceStart = ctx.currentTime;
-        } else if ((ctx.currentTime - S.silenceStart) * 1000 > SILENCE_MS) {
-          // ¡Silencio confirmado! Saltar al siguiente
-          S.silenceTriggered = true;
-          S.silenceStart     = null;
-          logMsg('⚡ Silencio detectado — saltando');
-          doMix();
-        }
-      } else if (rms >= SILENCE_THRESHOLD) {
-        // Señal volvió — resetear contador
-        S.silenceStart     = null;
-        S.silenceTriggered = false;
-      }
-    }
-  }
-
-  drawViz();
+function updateEQVisual(frac){
+  document.getElementById('eqHi').style.width=Math.max(0,(1-Math.pow(frac/0.8,0.6))*100)+'%';
+  document.getElementById('eqMid').style.width=Math.max(0,(1-Math.pow(frac/0.9,0.8))*100)+'%';
+  document.getElementById('eqLo').style.width=Math.max(0,(1-Math.pow(frac/1.0,1.2))*100)+'%';
 }
-
-// ── EQ visual durante el mix ──────────────────────────────────
-function updateEQVisual(frac) {
-  // frac 0→1 durante el crossfade
-  // Muestra lo que el EQ está haciendo a la pista saliente
-  const hiPct  = Math.max(0, (1 - Math.pow(frac / 0.8, 0.6)) * 100);
-  const midPct = Math.max(0, (1 - Math.pow(frac / 0.9, 0.8)) * 100);
-  const loPct  = Math.max(0, (1 - Math.pow(frac / 1.0, 1.2)) * 100);
-  document.getElementById('eqHi').style.width  = hiPct + '%';
-  document.getElementById('eqMid').style.width = midPct + '%';
-  document.getElementById('eqLo').style.width  = loPct + '%';
+function updateNP(t,phase){
+  const titleEl=document.getElementById('npTitle');
+  if(titleEl){titleEl.style.animation='none';void titleEl.offsetWidth;titleEl.style.animation='';titleEl.textContent=t.name;}
+  const bpmEl=document.getElementById('npBpm');if(bpmEl)bpmEl.textContent=t.bpm?t.bpm.toFixed(1)+' BPM':'';
+  const durEl=document.getElementById('npDur');if(durEl)durEl.textContent=t.duracion_segundos?fmt(t.duracion_segundos):'';
+  const keyEl=document.getElementById('npKey');if(keyEl){if(t.key){keyEl.textContent=t.key;keyEl.style.display='inline';}else keyEl.style.display='none';}
+  const estiloEl=document.getElementById('npEstilo');if(estiloEl){if(t.estilo){estiloEl.textContent=t.estilo;estiloEl.style.display='inline';}else estiloEl.style.display='none';}
+  const bv=document.getElementById('bpmVal');if(bv)bv.textContent=t.bpm?Math.round(t.bpm):'—';
+  const pill=document.getElementById('phasePill');const p=phase||S.nxtPhase||'warm-up';
+  if(pill){pill.textContent=PHASE_LABELS[p]||p;pill.setAttribute('class','pill-'+p);}
+  const egyEl=document.getElementById('npEgy');if(egyEl)egyEl.textContent=t.energia?'E'+t.energia:'';
+  updateLikeUI(t.file);
 }
-
-function hideEQ() {
-  document.getElementById('eqRow').classList.remove('on');
-  document.getElementById('eqHi').style.width  = '100%';
-  document.getElementById('eqMid').style.width = '100%';
-  document.getElementById('eqLo').style.width  = '100%';
+function updateArc(phase,targetE){
+  const idx=PHASE_ORDER.indexOf(phase),pct=idx<0?0:(idx/(PHASE_ORDER.length-1))*100;
+  document.getElementById('arcCursor').style.left=pct+'%';
+  document.getElementById('arcPhase').textContent=(PHASE_LABELS[phase]||phase)+' · E→'+Math.round(targetE);
 }
-
-// ── UI helpers ────────────────────────────────────────────────
-function updateNP(t, phase) {
-  document.getElementById('npTitle').textContent = t.name;
-  document.getElementById('npBpm').textContent   = t.bpm  ? t.bpm.toFixed(1)+' BPM' : '—';
-  document.getElementById('npEgy').textContent   = t.energia ? 'E'+t.energia : '';
-  document.getElementById('npDur').textContent   = t.duracion_segundos ? fmt(t.duracion_segundos) : '';
-  document.getElementById('bpmVal').textContent  = t.bpm ? Math.round(t.bpm) : '—';
-
-  const keyEl = document.getElementById('npKey');
-  if (t.key) { keyEl.textContent = t.key; keyEl.style.display = 'inline'; }
-  else keyEl.style.display = 'none';
-
-  const pill = document.getElementById('phasePill');
-  const p = phase || S.nxtPhase || 'warm-up';
-  pill.textContent = PHASE_LABELS[p] || p;
-  pill.setAttribute('class', 'pill pill-' + p);
+function showNext(t,plan,score,phase){
+  document.getElementById('nxtRow').style.display='flex';
+  document.getElementById('nxtNm').textContent=t.name;
+  document.getElementById('nxtSc').textContent='Score '+Math.round(score);
+  const style=plan?(plan.style||'guetta'):'guetta';
+  document.getElementById('nxtT').textContent=(STYLE_ICONS[style]||'⚡')+' '+style.toUpperCase()+' · '+((plan&&plan.mix_duration)||8).toFixed(0)+'s fade';
+  document.getElementById('btnCue').disabled=false;
 }
-
-function updateArc(phase, targetE) {
-  const idx = PHASE_ORDER.indexOf(phase);
-  const pct = idx < 0 ? 0 : (idx / (PHASE_ORDER.length-1)) * 100;
-  document.getElementById('arcCursor').style.left  = pct + '%';
-  document.getElementById('arcPhase').textContent  = (PHASE_LABELS[phase]||phase) + ' · E→' + Math.round(targetE);
+function hideNext(){document.getElementById('nxtRow').style.display='none';}
+function showMixing(name,dur,style){
+  const row=document.getElementById('mixRow');if(row){row.classList.add('on');}
+  const lbl=document.getElementById('mixStyleLabel');if(lbl)lbl.textContent=STYLE_LABELS[style]||'⚡';
+  const mi=document.getElementById('mixInfo');if(mi)mi.textContent=`→ ${name} · ${dur.toFixed(0)}s`;
+  const mf=document.getElementById('mixFill');if(mf)mf.style.width='0%';
+  const eq=document.getElementById('eqRow');if(eq)eq.classList.add('on');
+  const ind=document.getElementById('mixIndicator');const mlb=document.getElementById('mixLabel');
+  if(ind&&mlb){ind.className='on';mlb.textContent=(STYLE_LABELS[style]||'MIX').replace(/^.+\s/,'');}
 }
-
-function showNext(t, plan, score, phase) {
-  document.getElementById('nxtRow').style.display = 'flex';
-  document.getElementById('nxtNm').textContent    = t.name;
-  document.getElementById('nxtSc').textContent    = 'Score ' + Math.round(score);
-  const style  = plan ? (plan.style || 'guetta') : 'guetta';
-  const sLabel = STYLE_ICONS[style] || '⚡';
-  const timing = plan
-    ? `${sLabel} ${style.toUpperCase()} · ${(plan.mix_duration||8).toFixed(0)}s fade`
-    : '';
-  document.getElementById('nxtT').textContent = timing;
-  document.getElementById('btnCue').disabled = false;
+function hideMixing(){
+  const row=document.getElementById('mixRow');if(row)row.classList.remove('on');
+  const ind=document.getElementById('mixIndicator');if(ind)ind.className='';
 }
-function hideNext() { document.getElementById('nxtRow').style.display = 'none'; }
-
-function showMixing(name, dur, style) {
-  const row   = document.getElementById('mixRow');
-  const label = document.getElementById('mixStyleLabel');
-  row.classList.add('on');
-  row.classList.remove('style-guetta', 'style-avicii', 'style-progressive');
-  row.classList.add('style-' + (style || 'guetta'));
-  label.textContent = STYLE_LABELS[style] || '⚡ GUETTA';
-  document.getElementById('mixInfo').textContent = `→ ${name} · ${dur.toFixed(0)}s`;
-  document.getElementById('mixFill').style.width = '0%';
-  document.getElementById('eqRow').classList.add('on');
+S.prefs={};
+async function loadPrefs(){try{const r=await fetch('/api/prefs');S.prefs=await r.json();}catch(e){}}
+async function sendLike(action){
+  if(!S.cur)return;const file=S.cur.file;const current=S.prefs[file];
+  const sendAction=(action==='like'&&current===1)||(action==='dislike'&&current===-1)?'clear':action;
+  try{await fetch('/api/like',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file,action:sendAction})});
+    if(sendAction==='like')S.prefs[file]=1;else if(sendAction==='dislike')S.prefs[file]=-1;else delete S.prefs[file];
+    updateLikeUI(file);const titleEl=document.getElementById('npTitle');
+    if(titleEl){const orig=titleEl.textContent;
+      titleEl.textContent=sendAction==='like'?'👍 ¡Guardado!':sendAction==='dislike'?'👎 Anotado':'✓ Borrado';
+      setTimeout(()=>{titleEl.textContent=orig;},1400);}
+  }catch(e){}
 }
-function hideMixing() { document.getElementById('mixRow').classList.remove('on'); }
-
-function renderLib() {
-  const list = document.getElementById('tlist');
-  if (!S.lib.length) {
-    list.innerHTML = '<div class="empty"><p>Pon MP3/WAV en <code>musica/canciones/</code></p></div>';
-    return;
-  }
-  const cBpm = S.cur ? (S.cur.bpm||0) : 0;
-  list.innerHTML = S.lib.map((t,i) => {
-    const iC   = t.file === S.curFile;
-    const iN   = S.nxt && t.file === S.nxt.file;
-    const done = !iC && S.playedSet.has(t.file);
-    const bOk  = !cBpm || !t.bpm || Math.abs(t.bpm-cBpm) <= 10;
-    const sc   = iN ? Math.round(S.nxtScore) : null;
-    const sC   = sc===null ? '' : sc>70?'hi':sc>40?'mi':'lo';
-    return `<div class="tk ${iC?'cur':''} ${iN?'nxt':''} ${done?'done':''}">
-      <div class="tn">${iC?'▶':iN?'→':done?'✓':i+1}</div>
-      <div class="tt">${t.name}</div>
-      <div class="te"><div class="tef" style="width:${t.energia||50}%"></div></div>
-      <div class="tb ${bOk?'ok':'no'}">${t.bpm?t.bpm.toFixed(0)+'bpm':'—'}</div>
-      <div class="ts ${sC}">${sc!==null?sc:'—'}</div>
-      <div class="td">${t.duracion_segundos?fmt(t.duracion_segundos):'—'}</div>
-    </div>`;
+function updateLikeUI(file){
+  const pref=S.prefs[file]||0;
+  const bl=document.getElementById('btnLike');const bd=document.getElementById('btnDislike');
+  if(bl)bl.classList.toggle('active-like',pref===1);if(bd)bd.classList.toggle('active-dislike',pref===-1);
+}
+function renderLib(){
+  const list=document.getElementById('tlist');
+  if(!S.lib.length){list.innerHTML='<div>Pon MP3/WAV en musica/canciones/</div>';return;}
+  list.innerHTML=S.lib.map((t,i)=>{
+    const iC=t.file===S.curFile,iN=S.nxt&&t.file===S.nxt.file,done=!iC&&S.playedSet.has(t.file);
+    return `<div class="tk ${iC?'cur':''} ${iN?'nxt':''} ${done?'done':''}"><div class="tn">${iC?'▶':iN?'→':done?'✓':i+1}</div><div class="tt">${t.name}</div></div>`;
   }).join('');
 }
-
-// ── Waveform ──────────────────────────────────────────────────
-function drawWave(buf, track) {
-  const c = document.getElementById('wc'), dpr = devicePixelRatio||1;
-  c.width = c.offsetWidth*dpr; c.height = c.offsetHeight*dpr;
-  const g = c.getContext('2d'); g.scale(dpr,dpr);
-  const W=c.offsetWidth, H=c.offsetHeight, mid=H/2;
-  const data=buf.getChannelData(0), step=Math.ceil(data.length/W);
+function drawWave(buf,track){
+  const c=document.getElementById('wc'),dpr=devicePixelRatio||1;
+  c.width=c.offsetWidth*dpr;c.height=c.offsetHeight*dpr;
+  const g=c.getContext('2d');g.scale(dpr,dpr);
+  const W=c.offsetWidth,H=c.offsetHeight,mid=H/2;
+  const data=buf.getChannelData(0),step=Math.ceil(data.length/W);
   g.clearRect(0,0,W,H);
-
-  // Gradiente que refleja la energía de la canción
-  const gr = g.createLinearGradient(0,0,W,0);
-  gr.addColorStop(0,  'rgba(200,255,0,.08)');
-  gr.addColorStop(.4, 'rgba(200,255,0,.65)');
-  gr.addColorStop(.6, 'rgba(0,240,255,.55)');
-  gr.addColorStop(1,  'rgba(200,255,0,.08)');
-  g.strokeStyle = gr; g.lineWidth = 1; g.beginPath();
-  for(let i=0;i<W;i++){
-    let mn=1,mx=-1;
+  const gr=g.createLinearGradient(0,0,W,0);
+  gr.addColorStop(0,'rgba(232,255,0,.06)');gr.addColorStop(.4,'rgba(232,255,0,.6)');
+  gr.addColorStop(.6,'rgba(0,255,136,.5)');gr.addColorStop(1,'rgba(232,255,0,.06)');
+  g.strokeStyle=gr;g.lineWidth=1;g.beginPath();
+  for(let i=0;i<W;i++){let mn=1,mx=-1;
     for(let j=0;j<step;j++){const v=data[i*step+j]||0;if(v<mn)mn=v;if(v>mx)mx=v;}
-    g.moveTo(i,mid+mn*mid); g.lineTo(i,mid+mx*mid);
-  }
+    g.moveTo(i,mid+mn*mid);g.lineTo(i,mid+mx*mid);}
   g.stroke();
-
-  if(!track) return;
-  const dur = track.duracion_segundos || buf.duration;
-
-  // Zona de entrada permitida (azul)
-  if(track.puede_empezar_mezcla) {
-    const x1=(track.puede_empezar_mezcla/dur)*W;
-    const x2=track.debe_sonar_sola?(track.debe_sonar_sola/dur)*W:W;
-    g.fillStyle='rgba(0,240,255,.04)'; g.fillRect(x1,0,x2-x1,H);
-    g.strokeStyle='rgba(0,240,255,.18)'; g.lineWidth=1;
-    g.beginPath();g.moveTo(x1,0);g.lineTo(x1,H);g.stroke();
-    if(track.debe_sonar_sola){g.beginPath();g.moveTo(x2,0);g.lineTo(x2,H);g.stroke();}
-  }
-  // Punto de salida (rojo)
-  if(track.puede_salir){
-    const xo=(track.puede_salir/dur)*W;
-    g.strokeStyle='rgba(255,59,92,.35)'; g.lineWidth=1;
-    g.beginPath();g.moveTo(xo,0);g.lineTo(xo,H);g.stroke();
-    // Pequeño triángulo marcador
-    g.fillStyle='rgba(255,59,92,.5)';
-    g.beginPath();g.moveTo(xo-3,0);g.lineTo(xo+3,0);g.lineTo(xo,5);g.fill();
-  }
 }
-
-// ── Spectrum visualizer ───────────────────────────────────────
-function drawViz() {
-  const c = document.getElementById('viz'), dpr = devicePixelRatio||1;
-  if(c.width!==c.offsetWidth*dpr){c.width=c.offsetWidth*dpr;c.height=c.offsetHeight*dpr;}
-  const g = c.getContext('2d'), W=c.offsetWidth, H=c.offsetHeight;
-  g.setTransform(dpr,0,0,dpr,0,0);
-
-  // Fade out fondo (efecto de cola)
-  g.fillStyle = 'rgba(7,8,15,.55)';
-  g.fillRect(0,0,W,H);
-
-  // Dibuja ambos decks durante el crossfade (superpuestos)
-  const drawDeck = (dkId, colorFn) => {
-    const dk = S.decks[dkId];
-    if (!dk || !dk.analyser) return;
-    const d = new Uint8Array(dk.analyser.frequencyBinCount);
-    dk.analyser.getByteFrequencyData(d);
-    const bw = (W / d.length) * 1.2;
-    for(let i=0;i<d.length;i++){
-      const v=d[i]/255, bh=v*H*0.96;
-      if(bh < 1) continue;
-      const col = colorFn(i/d.length, v);
-      g.fillStyle = col;
-      // Barra + reflejo especular
-      g.fillRect(i*bw, H-bh, bw-0.5, bh);
-      g.globalAlpha = 0.12;
-      g.fillRect(i*bw, H, bw-0.5, -bh*0.25);
-      g.globalAlpha = 1;
-    }
-  };
-
-  const colorOut = (x, v) => `rgba(200,255,0,${(0.25+v*0.75).toFixed(2)})`;
-  const colorIn  = (x, v) => `rgba(0,240,255,${(0.2+v*0.7).toFixed(2)})`;
-
-  if (S.mixing) {
-    const other = S.deck === 'A' ? 'B' : 'A';
-    drawDeck(other, colorIn);
-    drawDeck(S.deck, colorOut);
-  } else {
-    drawDeck(S.deck, colorOut);
-  }
+function trackColor(idx){
+  const p=['rgba(232,255,0','rgba(0,255,136','rgba(255,50,120','rgba(0,200,255','rgba(255,100,0','rgba(200,50,255','rgba(255,220,0','rgba(0,180,255'];
+  return p[idx%p.length];
 }
-
-function logMsg(m) { document.getElementById('log').textContent = m; }
-
-// ── Track color palette ───────────────────────────────────────
-function trackColor(idx) {
-  const palette = [
-    'rgba(200,255,0',    // verde lima
-    'rgba(0,240,255',    // cyan
-    'rgba(176,96,255',   // violeta
-    'rgba(255,149,0',    // naranja
-    'rgba(255,59,92',    // rojo
-    'rgba(0,255,180',    // verde agua
-    'rgba(255,220,0',    // amarillo
-    'rgba(80,160,255',   // azul
-  ];
-  return palette[idx % palette.length];
-}
-
-// ── Timeline de sesión ────────────────────────────────────────
-function renderTimeline() {
-  const wrap = document.getElementById('tlWrap');
-  if (!wrap || !S.sessionTracks.length) return;
-  wrap.style.display = 'block';
-
-  const blocks  = document.getElementById('tlBlocks');
-  const labels  = document.getElementById('tlLabels');
-  const tlDur   = document.getElementById('tlDur');
-
-  // Calcular duración total estimada de la sesión
-  const durations = S.sessionTracks.map(st => st.track.duracion_segundos || 180);
-  const total     = durations.reduce((a,b)=>a+b, 0);
-
-  // Render bloques
-  blocks.innerHTML = S.sessionTracks.map((st, i) => {
-    const dur  = st.track.duracion_segundos || 180;
-    const pct  = (dur / total * 100).toFixed(2);
-    const isCur = st.track.file === S.curFile;
-    const isDone = !isCur && i < S.sessionTracks.length - 1;
-    const e    = st.track.energia || 50;
-    const col  = st.color;
-    // Altura de la barra proporcional a la energía
-    const hPct = 30 + e * 0.7;
-    return `<div class="tl-block ${isCur?'playing':''} ${isDone?'done':'future'}"
-      style="width:${pct}%;background:${col},.08)"
-      title="${st.track.name}"
-      onclick="tlSeek(${i})">
-      <div style="position:absolute;bottom:0;left:0;right:0;height:${hPct}%;
-        background:${col},.4);border-radius:2px 2px 0 0;pointer-events:none"></div>
-    </div>`;
+function renderTimeline(){
+  const wrap=document.getElementById('tlWrap');if(!wrap||!S.sessionTracks.length)return;
+  wrap.style.display='block';
+  const blocks=document.getElementById('tlBlocks'),labels=document.getElementById('tlLabels'),tlDur=document.getElementById('tlDur');
+  const durations=S.sessionTracks.map(st=>st.track.duracion_segundos||180);
+  const total=durations.reduce((a,b)=>a+b,0);
+  blocks.innerHTML=S.sessionTracks.map((st,i)=>{
+    const dur=st.track.duracion_segundos||180,pct=(dur/total*100).toFixed(2);
+    const isCur=st.track.file===S.curFile,isDone=!isCur&&i<S.sessionTracks.length-1;
+    return `<div class="tl-block ${isCur?'playing':''} ${isDone?'done':'future'}" style="width:${pct}%;background:${st.color},.08)" title="${st.track.name}"><div style="position:absolute;bottom:0;left:0;right:0;height:${30+(st.track.energia||50)*0.7}%;background:${st.color},.4);border-radius:2px 2px 0 0"></div></div>`;
   }).join('');
-
-  // Labels debajo (nombre truncado, solo algunas)
-  let leftPct = 0;
-  labels.innerHTML = S.sessionTracks.map((st, i) => {
-    const dur = st.track.duracion_segundos || 180;
-    const pct = dur / total * 100;
-    const mid = leftPct + pct / 2;
-    leftPct  += pct;
-    const isCur = st.track.file === S.curFile;
-    const name  = st.track.name.length > 12 ? st.track.name.slice(0,11)+'…' : st.track.name;
+  let leftPct=0;
+  labels.innerHTML=S.sessionTracks.map((st,i)=>{
+    const dur=st.track.duracion_segundos||180,pct=dur/total*100,mid=leftPct+pct/2;leftPct+=pct;
+    const isCur=st.track.file===S.curFile;
+    const name=st.track.name.length>12?st.track.name.slice(0,11)+'…':st.track.name;
     return `<span class="tl-lbl ${isCur?'cur':''}" style="left:${mid.toFixed(1)}%">${name}</span>`;
   }).join('');
-
-  // Duración total
-  const totalMins = Math.floor(total / 60);
-  tlDur.textContent = `~${totalMins} min`;
+  tlDur.textContent=`~${Math.floor(total/60)} min`;
 }
+function logMsg(m){document.getElementById('log').textContent=m;}
+function fmt(s){s=Math.max(0,Math.floor(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
+function resize(){['viz','wc'].forEach(id=>{const c=document.getElementById(id);c.width=c.offsetWidth*(devicePixelRatio||1);c.height=c.offsetHeight*(devicePixelRatio||1);});}
+window.addEventListener('resize',resize);resize();
 
-// Seek directo a una canción del timeline (click en bloque)
-function tlSeek(idx) {
-  if (S.mixing) return;  // no permitir seek durante mezcla
-  const st = S.sessionTracks[idx];
-  if (!st) return;
-  // Si es la pista actual, solo saltar al principio
-  if (st.track.file === S.curFile) {
-    const d = S.decks[S.deck];
-    if (d && d.src) {
-      d.src.onended = null;
-      try { d.src.stop(); } catch(e) {}
-    }
-    const buf = S.bufs[st.track.file];
-    if (!buf) return;
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.playbackRate.value = 1.0;
-    src.connect(d.preGain);
-    src.start(0, 0);
-    d.src = src;
-    d.startedAt = ctx.currentTime;
-    S.startAt = d.startedAt;
-    S.silenceStart = null; S.silenceTriggered = false;
-    src.onended = () => { if (S.playing && !S.mixing) doMix(); };
-    logMsg(`↩ Reiniciando: ${st.track.name}`);
+// ════════════════════════════════════════════════════════════════
+//  URBANO VISUALS — Dark Neon Industrial
+//  3 modos rotativos: Glitch · Radar EQ · Partículas Humo
+// ════════════════════════════════════════════════════════════════
+const UV = {
+  smoothEnergy: 0,
+  rawFreq: null,
+  lastBeat: 0,
+  mode: 0,           // 0=glitch, 1=radar, 2=smoke
+  modeTimer: 0,
+  MODE_DURATION: 40, // segundos
+  t: 0,
+  // Glitch state
+  glitchTimer: 0,
+  glitchActive: false,
+  glitchIntensity: 0,
+  // Radar state
+  radarAngle: 0,
+  // Smoke particles
+  smoke: [],
+};
+
+const MODE_NAMES_U = ['GLITCH','RADAR','SMOKE'];
+
+function initUrbanoVisuals(){
+  const pm=document.getElementById('vizMain'),pp=document.getElementById('particles');
+  function resizeViz(){
+    pm.width=pp.width=window.innerWidth*(devicePixelRatio||1);
+    pm.height=pp.height=window.innerHeight*(devicePixelRatio||1);
+    pm.style.width=pp.style.width=window.innerWidth+'px';
+    pm.style.height=pp.style.height=window.innerHeight+'px';
   }
-  // (Para canciones pasadas/futuras no hacemos nada — solo informativo)
+  window.addEventListener('resize',resizeViz);resizeViz();
+  for(let i=0;i<120;i++) UV.smoke.push(mkSmoke());
+  UV.modeTimer=performance.now();
+  document.getElementById('modeTag').textContent='— '+MODE_NAMES_U[0]+' —';
 }
-function fmt(s) { s=Math.max(0,Math.floor(s)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
-function resize() {
-  ['viz','wc'].forEach(id=>{
-    const c=document.getElementById(id);
-    c.width=c.offsetWidth*(devicePixelRatio||1);
-    c.height=c.offsetHeight*(devicePixelRatio||1);
-  });
+
+function mkSmoke(){
+  const W=window.innerWidth;
+  return{
+    x:Math.random()*W, y:Math.random()*window.innerHeight*0.2,
+    vx:(Math.random()-0.5)*0.8, vy:1.2+Math.random()*1.8,
+    size:8+Math.random()*40, opacity:0.05+Math.random()*0.2,
+    decay:0.003+Math.random()*0.005,
+    hue:Math.random()<0.6?75:Math.random()<0.5?150:330, // volt/green/magenta
+    life:1.0,
+  };
 }
-window.addEventListener('resize', resize); resize();
+
+function resetSmoke(p){
+  const W=window.innerWidth;
+  p.x=Math.random()*W; p.y=-20;
+  p.vx=(Math.random()-0.5)*0.8; p.vy=1.2+Math.random()*2;
+  p.size=10+Math.random()*50; p.opacity=0.04+Math.random()*0.18;
+  p.decay=0.003+Math.random()*0.005; p.life=1.0;
+  p.hue=Math.random()<0.55?75:Math.random()<0.5?150:330;
+}
+
+function drawUrbanoViz(){
+  const pm=document.getElementById('vizMain');if(!pm)return;
+  const gm=pm.getContext('2d');
+  const W=pm.width,H=pm.height,cx=W/2,cy=H/2;
+  const dpr=devicePixelRatio||1;
+  const now=performance.now();
+  UV.t+=0.016;
+
+  // Mode rotation
+  const elapsed=(now-UV.modeTimer)/1000;
+  if(elapsed>UV.MODE_DURATION){
+    UV.mode=(UV.mode+1)%3;UV.modeTimer=now;
+    const lbl=document.getElementById('modeTag');
+    if(lbl){lbl.style.opacity=0;setTimeout(()=>{lbl.textContent='— '+MODE_NAMES_U[UV.mode]+' —';lbl.style.opacity=1;},600);}
+  }
+
+  const beatAge=ctx?(ctx.currentTime-UV.lastBeat):99;
+  const beatFlash=Math.max(0,1-beatAge*5);
+  const energy=UV.smoothEnergy;
+  const freq=UV.rawFreq;
+
+  gm.clearRect(0,0,W,H);
+
+  // Dark background (near-black with subtle grain feel)
+  gm.fillStyle='rgba(6,6,6,0.85)';
+  gm.fillRect(0,0,W,H);
+
+  // ── MODE 0: GLITCH + CHROMATIC ABERRATION ──────────────────
+  if(UV.mode===0){
+    let subE=0;
+    if(freq){const subEnd=Math.floor(freq.length*0.05);for(let i=0;i<subEnd;i++)subE+=freq[i]/255;subE/=Math.max(subEnd,1);}
+
+    // Trigger glitch on beat
+    if(beatFlash>0.7&&subE>0.25){UV.glitchActive=true;UV.glitchIntensity=subE;UV.glitchTimer=now;}
+    if(UV.glitchActive&&(now-UV.glitchTimer)>120){UV.glitchActive=false;}
+
+    // Base waveform — compact horizontal strips
+    if(freq){
+      const slices=80;
+      for(let s=0;s<slices;s++){
+        const si=Math.floor((s/slices)*freq.length);
+        const v=freq[si]/255;
+        const y=H*(s/slices);
+        const lineH=H/slices;
+        const barW=(W/2)*v*(1+energy);
+        // Chromatic: R/G/B slightly offset
+        const offX=UV.glitchActive?UV.glitchIntensity*30*(Math.random()-0.5):0;
+        const offY=UV.glitchActive?UV.glitchIntensity*4*(Math.random()-0.5):0;
+        gm.fillStyle=`rgba(232,255,0,${v*0.7+energy*0.3})`;
+        gm.fillRect(cx+offX, y+offY, barW*(0.5+Math.random()*0.5), lineH*0.7);
+        gm.fillStyle=`rgba(0,255,136,${v*0.5})`;
+        gm.fillRect(cx+offX+barW*0.1, y+offY+lineH*0.15, barW*0.8, lineH*0.5);
+        // Mirror left
+        gm.fillStyle=`rgba(232,255,0,${v*0.5})`;
+        gm.fillRect(cx-offX-barW*(0.5+Math.random()*0.5), y+offY, barW*(0.5+Math.random()*0.5), lineH*0.7);
+      }
+    }
+
+    // Glitch scanlines
+    if(UV.glitchActive){
+      const numGlitch=Math.floor(UV.glitchIntensity*12)+2;
+      for(let g=0;g<numGlitch;g++){
+        const gy=Math.random()*H;const gh=2+Math.random()*12;
+        const shift=(Math.random()-0.5)*UV.glitchIntensity*60;
+        // Slice + shift effect
+        gm.save();gm.beginPath();gm.rect(0,gy,W,gh);gm.clip();
+        gm.translate(shift,0);
+        // Colored glitch bar
+        gm.fillStyle=`rgba(255,50,120,${0.3+Math.random()*0.5})`;
+        gm.fillRect(0,gy,W,gh);gm.restore();
+      }
+      // Chromatic split flash
+      gm.fillStyle=`rgba(232,255,0,${UV.glitchIntensity*0.04})`;gm.fillRect(3,0,W,H);
+      gm.fillStyle=`rgba(255,0,80,${UV.glitchIntensity*0.03})`;gm.fillRect(-3,0,W,H);
+    }
+
+    // Beat ring
+    if(beatFlash>0.05){
+      for(let r=0;r<3;r++){
+        const td=Math.max(0,beatFlash-r*0.12);
+        gm.strokeStyle=`rgba(232,255,0,${td*0.6})`;
+        gm.lineWidth=(1-td)*4*dpr;
+        gm.beginPath();gm.arc(cx,cy,td*Math.min(W,H)*0.5,0,Math.PI*2);gm.stroke();
+      }
+    }
+  }
+
+  // ── MODE 1: RADIAL EQ RADAR ────────────────────────────────
+  else if(UV.mode===1){
+    UV.radarAngle+=0.008+energy*0.03;
+
+    // Radar sweep glow
+    const sweepEnd={x:cx+Math.cos(UV.radarAngle)*Math.min(W,H)*0.6,y:cy+Math.sin(UV.radarAngle)*Math.min(W,H)*0.6};
+    const sweep=gm.createLinearGradient(cx,cy,sweepEnd.x,sweepEnd.y);
+    sweep.addColorStop(0,`rgba(232,255,0,${0.04+energy*0.08})`);
+    sweep.addColorStop(0.6,`rgba(232,255,0,${0.02+energy*0.04})`);
+    sweep.addColorStop(1,'transparent');
+    gm.beginPath();const sweepW=0.25+energy*0.15;
+    gm.moveTo(cx,cy);
+    gm.arc(cx,cy,Math.min(W,H)*0.6,UV.radarAngle-sweepW,UV.radarAngle);
+    gm.closePath();gm.fillStyle=sweep;gm.fill();
+
+    // Concentric grid circles
+    for(let r=1;r<=4;r++){
+      const rr=Math.min(W,H)*0.15*r*dpr;
+      gm.strokeStyle=`rgba(232,255,0,${0.06+r*0.02})`;
+      gm.lineWidth=0.5*dpr;gm.beginPath();gm.arc(cx,cy,rr,0,Math.PI*2);gm.stroke();
+    }
+
+    // EQ spikes
+    if(freq){
+      const numBars=128;const maxR=Math.min(W,H)*0.52;
+      gm.save();
+      for(let i=0;i<numBars;i++){
+        const ang=(i/numBars)*Math.PI*2;
+        const fi=Math.floor((i/numBars)*freq.length*0.75);
+        const v=freq[fi]/255;
+        const barLen=v*maxR*(0.4+energy*0.6)*dpr;
+        const innerR=maxR*0.18*dpr;
+        const x1=cx+Math.cos(ang)*innerR,y1=cy+Math.sin(ang)*innerR;
+        const x2=cx+Math.cos(ang)*(innerR+barLen),y2=cy+Math.sin(ang)*(innerR+barLen);
+        // Neon line with glow
+        const hue2=v>0.7?75:v>0.4?150:180; // volt/green/cyan
+        gm.strokeStyle=`hsla(${hue2},100%,${55+v*35}%,${0.5+v*0.5})`;
+        gm.lineWidth=(0.8+v*2.5)*dpr;
+        gm.beginPath();gm.moveTo(x1,y1);gm.lineTo(x2,y2);gm.stroke();
+        // Tip dot
+        if(v>0.45){gm.fillStyle=`hsla(${hue2},100%,90%,${v*0.8})`;
+          gm.beginPath();gm.arc(x2,y2,1.5*dpr,0,Math.PI*2);gm.fill();}
+      }
+      gm.restore();
+    }
+
+    // Central subwoofer circle
+    const subE2 = freq ? (()=>{let s=0;const e=Math.floor(freq.length*0.04);for(let i=0;i<e;i++)s+=freq[i]/255;return s/Math.max(e,1);})() : 0;
+    const cR=(40+subE2*100)*dpr*(1+beatFlash*0.4);
+    const cg=gm.createRadialGradient(cx,cy,0,cx,cy,cR);
+    cg.addColorStop(0,`rgba(232,255,0,${0.15+subE2*0.3})`);
+    cg.addColorStop(0.5,`rgba(232,255,0,${0.05+subE2*0.1})`);
+    cg.addColorStop(1,'transparent');
+    gm.fillStyle=cg;gm.beginPath();gm.arc(cx,cy,cR,0,Math.PI*2);gm.fill();
+  }
+
+  // ── MODE 2: SMOKE PARTICLES ────────────────────────────────
+  else{
+    let subE3=0,hiE=0;
+    if(freq){
+      const subEnd=Math.floor(freq.length*0.05);for(let i=0;i<subEnd;i++)subE3+=freq[i]/255;subE3/=Math.max(subEnd,1);
+      const hiS=Math.floor(freq.length*0.6);for(let i=hiS;i<freq.length;i++)hiE+=freq[i]/255;hiE/=(freq.length-hiS)||1;
+    }
+
+    const pp=document.getElementById('particles');const gp=pp.getContext('2d');
+    gp.clearRect(0,0,W,H);
+
+    for(const p of UV.smoke){
+      p.y+=p.vy*(1+subE3*4+hiE*2);
+      p.x+=p.vx*(1+energy)+(Math.random()-0.5)*0.4;
+      p.vy*=0.998; p.vx*=0.995;
+      p.size*=1.008;
+      p.life-=p.decay*(1+energy);
+      if(p.life<=0||p.y>H/dpr+50) resetSmoke(p);
+      const alpha=p.life*p.opacity*(0.7+energy*0.4);
+      const sz=p.size*p.life*dpr;
+      const sg=gp.createRadialGradient(p.x*dpr,p.y*dpr,0,p.x*dpr,p.y*dpr,sz);
+      sg.addColorStop(0,`hsla(${p.hue},100%,60%,${alpha})`);
+      sg.addColorStop(0.5,`hsla(${p.hue},90%,40%,${alpha*0.4})`);
+      sg.addColorStop(1,'transparent');
+      gp.fillStyle=sg;gp.beginPath();gp.arc(p.x*dpr,p.y*dpr,sz,0,Math.PI*2);gp.fill();
+    }
+
+    // Beat shockwave
+    if(beatFlash>0.1){
+      const sw=gm.createRadialGradient(cx,cy,0,cx,cy,Math.min(W,H)*0.5);
+      sw.addColorStop(0,`rgba(232,255,0,${beatFlash*0.08})`);
+      sw.addColorStop(0.4,`rgba(0,255,136,${beatFlash*0.04})`);
+      sw.addColorStop(1,'transparent');
+      gm.fillStyle=sw;gm.fillRect(0,0,W,H);
+    }
+
+    // Floor line
+    gm.strokeStyle=`rgba(232,255,0,${0.08+energy*0.15})`;
+    gm.lineWidth=1*dpr;gm.beginPath();gm.moveTo(0,H*0.96);gm.lineTo(W,H*0.96);gm.stroke();
+  }
+}
+
 boot();
 </script>
 </body>
 </html>"""
-
 
 # ══════════════════════════════════════════════════════════════
 #  MAIN

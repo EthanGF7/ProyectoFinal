@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+﻿import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../utils/supabase';
 import { callAuthedApi } from '../utils/apiClient';
 import { syncUserProfile } from '../utils/profileSync';
@@ -79,11 +79,16 @@ export const useAppUser = () => {
   useEffect(() => {
     loadAppUser();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+    const { data } = supabase.auth.onAuthStateChange(() => {
       loadAppUser();
     });
 
-    return () => authListener?.unsubscribe();
+     return () => {
+       const sub = data?.subscription;
+       if (sub && typeof sub.unsubscribe === 'function') {
+         sub.unsubscribe();
+       }
+     };
   }, [loadAppUser]);
 
   return { appUser, supabaseUser, loading, error, refresh: loadAppUser };

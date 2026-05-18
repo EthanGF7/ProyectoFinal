@@ -1,4 +1,4 @@
-// Página de perfil de usuario
+﻿// PÃ¡gina de perfil de usuario
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -48,7 +48,7 @@ export default function PaginaPerfil() {
       });
       setSuccess('');
 
-      // La información del usuario viene directamente de Supabase Auth
+      // La informaciÃ³n del usuario viene directamente de Supabase Auth
       // No necesitamos consultar una tabla adicional
     } catch (error) {
       console.error('Error al obtener usuario:', error);
@@ -63,13 +63,18 @@ export default function PaginaPerfil() {
   }, []);
 
   useEffect(() => {
-    const { data: subscription } = supabase.auth.onAuthStateChange((event) => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
         checkUser();
       }
     });
 
-    return () => subscription?.unsubscribe();
+     return () => {
+       const sub = data?.subscription;
+       if (sub && typeof sub.unsubscribe === 'function') {
+         sub.unsubscribe();
+       }
+     };
   }, []);
 
   const handleLogout = async () => {
@@ -79,8 +84,8 @@ export default function PaginaPerfil() {
       
       router.push('/');
     } catch (error) {
-      console.error('Error al cerrar sesión:', error);
-      setError('Error al cerrar sesión');
+      console.error('Error al cerrar sesiÃ³n:', error);
+      setError('Error al cerrar sesiÃ³n');
     }
   };
 
@@ -107,32 +112,32 @@ export default function PaginaPerfil() {
 
       const previousEmail = user?.email || '';
 
-      // Validar contraseñas si se están cambiando
+      // Validar contraseÃ±as si se estÃ¡n cambiando
       if (editData.password && editData.password !== editData.confirmPassword) {
-        setError('Las contraseñas no coinciden');
+        setError('Las contraseÃ±as no coinciden');
         setLoading(false);
         return;
       }
 
       if (editData.password && editData.password.length < 6) {
-        setError('La contraseña debe tener al menos 6 caracteres');
+        setError('La contraseÃ±a debe tener al menos 6 caracteres');
         setLoading(false);
         return;
       }
 
-      // Preparar datos de actualización
+      // Preparar datos de actualizaciÃ³n
       const updateData = {
         data: {
           username: editData.username
         }
       };
 
-      // Añadir contraseña si se ha proporcionado
+      // AÃ±adir contraseÃ±a si se ha proporcionado
       if (editData.password) {
         updateData.password = editData.password;
       }
 
-      // Actualizar usuario en Supabase Auth (sin cambiar email aquí)
+      // Actualizar usuario en Supabase Auth (sin cambiar email aquÃ­)
       const { data, error } = await supabase.auth.updateUser(updateData);
 
       if (error) throw error;
@@ -146,7 +151,7 @@ export default function PaginaPerfil() {
         const token = sessionData?.session?.access_token;
 
         if (!token) {
-          throw new Error('No se pudo obtener el token de sesión. Vuelve a iniciar sesión.');
+          throw new Error('No se pudo obtener el token de sesiÃ³n. Vuelve a iniciar sesiÃ³n.');
         }
 
         const response = await fetch('/api/profile/update-email', {
@@ -166,7 +171,7 @@ export default function PaginaPerfil() {
               errorMessage = errorResponse.error;
             }
           } catch (parseError) {
-            // Ignorar error de parseo y usar mensaje genérico
+            // Ignorar error de parseo y usar mensaje genÃ©rico
           }
           throw new Error(errorMessage);
         }
@@ -252,10 +257,10 @@ export default function PaginaPerfil() {
     if (!djRequest) return null;
     const estado = djRequest.estado;
     if (estado === 'pendiente') {
-      return 'Tu solicitud está siendo revisada.';
+      return 'Tu solicitud estÃ¡ siendo revisada.';
     }
     if (estado === 'aprobada') {
-      return '¡Solicitud aprobada! Ya puedes acceder al panel de DJ.';
+      return 'Â¡Solicitud aprobada! Ya puedes acceder al panel de DJ.';
     }
     if (estado === 'rechazada') {
       return 'Solicitud rechazada. Puedes volver a intentarlo cuando quieras.';
@@ -300,13 +305,13 @@ export default function PaginaPerfil() {
         <div className="profile-content">
           <div className="profile-header">
             <div className="profile-avatar">
-              👤
+              ðŸ‘¤
             </div>
             <h1 className="profile-title">
               Mi Perfil
             </h1>
             <p className="profile-subtitle">
-              Gestiona tu información en la discoteca digital
+              Gestiona tu informaciÃ³n en la discoteca digital
             </p>
           </div>
 
@@ -316,11 +321,11 @@ export default function PaginaPerfil() {
           <div className="profile-info">
             <div className="profile-card">
               <h3 className="profile-card-title">
-                📋 Información Personal
+                ðŸ“‹ InformaciÃ³n Personal
               </h3>
               
               <div className="profile-field">
-                <label className="profile-label">👤 Username:</label>
+                <label className="profile-label">ðŸ‘¤ Username:</label>
                 {editMode ? (
                   <input
                     type="text"
@@ -338,7 +343,7 @@ export default function PaginaPerfil() {
               </div>
 
               <div className="profile-field">
-                <label className="profile-label">📧 Email:</label>
+                <label className="profile-label">ðŸ“§ Email:</label>
                 {editMode ? (
                   <input
                     type="email"
@@ -357,16 +362,16 @@ export default function PaginaPerfil() {
 
 
               <div className="profile-field">
-                <label className="profile-label">🎭 Tipo de Usuario:</label>
+                <label className="profile-label">ðŸŽ­ Tipo de Usuario:</label>
                 <span className="profile-value profile-type">
-                  {(appUser?.tipo_usuario || supabaseUser?.user_metadata?.tipo_usuario) === 'dj' ? '🎧 DJ' :
-                   (appUser?.tipo_usuario || supabaseUser?.user_metadata?.tipo_usuario) === 'admin' ? '⚙️ Administrador' :
-                   '🎵 Usuario Normal'}
+                  {(appUser?.tipo_usuario || supabaseUser?.user_metadata?.tipo_usuario) === 'dj' ? 'ðŸŽ§ DJ' :
+                   (appUser?.tipo_usuario || supabaseUser?.user_metadata?.tipo_usuario) === 'admin' ? 'âš™ï¸ Administrador' :
+                   'ðŸŽµ Usuario Normal'}
                 </span>
               </div>
 
               <div className="profile-field">
-                <label className="profile-label">📅 Miembro desde:</label>
+                <label className="profile-label">ðŸ“… Miembro desde:</label>
                 <span className="profile-value">
                   {formatDate(user.created_at)}
                 </span>
@@ -375,26 +380,26 @@ export default function PaginaPerfil() {
               {editMode && (
                 <>
                   <div className="profile-field">
-                    <label className="profile-label">🔑 Nueva Contraseña:</label>
+                    <label className="profile-label">ðŸ”‘ Nueva ContraseÃ±a:</label>
                     <input
                       type="password"
                       name="password"
                       value={editData.password}
                       onChange={handleInputChange}
                       className="profile-input"
-                      placeholder="Nueva contraseña (opcional)"
+                      placeholder="Nueva contraseÃ±a (opcional)"
                     />
                   </div>
 
                   <div className="profile-field">
-                    <label className="profile-label">🔒 Confirmar Contraseña:</label>
+                    <label className="profile-label">ðŸ”’ Confirmar ContraseÃ±a:</label>
                     <input
                       type="password"
                       name="confirmPassword"
                       value={editData.confirmPassword}
                       onChange={handleInputChange}
                       className="profile-input"
-                      placeholder="Confirmar nueva contraseña"
+                      placeholder="Confirmar nueva contraseÃ±a"
                     />
                   </div>
                 </>
@@ -409,13 +414,13 @@ export default function PaginaPerfil() {
                     onClick={handleSaveProfile}
                     disabled={loading}
                   >
-                    {loading ? '💾 Guardando...' : '💾 Guardar Cambios'}
+                    {loading ? 'ðŸ’¾ Guardando...' : 'ðŸ’¾ Guardar Cambios'}
                   </button>
                   <button 
                     className="btn-secondary"
                     onClick={handleEditToggle}
                   >
-                    ❌ Cancelar
+                    âŒ Cancelar
                   </button>
                 </div>
               ) : (
@@ -423,13 +428,13 @@ export default function PaginaPerfil() {
                   className="btn-primary"
                   onClick={handleEditToggle}
                 >
-                  ✏️ Editar Perfil
+                  âœï¸ Editar Perfil
                 </button>
               )}
               {puedeSolicitarDj && (
                 <div className="dj-request-card">
-                  <h4>¿Quieres ser DJ?</h4>
-                  <p>Envíanos un mensaje corto explicando tu estilo y por qué quieres sumarte.</p>
+                  <h4>Â¿Quieres ser DJ?</h4>
+                  <p>EnvÃ­anos un mensaje corto explicando tu estilo y por quÃ© quieres sumarte.</p>
                   <textarea
                     className="profile-textarea"
                     value={djRequestMessage}
@@ -437,7 +442,7 @@ export default function PaginaPerfil() {
                     placeholder="Comparte tu experiencia y estilo musical"
                     disabled={djRequestLoading}
                   />
-                  <small className="dj-request-helper">Tu solicitud será revisada por el equipo de administración.</small>
+                  <small className="dj-request-helper">Tu solicitud serÃ¡ revisada por el equipo de administraciÃ³n.</small>
                   <button
                     className="btn-secondary"
                     onClick={handleRequestDj}
@@ -458,7 +463,7 @@ export default function PaginaPerfil() {
                 className="btn-logout"
                 onClick={handleLogout}
               >
-                🚪 Cerrar Sesión
+                ðŸšª Cerrar SesiÃ³n
               </button>
             </div>
           </div>
@@ -466,26 +471,26 @@ export default function PaginaPerfil() {
 
           <div className="profile-stats">
             <div className="profile-stat-card">
-              <div className="stat-icon">🎵</div>
+              <div className="stat-icon">ðŸŽµ</div>
               <div className="stat-info">
                 <h4>Playlists</h4>
-                <p>Próximamente</p>
+                <p>PrÃ³ximamente</p>
               </div>
             </div>
             
             <div className="profile-stat-card">
-              <div className="stat-icon">❤️</div>
+              <div className="stat-icon">â¤ï¸</div>
               <div className="stat-info">
                 <h4>Favoritos</h4>
-                <p>Próximamente</p>
+                <p>PrÃ³ximamente</p>
               </div>
             </div>
             
             <div className="profile-stat-card">
-              <div className="stat-icon">🎧</div>
+              <div className="stat-icon">ðŸŽ§</div>
               <div className="stat-info">
                 <h4>Escuchadas</h4>
-                <p>Próximamente</p>
+                <p>PrÃ³ximamente</p>
               </div>
             </div>
           </div>

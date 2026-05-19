@@ -326,10 +326,10 @@ def run_dj(name: str, base_dir: Path, port: int = 8765) -> None:
     print(f"[DJ] {name} -> {url}\n", flush=True)
 
     # Open browser
-    threading.Thread(
-        target=lambda: (time.sleep(1), webbrowser.open(url)),
-        daemon=True
-    ).start()
+    # threading.Thread(
+    #     target=lambda: (time.sleep(1), webbrowser.open(url)),
+    #     daemon=True
+    # ).start()
 
     try:
         server.serve_forever()

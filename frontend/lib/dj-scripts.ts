@@ -80,10 +80,16 @@ export function resolveDjScript(
     if (SLUG_TO_FOLDER[s]) target = SLUG_TO_FOLDER[s];
   }
 
-  // 3. Por slug del nombre artístico (último recurso)
+  // 3. Por slug del nombre artístico
   if (!target && nombreArtistico) {
     const s = slugify(nombreArtistico);
     if (SLUG_TO_FOLDER[s]) target = SLUG_TO_FOLDER[s];
+  }
+
+  // 4. Buscar en filesystem si nada coincide (fallback)
+  if (!target) {
+    const localName = resolveActualFolderName(djId);
+    if (localName) target = localName;
   }
 
   if (!target) return null;

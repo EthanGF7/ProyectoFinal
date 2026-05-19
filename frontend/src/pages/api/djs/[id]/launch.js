@@ -1,46 +1,24 @@
 import { spawn } from 'child_process';
 import fs from 'fs';
+import path from 'path';
 import { resolveDjScript } from '../../../../../lib/dj-scripts';
+import { ensureDjRunning } from '../../../../../lib/dj-runtime';
 
-const DJ_PORTS = {
-  Flamenco: 8765,
-  Nexus:    8766,
-  Pop:      8767,
-  Urbano:   8768,
-};
-
-const runningPlayers = new Map();
-
-function getPythonCommand() {
-  return process.env.PYTHON || 'C:\\Users\\yeray\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe';
-}
-
-function wait(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function waitForServer(port, timeout = 5000) {
-  const deadline = Date.now() + timeout;
-  while (Date.now() < deadline) {
-    try {
-      const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), 1200);
-      const res = await fetch(`http://127.0.0.1:${port}/api/library`, {
-        method: 'GET',
-        signal: controller.signal,
-      });
-      clearTimeout(id);
-      if (res.ok) return true;
-    } catch (err) {
-      // ignore and retry
+// Intenta resolver el DJ por filesystem (si el ID es un slug como "urbano")
+function resolveDjLocalFolder(id) {
+  const DJS_ROOT = path.resolve(process.cwd(), "..", "DJ's");
+  try {
+    const entries = fs.readdirSync(DJS_ROOT, { withFileTypes: true });
+    for (const e of entries) {
+      if (!e.isDirectory()) continue;
+      if (e.name.toLowerCase() === id.toString().toLowerCase()) {
+        return e.name;
+      }
     }
-    await wait(250);
+  } catch (err) {
+    console.warn("[launch] No se pudo leer DJS_ROOT:", err);
   }
-  return false;
-}
-
-function isPlayerRunning(child) {
-  return child && child.exitCode === null;
+  return null;
 }
 
 export default async function handler(req, res) {
@@ -54,7 +32,17 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'ID de DJ no proporcionado' });
   }
 
-  const resolved = resolveDjScript(id.toString(), nombre ? nombre.toString() : null);
+  // Intenta resolver por UUID primero
+  let resolved = resolveDjScript(id.toString(), nombre ? nombre.toString() : null);
+
+  // Si no funciona, intenta por slug directo (para casos como /djs/urbano)
+  if (!resolved) {
+    const localFolder = resolveDjLocalFolder(id);
+    if (localFolder) {
+      resolved = resolveDjScript(localFolder);
+    }
+  }
+
   if (!resolved) {
     return res.status(404).json({
       error: 'DJ no encontrado o sin script asociado',
@@ -62,48 +50,30 @@ export default async function handler(req, res) {
     });
   }
 
-  const { folder, scriptPath, folderName } = resolved;
-  const port = DJ_PORTS[folderName] ?? 8765;
-  const key = id.toString();
-
-  const existing = runningPlayers.get(key);
-  if (isPlayerRunning(existing)) {
-    const alive = await waitForServer(port, 2000);
-    if (alive) {
-      return res.status(200).json({ ok: true, port, dj: folderName, script: scriptPath, alreadyRunning: true });
-    }
-    console.warn(`[launch] Stale process exists for ${folderName} but port ${port} is unavailable, restarting.`);
-    runningPlayers.delete(key);
-  }
-
-  if (!fs.existsSync(scriptPath)) {
-    return res.status(404).json({ error: 'Script .py no encontrado', scriptPath });
+  if (!fs.existsSync(resolved.scriptPath)) {
+    return res.status(404).json({ error: 'Script .py no encontrado', scriptPath: resolved.scriptPath });
   }
 
   try {
-    console.log(`[launch] Starting ${folderName} player at ${scriptPath} (port ${port})`);
-    const child = spawn(getPythonCommand(), [scriptPath, '--port', port.toString()], {
-      cwd: folder,
-      detached: true,
-      stdio: 'ignore',
+    const info = await ensureDjRunning({
+      key: id.toString(),
+      folderName: resolved.folderName,
+      folder: resolved.folder,
+      scriptPath: resolved.scriptPath,
     });
-    child.on('error', (err) => {
-      console.error(`[launch] Failed to start player for ${folderName}:`, err);
-      runningPlayers.delete(key);
+
+    return res.status(200).json({
+      ok: true,
+      port: info.port,
+      dj: resolved.folderName,
+      script: resolved.scriptPath,
+      alreadyRunning: info.alreadyRunning,
     });
-    child.unref();
-    runningPlayers.set(key, child);
-
-    const ready = await waitForServer(port, 8000);
-    if (!ready) {
-      console.error(`[launch] Player did not respond on port ${port} after startup.`);
-      runningPlayers.delete(key);
-      return res.status(500).json({ error: 'No se pudo arrancar el player local' });
-    }
-
-    return res.status(200).json({ ok: true, port, dj: folderName, script: scriptPath });
   } catch (err) {
     console.error('[launch] Error arrancando player:', err);
-    return res.status(500).json({ error: 'No se pudo arrancar el player local' });
+    return res.status(500).json({
+      error: err.message || 'No se pudo arrancar el player local',
+      stderr: err.stderr,
+    });
   }
 }

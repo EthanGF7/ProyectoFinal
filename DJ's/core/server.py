@@ -226,14 +226,38 @@ def run_dj(name: str, base_dir: Path, port: int = 8765) -> None:
     json_dir.mkdir(parents=True, exist_ok=True)
 
     # Load data
-    library = load_library(songs_dir, json_dir)
-    prefs = load_prefs(prefs_file)
+    try:
+        library = load_library(songs_dir, json_dir)
+    except Exception as e:
+        print(f"[WARN] Error loading library: {e}", flush=True)
+        library = []
+
+    try:
+        prefs = load_prefs(prefs_file)
+    except Exception as e:
+        print(f"[WARN] Error loading preferences: {e}", flush=True)
+        prefs = {}
 
     if not theme_file.exists():
-        print(f"❌ {theme_file} not found")
-        sys.exit(1)
-
-    theme_html = theme_file.read_text(encoding="utf-8")
+        theme_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>{name} DJ Player</title>
+            <style>
+                body {{ font-family: Arial; background: #222; color: #fff; padding: 20px; }}
+                h1 {{ color: #0f0; }}
+            </style>
+        </head>
+        <body>
+            <h1>{name} DJ Player</h1>
+            <p>Add MP3 files to: {songs_dir}</p>
+            <div id="app"></div>
+        </body>
+        </html>
+        """
+    else:
+        theme_html = theme_file.read_text(encoding="utf-8")
 
     # Load engine.js (shared)
     core_dir = Path(__file__).parent
@@ -250,21 +274,35 @@ def run_dj(name: str, base_dir: Path, port: int = 8765) -> None:
         from compatibility_engine import CompatibilityEngine  # noqa: F401
         from timing_engine import TimingDecisionEngine  # noqa: F401
         modules_ok = True
-        print("✅  CompatibilityEngine + TimingDecisionEngine loaded")
+        print("[OK] CompatibilityEngine + TimingDecisionEngine loaded")
     except ImportError as e:
-        print(f"⚠️  Engine modules not found ({e}) — fallback active")
+        print(f"[WARN] Engine modules not found ({e}) - fallback active")
 
     # Find available port
     actual_port = port
-    for _ in range(20):
+    server = None
+    for p in range(port, port + 20):
         try:
-            server = HTTPServer(("", actual_port), DJHandler)
+            server = HTTPServer(("", p), DJHandler)
+            actual_port = p
             break
         except OSError:
-            actual_port += 1
-    else:
-        print(f"❌ No available ports between {port} and {port + 20}")
-        sys.exit(1)
+            continue
+
+    if not server:
+        try:
+            server = HTTPServer(("127.0.0.1", port), DJHandler)
+            actual_port = port
+        except OSError:
+            server = None
+
+    # Signal to parent processes (Node) about the real port.
+    # Must come before any slow operations and with immediate flush.
+    print(f"DJ_READY_PORT={actual_port}", flush=True)
+
+    if not server:
+        print(f"[WARN] Could not bind to any port, proceeding in degraded mode", flush=True)
+        return
 
     # Attach data to server
     server.library = library
@@ -280,12 +318,12 @@ def run_dj(name: str, base_dir: Path, port: int = 8765) -> None:
     url = f"http://localhost:{actual_port}"
 
     if not library:
-        print(f"\n⚠️  No songs in {songs_dir}")
+        print(f"\n[WARN] No songs in {songs_dir}")
         print(f"   Add MP3/WAV files to: {songs_dir}\n")
     else:
-        print(f"\n✅  {len(library)} songs loaded")
+        print(f"\n[OK] {len(library)} songs loaded")
 
-    print(f"🎧  {name} DJ → {url}\n")
+    print(f"[DJ] {name} -> {url}\n", flush=True)
 
     # Open browser
     threading.Thread(
@@ -296,5 +334,7 @@ def run_dj(name: str, base_dir: Path, port: int = 8765) -> None:
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\n👋")
+        print("\n[BYE]")
         sys.exit(0)
+    except Exception as e:
+        print(f"[WARN] Server error: {e}", flush=True)

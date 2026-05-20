@@ -94,12 +94,9 @@ export const useListenHistory = ({ enabled = true, limit = 10, djId = null } = {
   }, [enabled]);
 
   const stats = useMemo(() => {
-    if (serverStats && (serverStats.total ?? serverStats.uniqueDjs ?? serverStats.lastListen)) {
-      return serverStats;
-    }
-
     if (!history || history.length === 0) {
       return {
+        ...(serverStats || {}),
         total: 0,
         uniqueDjs: 0,
         lastListen: null,
@@ -122,6 +119,7 @@ export const useListenHistory = ({ enabled = true, limit = 10, djId = null } = {
     const [topDjKey, topDjValue] = [...uniqueDjs.entries()].sort((a, b) => b[1].count - a[1].count)[0] || [null, null];
 
     return {
+      ...(serverStats || {}),
       total: history.length,
       uniqueDjs: uniqueDjs.size,
       lastListen: history[0] || null,

@@ -1,6 +1,22 @@
 """Track scoring and selection - AI DJ decision logic."""
 import random
+from pathlib import PurePosixPath
 from .harmony import key_compatibility_bonus
+
+
+def _track_pref(track: dict, prefs: dict) -> int:
+    keys = []
+    for value in (track.get("file"), track.get("name")):
+        if not value:
+            continue
+        keys.append(value)
+        keys.append(PurePosixPath(str(value)).name)
+
+    for key in keys:
+        pref = prefs.get(key, 0)
+        if pref:
+            return pref
+    return 0
 
 
 def score_track(candidate: dict, current: dict, phase: tuple, 
@@ -22,6 +38,10 @@ def score_track(candidate: dict, current: dict, phase: tuple,
         prefs = {}
     if not played_list:
         played_list = []
+    
+    pref = _track_pref(candidate, prefs)
+    if pref == -1:
+        return -1
     
     if candidate["file"] in played_set:
         return -1
@@ -81,11 +101,8 @@ def score_track(candidate: dict, current: dict, phase: tuple,
     score += random.gauss(0, 4)
     
     # 8. User preferences
-    pref = prefs.get(candidate["file"], 0)
     if pref == 1:
         score += 18
-    elif pref == -1:
-        score -= 50
     
     return max(0.0, score)
 

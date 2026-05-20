@@ -20,6 +20,23 @@ const parseLimit = (value) => {
   return Math.min(num, 50);
 };
 
+const buildStats = (history) => {
+  const djCounts = new Map();
+  history.forEach((item) => {
+    const key = item.dj_id || item.dj_name || 'desconocido';
+    const current = djCounts.get(key) || { id: key, name: item.dj_name || key, count: 0 };
+    current.count += 1;
+    djCounts.set(key, current);
+  });
+  const topDj = [...djCounts.values()].sort((a, b) => b.count - a.count)[0] || null;
+  return {
+    total: history.length,
+    uniqueDjs: djCounts.size,
+    lastListen: history[0] || null,
+    topDj,
+  };
+};
+
 export default async function handler(req, res) {
   try {
     const { user, appUser, error } = await getAuthenticatedUser(req);
@@ -28,6 +45,7 @@ export default async function handler(req, res) {
     }
 
     const userId = appUser?.id || user?.id;
+    const possibleUserIds = [...new Set([appUser?.id, user?.id].filter(Boolean))];
     if (!userId) {
       return res.status(400).json({ error: 'No se pudo determinar el usuario autenticado' });
     }
@@ -40,7 +58,7 @@ export default async function handler(req, res) {
       let query = supabaseAdmin
         .from(TABLE_NAME)
         .select('id, dj_id, dj_name, track_name, listened_at')
-        .eq('user_id', userId)
+        .in('user_id', possibleUserIds)
         .order('listened_at', { ascending: false })
         .limit(limit);
 
@@ -61,13 +79,26 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'No se pudo obtener el historial de escuchas' });
       }
 
-      const history = data || [];
-      const uniqueDjs = new Set(history.map((item) => item.dj_id || item.dj_name || ''));
-      const stats = {
-        total: history.length,
-        uniqueDjs: uniqueDjs.size,
-        lastListen: history[0] || null,
-      };
+      let history = data || [];
+
+      if (history.length === 0) {
+        const { data: reactions } = await supabaseAdmin
+          .from('track_reactions')
+          .select('id, dj_id, track_name, updated_at')
+          .in('user_id', possibleUserIds)
+          .order('updated_at', { ascending: false })
+          .limit(limit);
+
+        history = (reactions || []).map((item) => ({
+          id: item.id,
+          dj_id: item.dj_id,
+          dj_name: item.dj_id,
+          track_name: item.track_name,
+          listened_at: item.updated_at,
+        }));
+      }
+
+      const stats = buildStats(history);
 
       return res.status(200).json({ history, stats });
     }

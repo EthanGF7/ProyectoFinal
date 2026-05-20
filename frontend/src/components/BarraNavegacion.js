@@ -66,9 +66,6 @@ export default function BarraNavegacion() {
           <span className="navbar-placeholder" aria-hidden="true">&nbsp;</span>
         ) : user ? (
           <>
-            <Link href="/dashboard" className="navbar-link">
-              📊 Tu Panel
-            </Link>
             <Link href="/perfil" className="navbar-link">
               👤 Perfil
             </Link>

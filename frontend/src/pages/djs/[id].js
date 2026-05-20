@@ -7,6 +7,7 @@ import { supabase } from '../../utils/supabase';
 export default function FichaDj() {
   const router = useRouter();
   const { id } = router.query;
+  const djIdParam = Array.isArray(id) ? id[0] : id;
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
   const [iframeSrc, setIframeSrc] = useState(null);
@@ -38,7 +39,7 @@ export default function FichaDj() {
 
     async function launch() {
       try {
-        const res = await fetch(`/api/djs/${encodeURIComponent(id)}/launch`, {
+        const res = await fetch(`/api/djs/${encodeURIComponent(djIdParam)}/launch`, {
           method: 'POST',
         });
         const data = await res.json();
@@ -46,7 +47,7 @@ export default function FichaDj() {
           throw new Error(data.error || `HTTP ${res.status}`);
         }
 
-        setIframeSrc(`/api/djs/${encodeURIComponent(id)}/proxy/`);
+        setIframeSrc(`/api/djs/${encodeURIComponent(djIdParam)}/proxy/`);
         setStatus('ready');
       } catch (err) {
         setStatus('error');
@@ -55,9 +56,9 @@ export default function FichaDj() {
     }
 
     launch();
-  }, [id]);
+  }, [djIdParam]);
 
-  if (!id) {
+  if (!djIdParam) {
     return (
       <div
         style={{

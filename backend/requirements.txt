@@ -3,6 +3,9 @@
 # Framework web
 fastapi==0.104.1
 uvicorn==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+email-validator==2.1.0
 
 # Base de datos y ORM
 supabase==2.0.2
@@ -25,3 +28,4 @@ Pillow==10.1.0
 # Utilidades
 requests==2.31.0
 python-multipart==0.0.6
+

@@ -1,4 +1,4 @@
-// Página de perfil de usuario
+﻿// Página de perfil de usuario
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -73,13 +73,18 @@ export default function PaginaPerfil() {
   }, []);
 
   useEffect(() => {
-    const { data: subscription } = supabase.auth.onAuthStateChange((event) => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
         checkUser();
       }
     });
 
-    return () => subscription?.subscription?.unsubscribe();
+     return () => {
+       const sub = data?.subscription;
+       if (sub && typeof sub.unsubscribe === 'function') {
+         sub.unsubscribe();
+       }
+     };
   }, []);
 
   const handleLogout = async () => {

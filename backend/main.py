@@ -5,6 +5,9 @@ import uvicorn
 import os
 from dotenv import load_dotenv
 
+# Importar routers
+from app.routes import autenticacion, usuarios, canciones, playlists, eventos, generos
+
 # Cargar variables de entorno
 load_dotenv()
 
@@ -15,14 +18,23 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configurar CORS para permitir conexiones desde el frontend
+# Configurar CORS
+allowed_origins = os.getenv("FRONTEND_URL", "http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Frontend Next.js
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Registrar routers
+app.include_router(autenticacion.router)
+app.include_router(usuarios.router)
+app.include_router(canciones.router)
+app.include_router(playlists.router)
+app.include_router(eventos.router)
+app.include_router(generos.router)
 
 # Ruta de prueba
 @app.get("/")
@@ -36,11 +48,11 @@ async def health_check():
 def main():
     # Obtener puerto desde variables de entorno o usar 5000 por defecto
     port = int(os.getenv("PORT", 5000))
-    
+
     print(f"🎵 Iniciando Discoteca Online API en puerto {port}")
-    print(f"📡 Frontend conectado desde: http://localhost:3000")
+    print(f"📡 Frontend conectado desde: {os.getenv('FRONTEND_URL', 'http://localhost:3000')}")
     print(f"🔗 API disponible en: http://localhost:{port}")
-    
+
     # Iniciar servidor
     uvicorn.run(
         "main:app",
@@ -52,3 +64,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

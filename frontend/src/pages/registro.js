@@ -29,16 +29,20 @@ export default function PaginaRegistro() {
   };
 
   const validateForm = () => {
+    if (!formData.username || formData.username.trim().length < 3) {
+      setError('El username debe tener al menos 3 caracteres');
+      return false;
+    }
+    if (!formData.email || !formData.email.includes('@') || !formData.email.includes('.')) {
+      setError('Email inválido');
+      return false;
+    }
     if (formData.password !== formData.confirmPassword) {
       setError('Las contraseñas no coinciden');
       return false;
     }
     if (formData.password.length < 6) {
       setError('La contraseña debe tener al menos 6 caracteres');
-      return false;
-    }
-    if (formData.username.length < 3) {
-      setError('El username debe tener al menos 3 caracteres');
       return false;
     }
     return true;

@@ -7,8 +7,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // Verificar que las variables de entorno estén configuradas
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Faltan las variables de entorno de Supabase');
-  console.error('Asegúrate de tener NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY en tu .env.local');
+  throw new Error('Faltan las variables de entorno de Supabase. Asegúrate de tener NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY en tu .env.local');
 }
 
 // Cliente de Supabase para el frontend

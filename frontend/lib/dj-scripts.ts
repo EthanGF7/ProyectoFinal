@@ -118,6 +118,19 @@ export function resolveDjScript(
   return null;
 }
 
+export function listLocalDjScripts(): { folder: string; scriptPath: string; folderName: string }[] {
+  try {
+    return fs
+      .readdirSync(DJS_ROOT, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && entry.name.toLowerCase() !== "core")
+      .map((entry) => resolveDjScript(entry.name))
+      .filter((resolved): resolved is { folder: string; scriptPath: string; folderName: string } => Boolean(resolved));
+  } catch (err) {
+    console.warn("[dj-scripts] No se pudieron listar DJs locales:", DJS_ROOT, err);
+    return [];
+  }
+}
+
 // Compatibilidad con el helper antiguo
 export function getDjScriptPath(djId: string): string | null {
   return resolveDjScript(djId)?.scriptPath ?? null;

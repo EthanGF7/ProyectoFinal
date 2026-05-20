@@ -14,7 +14,7 @@ BASE_DIR  = Path(__file__).parent
 SRC_DIR   = BASE_DIR / "src"
 SONGS_DIR = BASE_DIR / "musica" / "canciones"
 JSON_DIR  = BASE_DIR / "musica" / "json"
-PORT      = 8765
+PORT      = int(os.environ.get('DJ_PORT', 0))
 
 sys.path.insert(0, str(SRC_DIR))
 
@@ -571,11 +571,11 @@ def main():
         else:
             print(f"Ô£à  Todas las canciones tienen JSON completo")
 
-    url = f"http://localhost:{PORT}"
-    print(f"\n­ƒÄº  {url}  ÔÇö  abre el navegador, dale Play\n")
-
-    threading.Thread(target=lambda:(time.sleep(1), webbrowser.open(url)), daemon=True).start()
     server = HTTPServer(("", PORT), Handler)
+    actual_port = server.server_port
+    url = f"http://localhost:{actual_port}"
+    print(f"DJ_READY_PORT={actual_port}", flush=True)
+    print(f"\n­ƒÄº  {url}  ÔÇö  servidor listo\n", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

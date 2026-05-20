@@ -34,6 +34,9 @@ export default function PaginaDJs() {
       try {
         setLoading(true);
         setError('');
+        fetch('/api/djs/autostart', { method: 'POST' }).catch((err) => {
+          console.warn('[djs] No se pudieron arrancar automáticamente los DJs:', err);
+        });
         const response = await fetch('/api/djs');
         if (!response.ok) {
           throw new Error('No se pudieron cargar los DJs.');

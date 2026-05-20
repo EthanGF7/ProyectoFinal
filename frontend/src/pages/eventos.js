@@ -61,7 +61,7 @@ export default function PaginaEventos() {
             onClick={handleCardClick}
           >
             <div className="card-content">
-              <h3>🌆 {activeEvent.title}</h3>
+              <h3>{activeEvent.title}</h3>
               <p>{activeEvent.description}</p>
               <div className="card-meta">{activeEvent.schedule}</div>
               <span className="card-link">{activeEvent.action} →</span>

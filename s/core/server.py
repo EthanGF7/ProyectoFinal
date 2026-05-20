@@ -1,4 +1,9 @@
-"""HTTP Server - runs DJ player with configurable port and auto-fallback."""
+"""HTTP Server - runs DJ player with configurable port and auto-fallback.
+
+Importante: el bind del puerto y el print de DJ_READY_PORT ocurren ANTES
+de cargar la librería de audio (load_library) para que el proceso padre
+(Node) reciba la señal de "listo" en <500ms aunque librosa tarde 10s.
+"""
 import sys
 import json
 import time
@@ -77,7 +82,7 @@ class DJHandler(BaseHTTPRequestHandler):
                 save_prefs(self.server.prefs_file, self.server.prefs)
                 self.ok(
                     json.dumps({"ok": True, "file": file, "action": action}).encode(),
-                    "application/json"
+                    "application/json",
                 )
             else:
                 self.ok(b'{"error":"invalid"}', "application/json")
@@ -102,22 +107,16 @@ class DJHandler(BaseHTTPRequestHandler):
 
         try:
             played_list_raw = json.loads(urllib.parse.unquote(qs.get("played_list", ["[]"])[0]))
-            played_list = [t for t in self.server.library
-                           if t["file"] in {x.get("file", "") for x in played_list_raw}]
+            played_list = [
+                t for t in self.server.library
+                if t["file"] in {x.get("file", "") for x in played_list_raw}
+            ]
         except Exception:
             played_list = []
 
-        prefs = self.server.prefs
-        try:
-            user_prefs = json.loads(urllib.parse.unquote(qs.get("prefs", ["{}"])[0]))
-            if isinstance(user_prefs, dict):
-                prefs = user_prefs
-        except Exception:
-            pass
-
         nxt, score, phase = pick_next(
             self.server.library, current, played_set,
-            played_count, played_list, prefs=prefs
+            played_count, played_list, prefs=self.server.prefs,
         )
 
         if not nxt:
@@ -134,7 +133,7 @@ class DJHandler(BaseHTTPRequestHandler):
                 "phase": phase[0],
                 "target_energy": round(target_e, 1),
             }, default=str).encode(),
-            "application/json"
+            "application/json",
         )
 
     def _build_plan(self, current, nxt, current_time, phase):
@@ -194,7 +193,7 @@ class DJHandler(BaseHTTPRequestHandler):
 
         mime = {
             ".mp3": "audio/mpeg", ".wav": "audio/wav", ".ogg": "audio/ogg",
-            ".flac": "audio/flac", ".aac": "audio/aac", ".m4a": "audio/mp4"
+            ".flac": "audio/flac", ".aac": "audio/aac", ".m4a": "audio/mp4",
         }.get(fp.suffix.lower(), "audio/mpeg")
 
         data = fp.read_bytes()
@@ -216,15 +215,39 @@ class DJHandler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
 
-def run_dj(name: str, base_dir: Path, port: int = 8765) -> None:
+def _bind_server(start_port: int):
+    """Intenta bindear el primer puerto libre desde start_port.
+    Si start_port es 0, deja que el SO asigne uno."""
+    if start_port == 0:
+        try:
+            srv = HTTPServer(("", 0), DJHandler)
+            return srv, srv.server_address[1]
+        except OSError:
+            return None, 0
+
+    for p in range(start_port, start_port + 20):
+        try:
+            srv = HTTPServer(("", p), DJHandler)
+            return srv, p
+        except OSError:
+            continue
+
+    # Último intento en localhost
+    try:
+        srv = HTTPServer(("127.0.0.1", 0), DJHandler)
+        return srv, srv.server_address[1]
+    except OSError:
+        return None, 0
+
+
+def run_dj(name: str, base_dir: Path, port: int = 0) -> None:
     """Run DJ player server.
 
     Args:
         name: DJ name (e.g., "Nexus", "Flamenco")
         base_dir: Base directory containing canciones/, json/, preferencias.json, theme.html
-        port: Starting port (auto-fallback if occupied)
+        port: Starting port (0 = let OS pick; auto-fallback if occupied)
     """
-
     songs_dir = base_dir / "canciones"
     json_dir = base_dir / "json"
     prefs_file = base_dir / "preferencias.json"
@@ -233,7 +256,22 @@ def run_dj(name: str, base_dir: Path, port: int = 8765) -> None:
     songs_dir.mkdir(parents=True, exist_ok=True)
     json_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load data
+    # ---------------------------------------------------------------
+    # PASO 1: BIND DEL PUERTO + AVISO A NODE — antes de nada pesado.
+    # Esto garantiza que el padre reciba DJ_READY_PORT en <500ms.
+    # ---------------------------------------------------------------
+    server, actual_port = _bind_server(port)
+    if not server or actual_port <= 0:
+        print("DJ_READY_PORT=0", flush=True)
+        print(f"[FATAL] No se pudo abrir ningún puerto desde {port}", flush=True)
+        return
+
+    print(f"DJ_READY_PORT={actual_port}", flush=True)
+    print(f"[BOOT] {name} bound on port {actual_port}, loading data...", flush=True)
+
+    # ---------------------------------------------------------------
+    # PASO 2: Carga pesada (librería, prefs, módulos opcionales).
+    # ---------------------------------------------------------------
     try:
         library = load_library(songs_dir, json_dir)
     except Exception as e:
@@ -267,52 +305,25 @@ def run_dj(name: str, base_dir: Path, port: int = 8765) -> None:
     else:
         theme_html = theme_file.read_text(encoding="utf-8")
 
-    # Load engine.js (shared)
+    # engine.js compartido
     core_dir = Path(__file__).parent
     engine_js_path = core_dir / "engine.js"
-    if engine_js_path.exists():
-        engine_js = engine_js_path.read_text(encoding="utf-8")
-    else:
-        engine_js = ""
+    engine_js = engine_js_path.read_text(encoding="utf-8") if engine_js_path.exists() else ""
 
-    # Try to load shared engine modules (now in core/)
+    # Módulos opcionales (compatibility/timing)
     modules_ok = False
     try:
         sys.path.insert(0, str(core_dir))
         from compatibility_engine import CompatibilityEngine  # noqa: F401
         from timing_engine import TimingDecisionEngine  # noqa: F401
         modules_ok = True
-        print("[OK] CompatibilityEngine + TimingDecisionEngine loaded")
+        print("[OK] CompatibilityEngine + TimingDecisionEngine loaded", flush=True)
     except ImportError as e:
-        print(f"[WARN] Engine modules not found ({e}) - fallback active")
+        print(f"[WARN] Engine modules not found ({e}) - fallback active", flush=True)
 
-    # Find available port
-    actual_port = port
-    server = None
-    for p in range(port, port + 20):
-        try:
-            server = HTTPServer(("", p), DJHandler)
-            actual_port = server.server_port
-            break
-        except OSError:
-            continue
-
-    if not server:
-        try:
-            server = HTTPServer(("127.0.0.1", port), DJHandler)
-            actual_port = server.server_port
-        except OSError:
-            server = None
-
-    # Signal to parent processes (Node) about the real port.
-    # Must come before any slow operations and with immediate flush.
-    print(f"DJ_READY_PORT={actual_port}", flush=True)
-
-    if not server:
-        print(f"[WARN] Could not bind to any port, proceeding in degraded mode", flush=True)
-        return
-
-    # Attach data to server
+    # ---------------------------------------------------------------
+    # PASO 3: Asignar datos al server y arrancar serve_forever.
+    # ---------------------------------------------------------------
     server.library = library
     server.prefs = prefs
     server.prefs_file = prefs_file
@@ -326,23 +337,17 @@ def run_dj(name: str, base_dir: Path, port: int = 8765) -> None:
     url = f"http://localhost:{actual_port}"
 
     if not library:
-        print(f"\n[WARN] No songs in {songs_dir}")
-        print(f"   Add MP3/WAV files to: {songs_dir}\n")
+        print(f"[WARN] No songs in {songs_dir}", flush=True)
+        print(f"   Add MP3/WAV files to: {songs_dir}", flush=True)
     else:
-        print(f"\n[OK] {len(library)} songs loaded")
+        print(f"[OK] {len(library)} songs loaded", flush=True)
 
-    print(f"[DJ] {name} -> {url}\n", flush=True)
-
-    # Open browser
-    # threading.Thread(
-    #     target=lambda: (time.sleep(1), webbrowser.open(url)),
-    #     daemon=True
-    # ).start()
+    print(f"[DJ] {name} -> {url}", flush=True)
 
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\n[BYE]")
+        print("[BYE]", flush=True)
         sys.exit(0)
     except Exception as e:
         print(f"[WARN] Server error: {e}", flush=True)

@@ -29,6 +29,40 @@ const S = {
   cueing:false, cueSrc:null, cueGain:null,
 };
 
+let authToken = null;
+
+window.addEventListener('message', e => {
+  if (e.origin !== window.location.origin) return;
+  if (e.data?.type === 'nexus-auth-token' && e.data.accessToken) {
+    authToken = e.data.accessToken;
+  }
+});
+
+function getAuthHeaders() {
+  if (authToken) return { Authorization: `Bearer ${authToken}` };
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.includes('auth-token')) continue;
+      const raw = localStorage.getItem(key);
+      const parsed = JSON.parse(raw);
+      const token = parsed?.access_token || parsed?.currentSession?.access_token;
+      if (token) return { Authorization: `Bearer ${token}` };
+    }
+  } catch(e) {}
+  return {};
+}
+
+async function waitAuthHeaders(timeoutMs=2500) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const headers = getAuthHeaders();
+    if (headers.Authorization) return headers;
+    await new Promise(r => setTimeout(r, 100));
+  }
+  return getAuthHeaders();
+}
+
 // ── Initialize AudioContext ──────────────────────────────────
 function ic() {
   if (!ctx) {
@@ -184,7 +218,7 @@ async function askNext(t, ct) {
       S.played.slice(-3).map(f=>({ file:f, key:(S.lib.find(x=>x.file===f)||{}).key||'' }))
     ));
     const url = `/api/next?current=${encodeURIComponent(t.file)}&time=${ct.toFixed(1)}&played=${pe}&count=${S.count}&played_list=${pl}`;
-    const d = await (await fetch(url)).json();
+    const d = await (await fetch(url, { headers: getAuthHeaders() })).json();
     if (d.error) { S.nxt = null; hideNext(); return; }
     S.nxt = d.track; S.nxtPlan = d.plan; S.nxtScore = d.score; S.nxtPhase = d.phase;
     showNext(d.track, d.plan, d.score, d.phase);
@@ -430,18 +464,20 @@ function trackColor(idx) {
 
 async function loadPrefs() {
   try {
-    S.prefs = await (await fetch('/api/prefs')).json();
+    S.prefs = await (await fetch('/api/prefs', { headers: getAuthHeaders() })).json();
   } catch(e) {
     S.prefs = {};
   }
 }
 
-function sendLike(action) {
+async function sendLike(action) {
   if (!S.cur) return;
   fetch('/api/like', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(await waitAuthHeaders()) },
     body: JSON.stringify({ file: S.cur.file, action })
+  }).then(r => {
+    if (!r.ok) logMsg('Inicia sesión para guardar likes');
   }).catch(e => logMsg('Error en like'));
 }
 

@@ -56,7 +56,7 @@ export default async function handler(req, res) {
 
   try {
     const info = await ensureDjRunning({
-      key: id.toString(),
+      key: resolved.folderName,
       folderName: resolved.folderName,
       folder: resolved.folder,
       scriptPath: resolved.scriptPath,

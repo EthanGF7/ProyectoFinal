@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pop DJ - Hits y Energía Comercial"""
+"""Flamenco DJ - Compás, palos y duende"""
 import argparse
 import os
 import sys
@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from core.server import run_dj
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Pop AI DJ Player")
+    parser = argparse.ArgumentParser(description="Flamenco AI DJ Player")
     parser.add_argument("--port", type=int, default=None,
                         help="Port (0 or omit = OS picks one)")
     args = parser.parse_args()
@@ -25,4 +25,4 @@ if __name__ == "__main__":
 
     base_dir = Path(__file__).resolve().parent
 
-    run_dj("Pop", base_dir, port)
+    run_dj("Flamenco", base_dir, port)

@@ -13,10 +13,10 @@ from core.server import run_dj
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Flamenco AI DJ Player")
     parser.add_argument("--port", type=int, default=None,
-                        help="Port (default: auto-fallback from 8765)")
+                        help="Port (default: dynamic from environment)")
     args = parser.parse_args()
 
-    port = args.port or int(os.environ.get("DJ_PORT", 8765))
+    port = args.port or int(os.environ.get("DJ_PORT", 0))
 
     here = Path(__file__).resolve().parent
     repo = here.parent

@@ -2,6 +2,7 @@
 // La UI del DJ se carga mediante un iframe que consume el servidor local a través de un proxy.
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import { supabase } from '../../utils/supabase';
 
 export default function FichaDj() {
   const router = useRouter();
@@ -9,6 +10,28 @@ export default function FichaDj() {
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
   const [iframeSrc, setIframeSrc] = useState(null);
+  const [iframeEl, setIframeEl] = useState(null);
+
+  useEffect(() => {
+    if (!iframeEl || status !== 'ready') return undefined;
+
+    let cancelled = false;
+
+    async function sendToken() {
+      const { data } = await supabase.auth.getSession();
+      const accessToken = data?.session?.access_token;
+      if (!cancelled && accessToken && iframeEl.contentWindow) {
+        iframeEl.contentWindow.postMessage({ type: 'nexus-auth-token', accessToken }, window.location.origin);
+      }
+    }
+
+    sendToken();
+    const interval = setInterval(sendToken, 1000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [iframeEl, status]);
 
   useEffect(() => {
     if (!id) return;
@@ -122,6 +145,7 @@ export default function FichaDj() {
 
       {status === 'ready' && iframeSrc && (
         <iframe
+          ref={setIframeEl}
           title="DJ Player"
           src={iframeSrc}
           style={{ width: '100%', height: '100%', border: 'none' }}

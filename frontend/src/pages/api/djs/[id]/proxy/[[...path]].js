@@ -9,10 +9,37 @@ function buildProxyPrefix(id) {
 
 function rewriteProxyBody(body, id) {
   const prefix = buildProxyPrefix(id);
-  return body
+  const rewritten = body
     .replace(/(["'`(])\/api\//g, `$1${prefix}/api/`)
     .replace(/(["'`(])\/audio\//g, `$1${prefix}/audio/`)
     .replace(/(["'`(])\/engine\.js/g, `$1${prefix}/engine.js`);
+
+  if (!/<\/head>/i.test(rewritten)) return rewritten;
+
+  return rewritten.replace(/<\/head>/i, `
+<script>
+(function(){
+  var nexusAuthToken = null;
+  window.addEventListener('message', function(e) {
+    if (e.origin !== window.location.origin) return;
+    if (e.data && e.data.type === 'nexus-auth-token' && e.data.accessToken) {
+      nexusAuthToken = e.data.accessToken;
+    }
+  });
+  var originalFetch = window.fetch.bind(window);
+  window.fetch = function(input, init) {
+    init = init || {};
+    var url = typeof input === 'string' ? input : (input && input.url) || '';
+    if (nexusAuthToken && url.indexOf('${prefix}/api/') === 0) {
+      var headers = new Headers(init.headers || {});
+      headers.set('Authorization', 'Bearer ' + nexusAuthToken);
+      init.headers = headers;
+    }
+    return originalFetch(input, init);
+  };
+})();
+</script>
+</head>`);
 }
 
 async function getUserPrefs(req, djId) {
@@ -37,7 +64,14 @@ async function handleUserLike(req, res, djId) {
   const { user, error } = await getAuthenticatedUser(req);
   if (error || !user) return res.status(401).json({ error: error || 'No hay sesión activa' });
 
-  const body = typeof req.body === 'object' && req.body ? req.body : {};
+  let body = typeof req.body === 'object' && req.body ? req.body : {};
+  if (!Object.keys(body).length && typeof req.body === 'string') {
+    try {
+      body = JSON.parse(req.body);
+    } catch (err) {
+      body = {};
+    }
+  }
   const file = body.file || '';
   const action = body.action || '';
 

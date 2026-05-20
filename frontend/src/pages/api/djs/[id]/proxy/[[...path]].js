@@ -18,14 +18,13 @@ function getTrackDisplayName(file) {
 
 function rewriteProxyBody(body, id) {
   const prefix = buildProxyPrefix(id);
-  const rewritten = body
+  let rewritten = body
     .replace(/(["'`(])\/api\//g, `$1${prefix}/api/`)
     .replace(/(["'`(])\/audio\//g, `$1${prefix}/audio/`)
     .replace(/(["'`(])\/engine\.js/g, `$1${prefix}/engine.js`);
 
-  if (!/<\/head>/i.test(rewritten)) return rewritten;
-
-  return rewritten.replace(/<\/head>/i, `
+  if (/<\/head>/i.test(rewritten)) {
+    rewritten = rewritten.replace(/<\/head>/i, `
 <script>
 (function(){
   var nexusAuthToken = null;
@@ -64,6 +63,98 @@ function rewriteProxyBody(body, id) {
 })();
 </script>
 </head>`);
+  }
+
+  if (/<\/body>/i.test(rewritten) && !/src=["'][^"']*engine\.js/i.test(rewritten)) {
+    rewritten = rewritten.replace(/<\/body>/i, `
+<script>
+(function(){
+  var syncSourceId = Math.random().toString(36).slice(2);
+  var lastPublish = 0;
+  var adopting = false;
+  var originalBegin = null;
+
+  function authHeaders(){ try { return window.__nexusAuthHeaders ? window.__nexusAuthHeaders() : {}; } catch(e) { return {}; } }
+  async function fetchState(){
+    try {
+      var r = await fetch('${prefix}/api/sync', { headers: authHeaders() });
+      if (!r.ok) return null;
+      var d = await r.json();
+      return d.state || null;
+    } catch(e) { return null; }
+  }
+  async function publish(force){
+    try {
+      if (!window.S && typeof S === 'undefined') return;
+      var st = window.S || S;
+      if (!st.cur || !st.playing || adopting) return;
+      var now = Date.now();
+      if (!force && now - lastPublish < 3000) return;
+      lastPublish = now;
+      await fetch('${prefix}/api/sync', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+        body: JSON.stringify({
+          track: st.cur,
+          position: typeof getTime === 'function' ? getTime() : 0,
+          playing: !!st.playing,
+          sourceId: syncSourceId
+        })
+      });
+    } catch(e) {}
+  }
+  async function adopt(remote){
+    try {
+      if (!remote || !remote.track || !remote.track.file || !originalBegin) return;
+      if (!window.S && typeof S === 'undefined') return;
+      var st = window.S || S;
+      adopting = true;
+      if (st.decks) Object.keys(st.decks).forEach(function(k){ var d=st.decks[k]; if(d&&d.src){ try{d.src.stop();}catch(e){} d.src=null; } });
+      st.playing = false;
+      st.mixing = false;
+      st.nxt = null;
+      var libTrack = st.lib && st.lib.find ? st.lib.find(function(t){ return t.file === remote.track.file; }) : null;
+      var track = Object.assign({}, libTrack || remote.track, { start_position: Math.max(0, remote.position || 0) });
+      await originalBegin(track);
+      adopting = false;
+    } catch(e) { adopting = false; }
+  }
+  function install(){
+    try {
+      if (typeof begin !== 'function' || typeof getTime !== 'function') return false;
+      if (originalBegin) return true;
+      originalBegin = begin;
+      begin = async function(track){
+        var remote = await fetchState();
+        if (remote && remote.track && remote.track.file && !adopting) {
+          var libTrack = (typeof S !== 'undefined' && S.lib && S.lib.find) ? S.lib.find(function(t){ return t.file === remote.track.file; }) : null;
+          track = Object.assign({}, libTrack || remote.track, { start_position: Math.max(0, remote.position || 0) });
+        }
+        var result = await originalBegin(track);
+        publish(true);
+        return result;
+      };
+      setInterval(async function(){
+        try {
+          if (typeof S === 'undefined' || !S.playing || S.mixing || adopting) return;
+          publish(false);
+          var remote = await fetchState();
+          if (!remote || !remote.track || remote.sourceId === syncSourceId) return;
+          var drift = Math.abs((remote.position || 0) - getTime());
+          if (remote.track.file !== S.curFile || drift > 6) await adopt(remote);
+        } catch(e) {}
+      }, 2500);
+      return true;
+    } catch(e) { return false; }
+  }
+  var tries = 0;
+  var timer = setInterval(function(){ tries++; if (install() || tries > 40) clearInterval(timer); }, 250);
+})();
+</script>
+</body>`);
+  }
+
+  return rewritten;
 }
 
 async function getUserPrefs(req, djId) {
@@ -116,6 +207,54 @@ function mergeDislikesIntoPlayed(targetUrl, prefs) {
   });
 
   targetUrl.searchParams.set('played', JSON.stringify([...merged]));
+}
+
+function getPlaybackStore() {
+  if (!global.__djPlaybackState) global.__djPlaybackState = new Map();
+  return global.__djPlaybackState;
+}
+
+function getSyncState(djId) {
+  const state = getPlaybackStore().get(djId);
+  if (!state) return null;
+  const elapsed = state.playing
+    ? Math.max(0, state.position + (Date.now() - state.updatedAt) / 1000)
+    : Math.max(0, state.position || 0);
+  return {
+    ...state,
+    position: elapsed,
+    serverNow: Date.now(),
+  };
+}
+
+function handlePlaybackSync(req, res, djId) {
+  if (req.method === 'GET') {
+    return res.status(200).json({ state: getSyncState(djId) });
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Método no permitido' });
+  }
+
+  const body = typeof req.body === 'object' && req.body ? req.body : {};
+  const track = body.track && typeof body.track === 'object' ? body.track : null;
+  const position = Number(body.position || 0);
+
+  if (!track?.file) {
+    return res.status(400).json({ error: 'track.file es obligatorio' });
+  }
+
+  const state = {
+    djId,
+    track,
+    position: Number.isFinite(position) ? Math.max(0, position) : 0,
+    playing: body.playing !== false,
+    updatedAt: Date.now(),
+    sourceId: body.sourceId || null,
+  };
+
+  getPlaybackStore().set(djId, state);
+  return res.status(200).json({ ok: true, state: getSyncState(djId) });
 }
 
 async function handleUserLike(req, res, djId) {
@@ -252,6 +391,10 @@ export default async function handler(req, res) {
   if (req.method === 'GET' && targetPath === '/api/prefs') {
     const prefs = await getUserPrefs(req, resolved.folderName);
     return res.status(200).json(prefs || {});
+  }
+
+  if (targetPath === '/api/sync') {
+    return handlePlaybackSync(req, res, resolved.folderName);
   }
 
   const originalUrl = new URL(req.url, 'http://localhost');

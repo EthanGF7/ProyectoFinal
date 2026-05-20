@@ -1,10 +1,23 @@
 import fs from "node:fs";
 import path from "node:path";
 
-// Raíz absoluta donde viven las carpetas de cada DJ.
-// Se calcula desde process.cwd() (en Next dev/build es la carpeta `frontend/`)
-// subiendo un nivel hasta la raíz del repo y entrando en `DJ's`.
-const DJS_ROOT = path.resolve(process.cwd(), "..", "DJ's");
+function findDjsRoot(): string {
+  let current = process.cwd();
+  for (let i = 0; i < 6; i++) {
+    const direct = path.join(current, "DJ's");
+    if (fs.existsSync(direct)) return direct;
+
+    const parent = path.dirname(current);
+    const sibling = path.join(parent, "DJ's");
+    if (fs.existsSync(sibling)) return sibling;
+
+    if (parent === current) break;
+    current = parent;
+  }
+  return path.resolve(process.cwd(), "..", "DJ's");
+}
+
+const DJS_ROOT = findDjsRoot();
 
 // Map: UUID de Supabase → nombre real de carpeta dentro de DJ's/
 // El .py dentro de cada carpeta debe llamarse igual que la carpeta

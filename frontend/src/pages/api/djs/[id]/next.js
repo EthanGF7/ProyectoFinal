@@ -1,5 +1,6 @@
 import { spawn } from 'child_process';
 import fs from 'fs';
+import os from 'os';
 import { resolveDjScript } from '../../../../../lib/dj-scripts';
 
 const DJ_PORTS = {
@@ -17,7 +18,7 @@ async function ensureRunning(key, folder, scriptPath, port) {
   const ex = running.get(key);
   if (ex && ex.exitCode === null) return true;
   if (!fs.existsSync(scriptPath)) return false;
-  const py = process.env.PYTHON || 'C:\\Users\\yeray\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe';
+  const py = process.env.PYTHON || (os.platform() === 'win32' ? 'python' : 'python3');
   const child = spawn(py, [scriptPath, '--port', port.toString()], {
     cwd: folder, detached: true, stdio: 'ignore',
   });

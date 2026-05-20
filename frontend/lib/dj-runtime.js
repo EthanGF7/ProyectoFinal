@@ -2,6 +2,7 @@
 // Usa globalThis para sobrevivir al hot-reload de Next.js dev.
 import { spawn } from 'child_process';
 import fs from 'fs';
+import os from 'os';
 
 // Ports are now fully dynamic - each DJ gets an OS-assigned port.
 // Passing 0 tells the OS to select an available port automatically.
@@ -25,10 +26,8 @@ if (!globalThis[STORE_KEY]) {
 const store = globalThis[STORE_KEY];
 
 function getPythonCommand() {
-  return (
-    process.env.PYTHON ||
-    'C:\\Users\\yeray\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe'
-  );
+  if (process.env.PYTHON) return process.env.PYTHON;
+  return os.platform() === 'win32' ? 'python' : 'python3';
 }
 
 function wait(ms) {

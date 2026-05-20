@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
+import { listLocalDjScripts } from '../../../lib/dj-scripts';
 import { supabaseAdmin } from '../../../utils/supabaseAdmin';
 
-const LOCAL_DJS_ROOT = path.resolve(process.cwd(), '..', "DJ's");
 const DJ_SELECT =
   'id, nombre_artistico, bio, estilo_visual, estilo_musical, created_at, app_users ( username, email )';
 const PLAYLIST_SELECT =
@@ -23,11 +23,10 @@ function slugify(value) {
 
 async function loadLocalDj(id) {
   try {
-    const entries = await fs.promises.readdir(LOCAL_DJS_ROOT, { withFileTypes: true });
+    const entries = listLocalDjScripts();
     for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      if (slugify(entry.name) !== id) continue;
-      const djPath = path.join(LOCAL_DJS_ROOT, entry.name);
+      if (slugify(entry.folderName) !== id) continue;
+      const djPath = entry.folder;
       const stat = await fs.promises.stat(djPath);
       const songsDir = path.join(djPath, 'musica', 'canciones');
       let audioFiles = [];
@@ -56,8 +55,8 @@ async function loadLocalDj(id) {
       return {
         dj: {
           id,
-          nombre_artistico: entry.name,
-          bio: `Cabina local del DJ ${entry.name}`,
+          nombre_artistico: entry.folderName,
+          bio: `Cabina local del DJ ${entry.folderName}`,
           estilo_visual: 'Live local',
           estilo_musical: 'Mezcla automática',
           created_at: stat.mtime.toISOString(),

@@ -27,6 +27,8 @@ const S = {
   beatLastTime:0, beatThresh:0.15, beatHistory:[], lastBpm:0,
   sessionTracks:[], sessionStartTime:0, _beatSnapScheduled:false,
   cueing:false, cueSrc:null, cueGain:null,
+  syncSourceId: Math.random().toString(36).slice(2),
+  syncLastPublish: 0, syncAdopting:false,
 };
 
 let authToken = null;
@@ -140,8 +142,9 @@ document.getElementById('btnStart').addEventListener('click', async () => {
   document.getElementById('idle').classList.add('off');
   document.getElementById('stage').classList.add('on');
   if (typeof window.initTheme === 'function') window.initTheme();
-  const first = chooseFirst();
-  await begin(first);
+  const remote = await fetchSyncState();
+  const first = remote?.track?.file ? remote.track : chooseFirst();
+  await begin(first, remote?.track?.file ? remote.position || 0 : null, Boolean(remote?.track?.file));
 });
 
 function chooseFirst() {
@@ -150,20 +153,22 @@ function chooseFirst() {
   return s[Math.floor(s.length*0.18)] || s[0];
 }
 
-async function begin(t) {
+async function begin(t, forcedOffset=null, fromSync=false) {
   S.cur = t; S.curFile = t.file; S.deck = 'A';
   S.playing = true; S.startAt = 0;
   S.played.push(t.file); S.playedSet.add(t.file); S.count = 1;
   S.sessionStartTime = ctx.currentTime;
   S.sessionTracks = [{ track:t, startCtxTime:ctx.currentTime, color:trackColor(0) }];
   updateNP(t, 'warm-up');
-  const startPos = t.start_position ?? 0;
+  const startPos = forcedOffset !== null ? forcedOffset : (t.start_position ?? 0);
   await playDeck('A', t, startPos);
   logMsg(`Iniciando desde ${fmt(startPos)}: ${t.name}`);
   document.getElementById('btnSkip').disabled = false;
   renderLib();
   renderTimeline();
   loop();
+  if (!fromSync) publishSyncState(true);
+  startSyncPolling();
   askNext(t, 0);
 }
 
@@ -403,6 +408,7 @@ async function doMix() {
   S.sessionTracks.push({ track:nxt, startCtxTime:t0+cfDur, color:trackColor(S.count-1) });
   updateNP(nxt, S.nxtPhase);
   renderTimeline();
+  publishSyncState(true);
   
   setTimeout(() => {
     S.mixing = false;
@@ -424,8 +430,78 @@ function loop() {
     }
     
     analyzeBeat();
+    if (ctx && ctx.currentTime - S.syncLastPublish > 3 && !S.syncAdopting) {
+      publishSyncState();
+    }
   }
   requestAnimationFrame(loop);
+}
+
+async function fetchSyncState() {
+  try {
+    const res = await fetch('/api/sync', { headers: getAuthHeaders() });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.state || null;
+  } catch(e) {
+    return null;
+  }
+}
+
+async function publishSyncState(force=false) {
+  if (!S.cur || !S.playing || S.syncAdopting) return;
+  if (!force && ctx && ctx.currentTime - S.syncLastPublish < 3) return;
+  if (ctx) S.syncLastPublish = ctx.currentTime;
+  try {
+    await fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({
+        track: S.cur,
+        position: getTime(),
+        playing: S.playing,
+        sourceId: S.syncSourceId,
+      }),
+    });
+  } catch(e) {}
+}
+
+function startSyncPolling() {
+  if (S.syncPollTimer) return;
+  S.syncPollTimer = setInterval(syncFromRemote, 2500);
+}
+
+async function syncFromRemote() {
+  if (!S.playing || S.mixing || S.syncAdopting) return;
+  const remote = await fetchSyncState();
+  if (!remote?.track?.file || remote.sourceId === S.syncSourceId) return;
+  const drift = Math.abs((remote.position || 0) - getTime());
+  if (remote.track.file !== S.curFile || drift > 4) {
+    await adoptSyncState(remote);
+  }
+}
+
+async function adoptSyncState(remote) {
+  const track = S.lib.find(t => t.file === remote.track.file) || remote.track;
+  if (!track?.file) return;
+  S.syncAdopting = true;
+  try {
+    Object.values(S.decks).forEach(d => {
+      if (d.src) { try { d.src.stop(); } catch(e) {} d.src = null; }
+    });
+    S.deck = 'A';
+    S.cur = track;
+    S.curFile = track.file;
+    S.mixing = false;
+    S.nxt = null;
+    updateNP(track, S.nxtPhase || 'warm-up');
+    await playDeck('A', track, Math.max(0, remote.position || 0));
+    await askNext(track, getTime());
+    renderLib();
+    renderTimeline();
+  } finally {
+    S.syncAdopting = false;
+  }
 }
 
 function analyzeBeat() {

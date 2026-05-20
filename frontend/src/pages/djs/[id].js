@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from 'react';
 import BarraNavegacion from '../../components/BarraNavegacion';
 import { useNeonCardEffects } from '../../hooks/useNeonCardEffects';
 import DjAiPlayer from '../../components/DjAiPlayer';
+import { useAppUser } from '../../hooks/useAppUser';
+import { useListenHistory } from '../../hooks/useListenHistory';
 
 const formatDate = (value) => {
   if (!value) return null;
@@ -19,6 +21,7 @@ const formatDate = (value) => {
 export default function FichaDj() {
   const router = useRouter();
   const { id } = router.query;
+  const djIdParam = Array.isArray(id) ? id[0] : id;
   const [dj, setDj] = useState(null);
   const [playlists, setPlaylists] = useState([]);
   const [audioFiles, setAudioFiles] = useState([]);
@@ -26,6 +29,8 @@ export default function FichaDj() {
   const [playerVisible, setPlayerVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { appUser } = useAppUser();
+  const isLogged = Boolean(appUser);
 
   const {
     handleCardMouseEnter,
@@ -34,14 +39,23 @@ export default function FichaDj() {
     handleCardClick,
   } = useNeonCardEffects();
 
+  const {
+    history: djListenHistory,
+    loading: djHistoryLoading,
+    error: djHistoryError,
+    refresh: refreshDjHistory,
+  } = useListenHistory({ enabled: isLogged && Boolean(djIdParam), limit: 6, djId: djIdParam });
+
+  const recentDjHistory = useMemo(() => djListenHistory.slice(0, 5), [djListenHistory]);
+
   useEffect(() => {
-    if (!id) return;
+    if (!djIdParam) return;
 
     const loadData = async () => {
       try {
         setLoading(true);
         setError('');
-        const response = await fetch(`/api/djs/${id}`);
+        const response = await fetch(`/api/djs/${djIdParam}`);
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
           throw new Error(payload.error || 'No se pudo cargar el DJ');
@@ -60,7 +74,7 @@ export default function FichaDj() {
     };
 
     loadData();
-  }, [id]);
+  }, [djIdParam]);
 
   const headline = useMemo(() => {
     if (!dj) return '';
@@ -120,8 +134,12 @@ export default function FichaDj() {
             </Link>
           </header>
 
-          {playerVisible && id && (
-            <DjAiPlayer djId={id} onClose={() => setPlayerVisible(false)} />
+          {playerVisible && djIdParam && (
+            <DjAiPlayer
+              djId={djIdParam}
+              djName={dj?.nombre_artistico || dj?.username || ''}
+              onClose={() => setPlayerVisible(false)}
+            />
           )}
 
           <section className="dj-player-section">
@@ -148,6 +166,61 @@ export default function FichaDj() {
               </div>
             )}
           </section>
+
+          {isLogged && (
+            <section className="dj-user-history" id="mi-historial-con-dj">
+              <header className="dj-subheader">
+                <div>
+                  <h2>Tus sesiones con {dj?.nombre_artistico || 'este DJ'}</h2>
+                  <p>Solo tú puedes ver este historial personal.</p>
+                </div>
+                <div className="player-actions">
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={refreshDjHistory}
+                    disabled={djHistoryLoading}
+                  >
+                    {djHistoryLoading ? 'Actualizando...' : 'Actualizar'}
+                  </button>
+                </div>
+              </header>
+
+              {djHistoryError && (
+                <div className="error-message" style={{ marginBottom: '16px' }}>
+                  {djHistoryError}
+                </div>
+              )}
+
+              {!djHistoryError && (
+                <div className="dj-user-history-content">
+                  {djHistoryLoading ? (
+                    <p className="personal-placeholder">Cargando tus últimas sesiones...</p>
+                  ) : recentDjHistory.length === 0 ? (
+                    <p className="personal-placeholder">
+                      Aún no registramos reproducciones tuyas con este DJ. Escucha una sesión y aparecerá aquí.
+                    </p>
+                  ) : (
+                    <ul className="dj-user-history-list">
+                      {recentDjHistory.map((item) => (
+                        <li key={item.id || item.listened_at}>
+                          <span className="dj-user-track">{item.track_name || 'Track sin título'}</span>
+                          <span className="dj-user-meta">
+                            {new Date(item.listened_at).toLocaleString('es-ES', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              day: '2-digit',
+                              month: 'short',
+                            })}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
 
           <section className="dj-playlists-public">
             <header className="dj-subheader">

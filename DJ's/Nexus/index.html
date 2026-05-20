@@ -891,6 +891,7 @@ async function sendLike(action){
     updateLikeUI(file);
     const tEl=document.getElementById('npTitle');
     if(tEl){const orig=tEl.textContent;tEl.textContent=sa==='like'?'▲ LIKED':sa==='dislike'?'▼ SKIP':'— RESET';setTimeout(()=>{tEl.textContent=orig;},1400);}
+    if(sa==='dislike'&&!S.mixing&&S.playing){askNext(S.cur,getTime());setTimeout(()=>{if(!S.mixing)doMix();},400);}
   }catch(e){}
 }
 function updateLikeUI(file){

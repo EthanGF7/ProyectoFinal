@@ -478,6 +478,10 @@ async function sendLike(action) {
     body: JSON.stringify({ file: S.cur.file, action })
   }).then(r => {
     if (!r.ok) logMsg('Inicia sesión para guardar likes');
+    if (r.ok && action === 'dislike' && !S.mixing && S.playing) {
+      askNext(S.cur, getTime());
+      setTimeout(() => { if (!S.mixing) doMix(); }, 400);
+    }
   }).catch(e => logMsg('Error en like'));
 }
 

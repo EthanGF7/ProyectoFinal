@@ -1,6 +1,45 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { callAuthedApi } from '../utils/apiClient';
 
-export default function DjAiPlayer({ djId, onClose }) {
+export default function DjAiPlayer({ djId, djName, onClose }) {
+  const lastTrackRef = useRef(null);
+
+  useEffect(() => {
+    if (!djId) return;
+
+    const handleTrackStarted = async (event) => {
+      const detail = event?.detail || {};
+      const track = detail.track;
+      const eventDjId = detail.djId || djId;
+      if (!track || !eventDjId) return;
+
+      const signature = `${track.file || track.name || ''}:${detail.startedAt || ''}`;
+      if (signature && lastTrackRef.current === signature) {
+        return;
+      }
+      lastTrackRef.current = signature;
+
+      try {
+        await callAuthedApi('/api/user/listen-history', {
+          method: 'POST',
+          body: {
+            djId: eventDjId,
+            djName: detail.djName || djName || track.dj || track.artist || track.nombre_artistico || null,
+            trackName: track.name || track.titulo || track.title || track.file || 'Track sin título',
+            startedAt: detail.startedAt,
+          },
+        });
+      } catch (err) {
+        console.warn('[DjAiPlayer] No se pudo registrar la escucha:', err?.message || err);
+      }
+    };
+
+    window.addEventListener('djai-track-started', handleTrackStarted);
+    return () => {
+      window.removeEventListener('djai-track-started', handleTrackStarted);
+    };
+  }, [djId, djName]);
+
   useEffect(() => {
     if (!djId) return;
 
@@ -15,6 +54,9 @@ export default function DjAiPlayer({ djId, onClose }) {
 
     // 2. Pass djId to script + reset running flag
     window.__DJ_AI_ID = djId;
+    if (djName) {
+      window.__DJ_AI_DJ_NAME = djName;
+    }
     window.__DJ_AI_RUNNING = false;
 
     // 3. Inject script (remove old one first)
@@ -34,6 +76,7 @@ export default function DjAiPlayer({ djId, onClose }) {
       } catch(e) {}
       window.S = null;
       delete window.__DJ_AI_ID;
+      delete window.__DJ_AI_DJ_NAME;
     };
   }, [djId]);
 

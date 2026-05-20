@@ -6,6 +6,7 @@ import { supabase } from '../utils/supabase';
 import { createDjRequest, fetchOwnDjRequest } from '../utils/djRequests';
 import { useAppUser } from '../hooks/useAppUser';
 import BarraNavegacion from '../components/BarraNavegacion';
+import { useListenHistory } from '../hooks/useListenHistory';
 
 export default function PaginaPerfil() {
   const [user, setUser] = useState(null);
@@ -17,6 +18,7 @@ export default function PaginaPerfil() {
   const [djRequest, setDjRequest] = useState(null);
   const [djRequestLoading, setDjRequestLoading] = useState(false);
   const [djRequestMessage, setDjRequestMessage] = useState('');
+  const [historyScope, setHistoryScope] = useState('all');
   const [editData, setEditData] = useState({
     username: '',
     email: '',
@@ -24,6 +26,14 @@ export default function PaginaPerfil() {
     confirmPassword: ''
   });
   const router = useRouter();
+
+  const {
+    history: listenHistory,
+    loading: historyLoading,
+    error: historyError,
+    refresh: refreshHistory,
+    stats: historyStats,
+  } = useListenHistory({ enabled: !!user, limit: 10 });
 
   const fetchCurrentUser = async () => {
     const { data, error } = await supabase.auth.getUser();
@@ -244,6 +254,14 @@ export default function PaginaPerfil() {
       setDjRequestLoading(false);
     }
   };
+
+  const displayedHistory = useMemo(() => {
+    if (historyScope === 'top' && historyStats.topDj?.id) {
+      const targetId = historyStats.topDj.id;
+      return listenHistory.filter((item) => (item?.dj_id || '') === targetId);
+    }
+    return listenHistory;
+  }, [historyScope, historyStats, listenHistory]);
 
   const puedeSolicitarDj = useMemo(() => {
     if (!user) return false;
@@ -494,6 +512,119 @@ export default function PaginaPerfil() {
               </div>
             </div>
           </div>
+
+          <section className="profile-dashboard-panel" id="panel-actividad">
+            <div className="profile-dashboard-head">
+              <div>
+                <h2>Tu panel de actividad</h2>
+                <p>Accede rápido a tus datos recientes y tu cabina personal.</p>
+              </div>
+              <div className="profile-dashboard-actions">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={refreshHistory}
+                  disabled={historyLoading}
+                >
+                  {historyLoading ? 'Actualizando...' : 'Actualizar' }
+                </button>
+                <Link href="/dashboard" className="btn-primary-outline">
+                  Abrir panel completo →
+                </Link>
+              </div>
+            </div>
+
+            {historyError && (
+              <div className="error-message" style={{ marginBottom: '20px' }}>
+                {historyError}
+              </div>
+            )}
+
+            <div className="dashboard-grid profile-dashboard-grid">
+              <div className="dashboard-widget neon-tile profile-dashboard-card" id="historial-reciente">
+                <div className="card-content">
+                  <h3>🎧 Historial reciente</h3>
+                  {historyLoading ? (
+                    <p className="profile-dashboard-placeholder">Cargando últimas escuchas...</p>
+                  ) : listenHistory.length === 0 ? (
+                    <p className="profile-dashboard-placeholder">
+                      Cuando uses la cabina o escuches DJs, verás las últimas canciones aquí.
+                    </p>
+                  ) : (
+                    <>
+                      <div className="history-toggle-group">
+                        <button
+                          type="button"
+                          className={`history-toggle ${historyScope === 'all' ? 'active' : ''}`}
+                          onClick={() => setHistoryScope('all')}
+                          disabled={historyScope === 'all'}
+                        >
+                          Todas
+                        </button>
+                        <button
+                          type="button"
+                          className={`history-toggle ${historyScope === 'top' ? 'active' : ''}`}
+                          onClick={() => setHistoryScope('top')}
+                          disabled={!historyStats.topDj || historyScope === 'top'}
+                          title={historyStats.topDj ? `Ver solo sesiones con ${historyStats.topDj.name}` : 'Necesitas más escuchas para ver tu DJ más frecuente'}
+                        >
+                          Top DJ
+                        </button>
+                      </div>
+
+                      <ul className="dashboard-list profile-history-list">
+                        {displayedHistory.slice(0, 5).map((item) => (
+                          <li key={item.id || `${item.track_name}-${item.listened_at}`}>
+                            <span className="profile-history-track">{item.track_name || 'Track sin título'}</span>
+                            <span className="profile-history-meta">
+                              {item.dj_name ? `por ${item.dj_name}` : 'DJ desconocido'} ·{' '}
+                              {new Date(item.listened_at).toLocaleString('es-ES', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                day: '2-digit',
+                                month: 'short',
+                              })}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="dashboard-widget neon-tile profile-dashboard-card">
+                <div className="card-content">
+                  <h3>📈 Tus números rápidos</h3>
+                  <ul className="dashboard-list">
+                    <li>{historyStats.total} canciones registradas recientemente</li>
+                    <li>{historyStats.uniqueDjs} DJs diferentes en tus sesiones</li>
+                    <li>
+                      Última escucha:{' '}
+                      {historyStats.lastListen
+                        ? `${historyStats.lastListen.track_name || 'Track'} · ${historyStats.lastListen.dj_name || 'DJ desconocido'}`
+                        : '—'}
+                    </li>
+                    <li>
+                      DJ más repetido:{' '}
+                      {historyStats.topDj
+                        ? `${historyStats.topDj.name} (${historyStats.topDj.count} sesiones)`
+                        : '—'}
+                    </li>
+                  </ul>
+                  <span className="card-link">Seguimos guardando las 10 últimas mezclas</span>
+                </div>
+              </div>
+
+              <Link href="/dj" className="dashboard-widget neon-tile profile-dashboard-card">
+                <div className="card-content">
+                  <h3>🎚️ Cabina DJ</h3>
+                  <p>Gestiona tus playlists, bio y sesiones si ya eres DJ.</p>
+                  <span className="card-link">Ir al panel de DJ →</span>
+                </div>
+              </Link>
+            </div>
+          </section>
         </div>
       </div>
     </div>

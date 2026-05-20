@@ -80,6 +80,24 @@ const S = {
   cueGain: null,
 };
 
+function notifyTrackStart(track) {
+  if (!track || typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
+    return;
+  }
+
+  try {
+    const detail = {
+      track,
+      djId: window.__DJ_AI_ID || null,
+      djName: window.__DJ_AI_DJ_NAME || null,
+      startedAt: Date.now(),
+    };
+    window.dispatchEvent(new CustomEvent('djai-track-started', { detail }));
+  } catch (err) {
+    console.warn('[DjAI] No se pudo emitir el evento de reproducción', err);
+  }
+}
+
 // ── Init ─────────────────────────────────────────────────────
 function ic() {
   if (!ctx) {
@@ -288,6 +306,7 @@ async function begin(t) {
   updateNP(t, 'warm-up');
   const startPos = t.start_position ?? 0;
   await playDeck('A', t, startPos);
+  notifyTrackStart(t);
   logMsg(`Iniciando desde ${fmt(startPos)}: ${t.name}`);
   document.getElementById('btnSkip').disabled = false;
   renderLib();
@@ -682,6 +701,7 @@ async function doMix() {
       startCtxTime: inpStartedAt,
       color: trackColor(S.sessionTracks.length)
     });
+    notifyTrackStart(nxt);
     document.getElementById('btnCue').disabled = true;
     await askNext(nxt, getTime());
     renderLib();
@@ -723,21 +743,34 @@ function loop() {
   const dur = S.cur ? (S.cur.duracion_segundos || 0) : 0;
 
   // Playhead — no mover mientras el usuario arrastra
-  const wW = document.getElementById('wc').offsetWidth;
-  if (!S._dragging || !S._dragging()) {
-    const pad = 18;
-    document.getElementById('ph').style.left   = (pad + (dur > 0 ? (t/dur)*wW : 0)) + 'px';
-    document.getElementById('tCur').textContent = fmt(t);
+  const wcEl = document.getElementById('wc');
+  const phEl = document.getElementById('ph');
+  const tCurEl = document.getElementById('tCur');
+  const tTotEl = document.getElementById('tTot');
+
+  if (wcEl && phEl && tCurEl && tTotEl) {
+    const wW = wcEl.offsetWidth || 0;
+    if (!S._dragging || !S._dragging()) {
+      const pad = 18;
+      phEl.style.left = (pad + (dur > 0 ? (t / dur) * wW : 0)) + 'px';
+      tCurEl.textContent = fmt(t);
+    }
+    tTotEl.textContent = fmt(dur);
   }
-  document.getElementById('tTot').textContent  = fmt(dur);
 
   // Vinyl spin
-  document.getElementById('vinyl').classList.toggle('spin', S.playing && !S.mixing);
+  const vinylEl = document.getElementById('vinyl');
+  if (vinylEl) {
+    vinylEl.classList.toggle('spin', S.playing && !S.mixing);
+  }
 
   // Mix progress bar
   if (S.mixing) {
     const pct = Math.min(100, ((ctx.currentTime - S.mixStart) / S.mixDur) * 100);
-    document.getElementById('mixFill').style.width = pct + '%';
+    const mixFillEl = document.getElementById('mixFill');
+    if (mixFillEl) {
+      mixFillEl.style.width = pct + '%';
+    }
     updateEQVisual(pct / 100);
   }
 
@@ -811,8 +844,10 @@ function loop() {
         S.beatLastTime = now;
         // Flash visual del beat dot
         const dot = document.getElementById('beatDot');
-        dot.classList.add('flash');
-        setTimeout(() => dot.classList.remove('flash'), 80);
+        if (dot) {
+          dot.classList.add('flash');
+          setTimeout(() => dot.classList.remove('flash'), 80);
+        }
       }
     }
   }
@@ -1148,13 +1183,21 @@ function tlSeek(idx) {
 }
 function fmt(s) { s=Math.max(0,Math.floor(s)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
 function resize() {
+  const ratio = window.devicePixelRatio || 1;
   ['viz','wc'].forEach(id=>{
     const c=document.getElementById(id);
-    c.width=c.offsetWidth*(devicePixelRatio||1);
-    c.height=c.offsetHeight*(devicePixelRatio||1);
+    if (!c) return;
+    c.width=(c.offsetWidth||0)*ratio;
+    c.height=(c.offsetHeight||0)*ratio;
   });
 }
-window.addEventListener('resize', resize); resize();
+
+if (window.__DJAI_RESIZE) {
+  window.removeEventListener('resize', window.__DJAI_RESIZE);
+}
+window.__DJAI_RESIZE = resize;
+resize();
+window.addEventListener('resize', resize);
 boot();
 
 

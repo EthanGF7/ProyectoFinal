@@ -7,6 +7,15 @@ function buildProxyPrefix(id) {
   return `/api/djs/${encodeURIComponent(id)}/proxy`;
 }
 
+function getTrackDisplayName(file) {
+  if (!file || typeof file !== 'string') return '';
+  try {
+    return decodeURIComponent(file).split('/').pop();
+  } catch (err) {
+    return file.split('/').pop();
+  }
+}
+
 function rewriteProxyBody(body, id) {
   const prefix = buildProxyPrefix(id);
   const rewritten = body
@@ -20,6 +29,20 @@ function rewriteProxyBody(body, id) {
 <script>
 (function(){
   var nexusAuthToken = null;
+  function findStoredToken() {
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        if (!key || key.indexOf('auth-token') === -1) continue;
+        var raw = localStorage.getItem(key);
+        if (!raw) continue;
+        var parsed = JSON.parse(raw);
+        var token = parsed && (parsed.access_token || (parsed.currentSession && parsed.currentSession.access_token));
+        if (token) return token;
+      }
+    } catch (e) {}
+    return null;
+  }
   window.addEventListener('message', function(e) {
     if (e.origin !== window.location.origin) return;
     if (e.data && e.data.type === 'nexus-auth-token' && e.data.accessToken) {
@@ -30,9 +53,10 @@ function rewriteProxyBody(body, id) {
   window.fetch = function(input, init) {
     init = init || {};
     var url = typeof input === 'string' ? input : (input && input.url) || '';
-    if (nexusAuthToken && url.indexOf('${prefix}/api/') === 0) {
+    var token = nexusAuthToken || findStoredToken();
+    if (token && (url.indexOf('${prefix}/api/') === 0 || url.indexOf('/api/djs/') === 0)) {
       var headers = new Headers(init.headers || {});
-      headers.set('Authorization', 'Bearer ' + nexusAuthToken);
+      headers.set('Authorization', 'Bearer ' + token);
       init.headers = headers;
     }
     return originalFetch(input, init);
@@ -57,7 +81,41 @@ async function getUserPrefs(req, djId) {
     return {};
   }
 
-  return Object.fromEntries((data || []).map((row) => [row.track_name, row.reaction]));
+  return (data || []).reduce((acc, row) => {
+    const key = row.track_name;
+    const displayKey = getTrackDisplayName(key);
+    acc[key] = row.reaction;
+    if (displayKey) acc[displayKey] = row.reaction;
+    return acc;
+  }, {});
+}
+
+function mergeDislikesIntoPlayed(targetUrl, prefs) {
+  if (!prefs || typeof prefs !== 'object') return;
+
+  const disliked = Object.entries(prefs)
+    .filter(([, reaction]) => Number(reaction) === -1)
+    .map(([trackName]) => trackName)
+    .filter(Boolean);
+
+  if (!disliked.length) return;
+
+  let played = [];
+  try {
+    played = JSON.parse(targetUrl.searchParams.get('played') || '[]');
+    if (!Array.isArray(played)) played = [];
+  } catch (err) {
+    played = [];
+  }
+
+  const merged = new Set(played);
+  disliked.forEach((trackName) => {
+    merged.add(trackName);
+    const displayName = getTrackDisplayName(trackName);
+    if (displayName) merged.add(displayName);
+  });
+
+  targetUrl.searchParams.set('played', JSON.stringify([...merged]));
 }
 
 async function handleUserLike(req, res, djId) {
@@ -109,7 +167,46 @@ async function handleUserLike(req, res, djId) {
     return res.status(500).json({ error: 'No se pudo guardar la preferencia' });
   }
 
+  try {
+    await recordListenHistory(req, djId, djId, getTrackDisplayName(file) || file);
+  } catch (err) {
+    console.error('[proxy] Error registrando historial desde reacción:', err);
+  }
   return res.status(200).json({ ok: true, file, action });
+}
+
+async function recordListenHistory(req, djId, djName, trackName) {
+  if (!trackName) return;
+
+  const { user, appUser } = await getAuthenticatedUser(req);
+  const userId = appUser?.id || user?.id;
+  if (!userId) return;
+
+  const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+  const { data: recent, error: recentError } = await supabaseAdmin
+    .from('user_listen_history')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('dj_id', djId)
+    .eq('track_name', trackName)
+    .gte('listened_at', twoMinutesAgo)
+    .limit(1);
+
+  if (!recentError && recent?.length) return;
+
+  const { error } = await supabaseAdmin
+    .from('user_listen_history')
+    .insert({
+      user_id: userId,
+      dj_id: djId,
+      dj_name: djName,
+      track_name: trackName,
+      listened_at: new Date().toISOString(),
+    });
+
+  if (error && error?.code !== '42P01') {
+    console.error('[proxy] Error guardando historial:', error);
+  }
 }
 
 export default async function handler(req, res) {
@@ -163,7 +260,16 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET' && targetPath === '/api/next') {
     const prefs = await getUserPrefs(req, resolved.folderName);
-    if (prefs) targetUrl.searchParams.set('prefs', JSON.stringify(prefs));
+    if (prefs) {
+      targetUrl.searchParams.set('prefs', JSON.stringify(prefs));
+      mergeDislikesIntoPlayed(targetUrl, prefs);
+    }
+    await recordListenHistory(
+      req,
+      resolved.folderName,
+      resolved.folderName,
+      getTrackDisplayName(targetUrl.searchParams.get('current')) || targetUrl.searchParams.get('current')
+    );
   }
 
   try {

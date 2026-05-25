@@ -11,32 +11,18 @@ export const createDjRequest = async ({ message }) => {
 };
 
 export const fetchOwnDjRequest = async () => {
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-  if (userError) {
-    throw userError;
+  if (userError) throw userError;
+  if (!user) return null;
+
+  try {
+    const result = await callAuthedApi('/api/dj/my-request');
+    return result?.request || null;
+  } catch (err) {
+    if (err?.message?.includes('404') || err?.message?.includes('no encontrada')) return null;
+    throw err;
   }
-
-  if (!user) {
-    return null;
-  }
-
-  const { data, error } = await supabase
-    .from('dj_requests')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
 };
 
 export const fetchAdminDjRequests = async ({ status = 'pendiente' } = {}) => {

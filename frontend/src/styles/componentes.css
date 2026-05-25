@@ -825,7 +825,7 @@
   right: clamp(18px, 4vw, 34px);
   bottom: 18px;
   display: flex;
-  align-items: end;
+  align-items: flex-end;
   gap: 6px;
   height: 52px;
   opacity: 0.16;

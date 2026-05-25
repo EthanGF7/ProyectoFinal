@@ -311,6 +311,27 @@ async function handleUserLike(req, res, djId) {
   } catch (err) {
     console.error('[proxy] Error registrando historial desde reacción:', err);
   }
+
+  try {
+    const resolved2 = resolveDjScript(djId);
+    if (resolved2) {
+      const info2 = await ensureDjRunning({
+        key: resolved2.folderName,
+        folderName: resolved2.folderName,
+        folder: resolved2.folder,
+        scriptPath: resolved2.scriptPath,
+        pythonBin: resolved2.pythonBin,
+      });
+      await fetch(`http://127.0.0.1:${info2.port}/api/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file, action }),
+      });
+    }
+  } catch (err) {
+    console.error('[proxy] Error reenviando reacción al DJ Python:', err);
+  }
+
   return res.status(200).json({ ok: true, file, action });
 }
 

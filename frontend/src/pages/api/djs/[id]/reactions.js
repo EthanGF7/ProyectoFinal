@@ -47,7 +47,7 @@ export default async function handler(req, res) {
   // POST → crear / actualizar / eliminar reacción
   if (req.method === 'POST') {
     try {
-      const { track_name, reaction } = req.body || {};
+      const { track_name, reaction, dj_name } = req.body || {};
 
       if (!track_name || typeof track_name !== 'string') {
         return res.status(400).json({ error: 'track_name requerido' });
@@ -79,6 +79,7 @@ export default async function handler(req, res) {
           {
             user_id: userId,
             dj_id: djId,
+            dj_name: typeof dj_name === 'string' ? dj_name.slice(0, 120) : null,
             track_name,
             reaction,
             updated_at: new Date().toISOString(),

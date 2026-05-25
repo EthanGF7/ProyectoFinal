@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { supabase } from '../utils/supabase';
 import { callAuthedApi } from '../utils/apiClient';
 
 const DEFAULT_ERROR_MESSAGE = 'No se pudo cargar tu historial reciente.';
@@ -40,6 +41,11 @@ export const useListenHistory = ({ enabled = true, limit = 10, djId = null } = {
       return;
     }
 
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.access_token) {
+      return;
+    }
+
     if (mountedRef.current) {
       setLoading(true);
       setError('');
@@ -66,10 +72,8 @@ export const useListenHistory = ({ enabled = true, limit = 10, djId = null } = {
     } catch (err) {
       if (!mountedRef.current) return;
       const message = err?.message || DEFAULT_ERROR_MESSAGE;
-      setError(message === 'No hay sesión activa' && !enabled ? '' : message);
-      if (message === 'No hay sesión activa') {
-        setHistory([]);
-        setServerStats(null);
+      if (message !== 'No hay sesión activa') {
+        setError(message);
       }
     } finally {
       if (mountedRef.current) {

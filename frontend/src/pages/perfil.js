@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { supabase } from '../utils/supabase';
 import { createDjRequest, fetchOwnDjRequest } from '../utils/djRequests';
 import { useAppUser } from '../hooks/useAppUser';
-import { useListenHistory } from '../hooks/useListenHistory';
-import { useLikedTracks } from '../hooks/useLikedTracks';
 import BarraNavegacion from '../components/BarraNavegacion';
 
 export default function PaginaPerfil() {
@@ -27,20 +25,47 @@ export default function PaginaPerfil() {
   });
   const router = useRouter();
 
-  const {
-    history: listenHistory,
-    loading: historyLoading,
-    error: historyError,
-    refresh: refreshHistory,
-    stats: historyStats,
-  } = useListenHistory({ enabled: !!user, limit: 10 });
+  const [listenHistory, setListenHistory] = useState([]);
+  const [historyStats, setHistoryStats] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
+  const [likedTracks, setLikedTracks] = useState([]);
+  const [likedLoading, setLikedLoading] = useState(false);
+  const [likedError, setLikedError] = useState('');
 
-  const {
-    likedTracks,
-    loading: likedLoading,
-    error: likedError,
-    refresh: refreshLiked,
-  } = useLikedTracks({ enabled: !!user, limit: 12 });
+  const fetchActivity = async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    if (!token) return;
+
+    setHistoryLoading(true);
+    setLikedLoading(true);
+
+    try {
+      const [histRes, likedRes] = await Promise.all([
+        fetch('/api/user/listen-history?limit=10', { headers: { Authorization: `Bearer ${token}` } }),
+        fetch('/api/user/liked-tracks?limit=12', { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const histJson = await histRes.json();
+      const likedJson = await likedRes.json();
+      if (histRes.ok) {
+        setListenHistory(histJson.history || []);
+        setHistoryStats(histJson.stats || null);
+      } else {
+        setHistoryError(histJson.error || 'Error al cargar historial');
+      }
+      if (likedRes.ok) {
+        setLikedTracks(likedJson.likedTracks || []);
+      } else {
+        setLikedError(likedJson.error || 'Error al cargar likes');
+      }
+    } catch (e) {
+      setHistoryError('Error de red');
+    } finally {
+      setHistoryLoading(false);
+      setLikedLoading(false);
+    }
+  };
 
   const fetchCurrentUser = async () => {
     const { data, error } = await supabase.auth.getUser();
@@ -78,6 +103,12 @@ export default function PaginaPerfil() {
   useEffect(() => {
     checkUser();
   }, []);
+
+  useEffect(() => {
+    if (supabaseUser) {
+      fetchActivity();
+    }
+  }, [supabaseUser]);
 
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
@@ -545,10 +576,7 @@ export default function PaginaPerfil() {
                 <button
                   type="button"
                   className="btn-secondary"
-                  onClick={() => {
-                    refreshHistory();
-                    refreshLiked();
-                  }}
+                  onClick={fetchActivity}
                   disabled={historyLoading || likedLoading}
                 >
                   {historyLoading || likedLoading ? 'Actualizando...' : 'Actualizar datos'}

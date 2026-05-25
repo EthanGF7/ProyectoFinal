@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { supabase } from '../utils/supabase';
 import { callAuthedApi } from '../utils/apiClient';
 
 const DEFAULT_ERROR_MESSAGE = 'No se pudieron cargar tus canciones favoritas.';
@@ -20,6 +21,11 @@ export const useLikedTracks = ({ enabled = true, limit = 20 } = {}) => {
         setLoading(false);
         setError('');
       }
+      return;
+    }
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.access_token) {
       return;
     }
 

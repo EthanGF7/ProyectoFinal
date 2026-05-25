@@ -38,7 +38,7 @@ export default function BarraNavegacion() {
       {/* Logo y título de la aplicación */}
       <div>
         <Link href="/" className="navbar-logo">
-          <Image src="/logo.png" alt="Discoteca Online" className="navbar-logo-image" width={78} height={78} priority />
+          <Image src="/logo.png" alt="Discoteca Online" className="navbar-logo-image" width={78} height={78} />
         </Link>
       </div>
       

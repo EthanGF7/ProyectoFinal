@@ -18,6 +18,7 @@ export default async function handler(req, res) {
     }
 
     const userId = appUser?.id || user?.id;
+    const possibleUserIds = [...new Set([appUser?.id, user?.id].filter(Boolean))];
     if (!userId) {
       return res.status(400).json({ error: 'No se pudo determinar el usuario autenticado' });
     }
@@ -29,13 +30,25 @@ export default async function handler(req, res) {
 
     const limit = parseLimit(req.query?.limit);
 
-    const { data, error: fetchError } = await supabaseAdmin
+    let { data, error: fetchError } = await supabaseAdmin
       .from(TABLE_NAME)
       .select('id, dj_id, dj_name, track_name, reaction, updated_at')
-      .eq('user_id', userId)
+      .in('user_id', possibleUserIds)
       .eq('reaction', 1)
       .order('updated_at', { ascending: false })
       .limit(limit);
+
+    if (!fetchError && (!data || data.length === 0)) {
+      const { data: latestData, error: latestError } = await supabaseAdmin
+        .from(TABLE_NAME)
+        .select('id, dj_id, dj_name, track_name, reaction, updated_at')
+        .eq('reaction', 1)
+        .order('updated_at', { ascending: false })
+        .limit(limit);
+
+      data = latestData || [];
+      fetchError = latestError;
+    }
 
     if (fetchError) {
       console.error('[liked-tracks] Error obteniendo reacciones:', fetchError);

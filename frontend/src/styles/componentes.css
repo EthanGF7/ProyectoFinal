@@ -1878,13 +1878,50 @@
   }
 }
 
+@keyframes rhythmOrbit {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.12);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+@keyframes rhythmNotePulse {
+  0%, 100% {
+    filter: brightness(1);
+    transform: translateY(-50%) scale(1);
+  }
+  50% {
+    filter: brightness(1.45);
+    transform: translateY(-50%) scale(1.12);
+  }
+}
+
+@keyframes rhythmBeatRing {
+  0% {
+    opacity: 0.85;
+    transform: translate(-50%, -50%) scale(0.35);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.45);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .playlist-visualizer span,
   .playlist-modal::before,
   .playlist-modal-aura,
   .playlist-page-shell::before,
   .playlist-orb-field span,
-  .playlist-waveform span {
+  .playlist-waveform span,
+  .rhythm-orbit,
+  .rhythm-note,
+  .rhythm-beat-ring {
     animation: none;
   }
 }
@@ -2624,6 +2661,530 @@
 .events-upcoming h3 {
   color: #ffffff;
   margin-bottom: 18px;
+}
+
+.rhythm-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 0, 255, 0.18), transparent 34%),
+    radial-gradient(circle at 80% 10%, rgba(0, 255, 255, 0.16), transparent 32%),
+    #07080f;
+}
+
+.rhythm-main {
+  padding-top: clamp(18px, 3vw, 42px);
+}
+
+.rhythm-hero {
+  position: relative;
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 48px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 32px;
+  background:
+    linear-gradient(145deg, rgba(14, 16, 28, 0.96), rgba(7, 9, 16, 0.96)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 120px);
+  box-shadow: 0 34px 110px rgba(0, 0, 0, 0.54);
+}
+
+.rhythm-orbit {
+  position: absolute;
+  inset: -18% auto auto 55%;
+  width: 460px;
+  height: 460px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 255, 255, 0.18);
+  background: radial-gradient(circle, rgba(255, 0, 255, 0.18), transparent 62%);
+  animation: rhythmOrbit 12s linear infinite;
+}
+
+.rhythm-header {
+  position: relative;
+  z-index: 1;
+  max-width: 760px;
+}
+
+.rhythm-header h1 {
+  margin: 10px 0 8px;
+  color: #ffffff;
+  font-family: 'Bebas Neue', 'DM Sans', sans-serif;
+  font-size: clamp(4rem, 11vw, 9rem);
+  letter-spacing: 0.06em;
+  line-height: 0.86;
+  text-transform: uppercase;
+}
+
+.rhythm-header p {
+  max-width: 620px;
+  color: rgba(255, 255, 255, 0.74);
+  line-height: 1.7;
+}
+
+.rhythm-layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(230px, 300px) 1fr;
+  gap: clamp(20px, 4vw, 36px);
+  margin-top: 28px;
+}
+
+.rhythm-panel,
+.rhythm-stage {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(18px);
+}
+
+.rhythm-panel {
+  display: grid;
+  gap: 20px;
+  align-content: start;
+  padding: 24px;
+}
+
+.rhythm-label {
+  display: block;
+  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.rhythm-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 9px;
+}
+
+.rhythm-song-list {
+  display: grid;
+  gap: 10px;
+}
+
+.rhythm-song-list button {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rhythm-song-list button.active {
+  border-color: rgba(200, 255, 0, 0.65);
+  background: rgba(200, 255, 0, 0.13);
+  box-shadow: 0 0 28px rgba(200, 255, 0, 0.14);
+}
+
+.rhythm-song-list strong {
+  font-size: 0.96rem;
+}
+
+.rhythm-song-list span {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.82rem;
+}
+
+.rhythm-audio {
+  width: 100%;
+  accent-color: #c8ff00;
+}
+
+.rhythm-calibration {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.rhythm-calibration button {
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.rhythm-calibration strong {
+  color: #c8ff00;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.rhythm-options button,
+.rhythm-start {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.rhythm-options button {
+  padding: 11px 10px;
+}
+
+.rhythm-options-wide button {
+  text-transform: capitalize;
+}
+
+.rhythm-options button.active {
+  border-color: rgba(0, 255, 255, 0.65);
+  background: rgba(0, 255, 255, 0.16);
+  box-shadow: 0 0 28px rgba(0, 255, 255, 0.16);
+}
+
+.rhythm-start {
+  padding: 15px 18px;
+  background: linear-gradient(135deg, #ff00ff, #00ffff);
+  color: #05060b;
+}
+
+.rhythm-back {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.rhythm-stage {
+  position: relative;
+  min-height: 560px;
+  padding: 22px;
+  overflow: hidden;
+  color: #ffffff;
+  cursor: crosshair;
+}
+
+.rhythm-stage:disabled {
+  cursor: not-allowed;
+}
+
+.rhythm-stage.on-beat {
+  box-shadow:
+    inset 0 0 0 1px rgba(200, 255, 0, 0.5),
+    0 0 42px rgba(200, 255, 0, 0.16);
+}
+
+.rhythm-stage-simple {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 18px;
+  min-height: 640px;
+}
+
+.rhythm-stage-simple .rhythm-judgement-simple {
+  position: static;
+  margin: 0 auto;
+  max-width: 320px;
+  padding: 10px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.24);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  opacity: 1;
+}
+
+.rhythm-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.rhythm-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ff00ff, #00ffff, #c8ff00);
+}
+
+.rhythm-scoreboard {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.rhythm-scoreboard div {
+  padding: 13px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.rhythm-scoreboard span {
+  display: block;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.rhythm-scoreboard strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.4rem;
+}
+
+.rhythm-lanes {
+  position: absolute;
+  inset: 120px 22px 74px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  overflow: hidden;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 50% 86%, rgba(200, 255, 0, 0.18), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.24));
+}
+
+.rhythm-simple-target {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 360px;
+  overflow: hidden;
+}
+
+.rhythm-simple-target::before {
+  content: '';
+  position: absolute;
+  width: clamp(260px, 38vw, 460px);
+  height: clamp(260px, 38vw, 460px);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(200, 255, 0, 0.16), transparent 55%),
+    conic-gradient(from 180deg, rgba(0, 255, 255, 0.18), rgba(255, 0, 255, 0.12), rgba(200, 255, 0, 0.18), rgba(0, 255, 255, 0.18));
+  filter: blur(10px);
+  opacity: 0.8;
+}
+
+.rhythm-safe-zone {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  width: clamp(150px, 20vw, 210px);
+  height: clamp(150px, 20vw, 210px);
+  border-radius: 50%;
+  border: 2px solid rgba(200, 255, 0, 0.74);
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.24), transparent 18%),
+    radial-gradient(circle, rgba(200, 255, 0, 0.22), transparent 62%),
+    rgba(4, 8, 14, 0.82);
+  color: #ffffff;
+  text-align: center;
+  box-shadow:
+    inset 0 0 36px rgba(200, 255, 0, 0.18),
+    0 0 42px rgba(200, 255, 0, 0.24);
+  position: relative;
+  z-index: 2;
+}
+
+.rhythm-safe-zone span {
+  font-size: clamp(2rem, 4vw, 3.6rem);
+  font-weight: 950;
+  line-height: 0.92;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+}
+
+.rhythm-safe-zone small {
+  max-width: 130px;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.rhythm-shrink-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: clamp(150px, 20vw, 210px);
+  height: clamp(150px, 20vw, 210px);
+  border-radius: 50%;
+  border: 4px solid rgba(0, 255, 255, 0.86);
+  background: rgba(0, 255, 255, 0.04);
+  box-shadow:
+    inset 0 0 24px rgba(0, 255, 255, 0.18),
+    0 0 44px rgba(0, 255, 255, 0.36);
+  transition: transform 0.06s linear, border-color 0.1s ease;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.rhythm-stage.on-beat .rhythm-shrink-ring {
+  border-color: #c8ff00;
+  box-shadow: 0 0 58px rgba(200, 255, 0, 0.65);
+}
+
+.rhythm-stage.on-beat .rhythm-safe-zone {
+  border-color: #ffffff;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.32), transparent 18%),
+    radial-gradient(circle, rgba(200, 255, 0, 0.36), transparent 64%),
+    rgba(20, 36, 8, 0.86);
+}
+
+.rhythm-ranking {
+  position: relative;
+  z-index: 1;
+  margin-top: 30px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.rhythm-ranking-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.rhythm-ranking-header h2 {
+  margin: 8px 0 0;
+  color: #ffffff;
+}
+
+.rhythm-ranking-message {
+  margin: 0 0 14px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.rhythm-ranking-list {
+  display: grid;
+  gap: 10px;
+}
+
+.rhythm-ranking-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.26);
+  color: #ffffff;
+}
+
+.rhythm-ranking-row strong {
+  color: #c8ff00;
+}
+
+.rhythm-lane {
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.03));
+}
+
+.rhythm-beat-ring {
+  position: absolute;
+  left: 50%;
+  top: 82%;
+  width: 180px;
+  height: 180px;
+  border: 2px solid rgba(200, 255, 0, 0.36);
+  border-radius: 50%;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.45);
+  pointer-events: none;
+}
+
+.rhythm-stage.on-beat .rhythm-beat-ring {
+  animation: rhythmBeatRing 0.28s ease-out;
+}
+
+.rhythm-note {
+  position: absolute;
+  width: 54px;
+  height: 54px;
+  margin-left: -27px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff, #00ffff 42%, #ff00ff 88%);
+  box-shadow: 0 0 28px rgba(0, 255, 255, 0.55);
+  transform: translateY(-50%);
+  animation: rhythmNotePulse 0.8s ease-in-out infinite;
+}
+
+.rhythm-note.lane-0 {
+  left: 12.5%;
+}
+
+.rhythm-note.lane-1 {
+  left: 37.5%;
+}
+
+.rhythm-note.lane-2 {
+  left: 62.5%;
+}
+
+.rhythm-note.lane-3 {
+  left: 87.5%;
+}
+
+.rhythm-hit-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 82%;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, #c8ff00, #00ffff, transparent);
+  box-shadow: 0 0 24px rgba(200, 255, 0, 0.65);
+}
+
+.rhythm-judgement {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  color: #ffffff;
+  font-family: 'Bebas Neue', 'DM Sans', sans-serif;
+  font-size: clamp(2rem, 5vw, 4rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rhythm-judgement.perfect {
+  color: #c8ff00;
+}
+
+.rhythm-judgement.good {
+  color: #00ffff;
+}
+
+.rhythm-judgement.late,
+.rhythm-judgement.miss {
+  color: #ff6b6b;
+}
+
+@media (max-width: 820px) {
+  .rhythm-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .rhythm-stage {
+    min-height: 520px;
+  }
 }
 
 .dashboard-grid {

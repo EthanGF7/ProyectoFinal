@@ -4,11 +4,11 @@ import BarraNavegacion from '../components/BarraNavegacion';
 import { useNeonCardEffects } from '../hooks/useNeonCardEffects';
 
 const activeEvent = {
-  title: 'Cyberpunk 2077 Immersive Week',
-  description: 'Pista con visuales holográficos, synthwave en directo y cabinas VR.',
-  schedule: 'Del 10 al 17 de mayo · Sala Prisma',
-  action: 'Reservar entrada',
-  link: '/eventos#cyberpunk',
+  title: 'Beat Battle · Juego de ritmo',
+  description: 'Compite pulsando al ritmo, consigue combos y domina la pista con BPM configurables.',
+  schedule: 'Evento interactivo · Click, táctil o barra espaciadora',
+  action: 'Jugar ahora',
+  link: '/eventos/ritmo',
 };
 
 const upcomingEvents = [

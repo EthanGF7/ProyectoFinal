@@ -6,7 +6,7 @@ import os
 from dotenv import load_dotenv
 
 # Importar routers
-from app.routes import autenticacion, usuarios, canciones, playlists, eventos, generos
+from app.routes import autenticacion, usuarios, canciones, playlists, eventos
 
 # Cargar variables de entorno
 load_dotenv()
@@ -34,7 +34,6 @@ app.include_router(usuarios.router)
 app.include_router(canciones.router)
 app.include_router(playlists.router)
 app.include_router(eventos.router)
-app.include_router(generos.router)
 
 # Ruta de prueba
 @app.get("/")

@@ -50,9 +50,6 @@ export default function BarraNavegacion() {
         <Link href="/playlists" className="navbar-link">
           Playlists
         </Link>
-        <Link href="/generos" className="navbar-link">
-          Géneros
-        </Link>
         <Link href="/djs" className="navbar-link">
           DJs
         </Link>

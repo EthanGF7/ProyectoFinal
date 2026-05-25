@@ -32,7 +32,7 @@ ProyectoFinal/
   -Botón de cierre de sesión que limpia la sesión y redirige al inicio.
 - **Barra de navegación dinámica**: muestra enlaces a login/registro solo cuando el usuario no está autenticado y acceso directo al perfil cuando sí lo está.
 - **Tema disco-neón** consistente: gradientes, luces dinámicas, tarjetas con borde brillante, avatar generativo pulsante y componentes responsivos.
-- **Páginas temáticas preparadas**: playlists, géneros, DJs, eventos y paneles administrativos listos para conectar con datos reales.
+- **Páginas temáticas preparadas**: playlists, DJs, eventos y paneles administrativos listos para conectar con datos reales.
 
 ## 🛠 Tecnologías principales
 
@@ -151,7 +151,7 @@ src/
 | `login.js` | Formulario de inicio de sesión con animación de vinilo. | `supabase.js` (cliente), `useRouter` | Redirige al dashboard tras login. |
 | `registro.js` | Alta de usuarios con validaciones y popup neon. | `supabase.js`, `PopupVerificacion` | Redirige a `/login` y muestra modal tras registro. |
 | `perfil.js` | Dashboard personal: muestra metadata, permite editar username/email/password y cerrar sesión. | `supabase.js`, `BarraNavegacion`, `/api/profile/update-email` | Actualiza Supabase Auth y la API interna para cambios de email; redirige a `/login` si no hay sesión. |
-| `eventos.js`, `generos.js`, `djs.js`, `playlists.js`, `dashboard.js`, `admin.js` | Páginas temáticas/preparadas para ampliar contenido (listados, dashboards, panel de admin). | Componentes específicos (p.ej. `EventoTematico`, `PanelAdmin`) | Sirven como contenedores para futuras integraciones. |
+| `eventos.js`, `djs.js`, `playlists.js`, `dashboard.js`, `admin.js` | Páginas temáticas/preparadas para ampliar contenido (listados, dashboards, panel de admin). | Componentes específicos (p.ej. `EventoTematico`, `PanelAdmin`) | Sirven como contenedores para futuras integraciones. |
 | `api/profile/update-email.js` | API Route que ejecuta en servidor Next. Usa la Service Role Key para cambiar el email directamente en Supabase sin verificación. | `@supabase/supabase-js`, variable `SUPABASE_SERVICE_ROLE_KEY` | Devuelve JSON con el nuevo email o error; consumido por `perfil.js`. |
 
 ### Frontend – Componentes (`src/components`)
@@ -175,7 +175,7 @@ src/
 |---------------|-------------|--------|
 | `main.py` | Inicializa FastAPI, configura CORS para `http://localhost:3000` y expone `/` y `/health`. | Operativo. |
 | `app/config/` | Espacio para settings y carga de variables (placeholders actuales). | Base preparada. |
-| `app/routes/*.py` | Esqueletos para autenticación, usuarios, playlists, géneros, eventos y canciones. Cada archivo define funciones stub listas para implementar lógica. | En construcción (stubs). |
+| `app/routes/*.py` | Esqueletos para autenticación, usuarios, playlists, eventos y canciones. Cada archivo define funciones stub listas para implementar lógica. | En construcción (stubs). |
 | `app/controllers/`, `app/middleware/`, `app/utils/` | Carpetas vacías o con plantillas para alojar la lógica de negocio, middlewares personalizados y utilidades. | Preparado para expansión. |
 
 ### Comunicación entre capas

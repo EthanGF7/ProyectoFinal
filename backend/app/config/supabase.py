@@ -37,8 +37,8 @@ def verificar_conexion():
     """
     try:
         supabase = crear_cliente_supabase()
-        # Intentar hacer una consulta simple para verificar conexión
-        result = supabase.table('genres').select("*").limit(1).execute()
+        # Crear cliente y realizar una operación mínima para verificar conexión
+        supabase.storage.list_buckets()
         return True, "Conexión exitosa con Supabase"
     except Exception as e:
         return False, f"Error de conexión: {str(e)}"

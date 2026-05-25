@@ -14,11 +14,6 @@ export const validarPassword = (password) => {
   return true;
 };
 
-export const obtenerColorGenero = (genero) => {
-  // Aquí irá la lógica para obtener color asociado al género
-  return '#000000';
-};
-
 export const formatearFecha = (fecha) => {
   // Aquí irá la lógica para formatear fechas
   return new Date().toLocaleDateString();

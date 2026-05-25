@@ -286,17 +286,17 @@ export default function Home() {
           <div className="highlight-content">
             <h2>¿No sabes por dónde empezar?</h2>
             <p>
-              Explora géneros, arma tu playlist personalizada y recibe recomendaciones basadas en tu mood con un par de clics.
+              Explora playlists curadas, arma tu selección personalizada y recibe recomendaciones basadas en tu mood con un par de clics.
             </p>
           </div>
           <div className="highlight-actions">
             <Link
-              href="/generos"
+              href="/playlists"
               className="hero-cta hero-cta-tertiary"
               onMouseMove={handleCardMouseMove}
               onMouseLeave={handleCardMouseLeave}
             >
-              Ver géneros musicales
+              Explorar playlists
             </Link>
             <Link
               href="/dashboard"

@@ -32,11 +32,5 @@ export const api = {
   crearPlaylist: async (datosPlaylist) => {
     // Aquí irá la lógica para crear playlist
     return {};
-  },
-
-  // Géneros
-  obtenerGeneros: async () => {
-    // Aquí irá la lógica para obtener géneros
-    return [];
   }
 };

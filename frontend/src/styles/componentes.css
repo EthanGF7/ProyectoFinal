@@ -713,26 +713,6 @@
   justify-content: flex-end;
 }
 
-.genre-grid {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-}
-
-.genre-card {
-  padding: 36px;
-}
-
-.genre-badge {
-  width: 58px;
-  height: 58px;
-  border-radius: 16px;
-  display: grid;
-  place-items: center;
-  font-size: 1.8rem;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 15px 30px rgba(255, 0, 255, 0.25);
-}
-
 .curated-grid {
   display: grid;
   gap: clamp(20px, 3vw, 30px);

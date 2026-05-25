@@ -16,8 +16,6 @@ import {
 const defaultProfile = {
   nombre_artistico: '',
   bio: '',
-  estilo_visual: '',
-  estilo_musical: '',
 };
 
 const defaultPlaylistForm = {
@@ -105,8 +103,6 @@ export default function PanelDj() {
         setProfileForm({
           nombre_artistico: data.nombre_artistico || '',
           bio: data.bio || '',
-          estilo_visual: data.estilo_visual || '',
-          estilo_musical: data.estilo_musical || '',
         });
       }
     } catch (err) {
@@ -164,7 +160,10 @@ export default function PanelDj() {
       setProfileSaving(true);
       setProfileError('');
       setProfileSuccess('');
-      const updated = await updateDjProfile(profileForm);
+      const updated = await updateDjProfile({
+        nombre_artistico: profileForm.nombre_artistico,
+        bio: profileForm.bio,
+      });
       setProfile(updated);
       setProfileSuccess('Perfil actualizado. ¡Listo para la siguiente sesión!');
     } catch (err) {
@@ -296,26 +295,6 @@ export default function PanelDj() {
                     rows={4}
                   />
                   <span className="form-helper">Esta descripción se mostrará en tu tarjeta pública.</span>
-                </div>
-                <div className="form-row">
-                  <label>Estilo visual</label>
-                  <input
-                    type="text"
-                    name="estilo_visual"
-                    value={profileForm.estilo_visual}
-                    onChange={handleProfileChange}
-                    placeholder="Neón vaporwave, lasers, visuales retro..."
-                  />
-                </div>
-                <div className="form-row">
-                  <label>Estilo musical</label>
-                  <input
-                    type="text"
-                    name="estilo_musical"
-                    value={profileForm.estilo_musical}
-                    onChange={handleProfileChange}
-                    placeholder="Tech house, synthwave, latin bass..."
-                  />
                 </div>
               </div>
 

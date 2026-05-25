@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { listLocalDjScripts } from '../../../lib/dj-scripts';
+import { listLocalDjScripts, resolveDjScript } from '../../../../lib/dj-scripts';
 import { supabaseAdmin } from '../../../utils/supabaseAdmin';
 
 const DJ_SELECT =
@@ -63,6 +63,7 @@ async function loadLocalDj(id) {
           username: null,
           email: null,
           isLocal: true,
+          hasLocalPlayer: true,
         },
         playlists: [],
         audioFiles,
@@ -137,7 +138,17 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Error interno al cargar las playlists' });
     }
 
-    return res.status(200).json({ dj, playlists, audioFiles: [] });
+    return res.status(200).json({
+      dj: {
+        ...dj,
+        username: dj.app_users?.username || null,
+        email: dj.app_users?.email || null,
+        isLocal: false,
+        hasLocalPlayer: Boolean(resolveDjScript(dj.id, dj.nombre_artistico)),
+      },
+      playlists,
+      audioFiles: [],
+    });
   } catch (err) {
     console.error('[public/djs/:id] Error inesperado:', err);
     return res.status(500).json({ error: 'Error interno del servidor' });

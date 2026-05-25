@@ -1074,6 +1074,19 @@
   color: rgba(0, 255, 255, 0.95);
 }
 
+.spotify-embed {
+  margin-top: 16px;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(30, 215, 96, 0.28);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.spotify-embed iframe {
+  display: block;
+  border: 0;
+}
+
 .form-helper {
   font-size: 0.82rem;
   color: rgba(255, 255, 255, 0.55);

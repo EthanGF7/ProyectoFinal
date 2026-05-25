@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../../../utils/supabaseAdmin';
+import { resolveDjScript } from '../../../../lib/dj-scripts';
 
 const DJ_SELECT =
   'id, nombre_artistico, bio, estilo_visual, estilo_musical, created_at, app_users ( username, email )';
@@ -30,6 +31,7 @@ export default async function handler(req, res) {
       email: dj.app_users?.email || null,
       playlists_count: 0,
       isLocal: false,
+      hasLocalPlayer: Boolean(resolveDjScript(dj.id, dj.nombre_artistico)),
     }));
 
     return res.status(200).json({ djs });

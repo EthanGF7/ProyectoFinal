@@ -2,7 +2,28 @@
 // La UI del DJ se carga mediante un iframe que consume el servidor local a través de un proxy.
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import BarraNavegacion from '../../components/BarraNavegacion';
 import { supabase } from '../../utils/supabase';
+
+function getSpotifyPlaylistId(url) {
+  if (!url || typeof url !== 'string') return null;
+  try {
+    const parsed = new URL(url.trim());
+    if (!parsed.hostname.includes('spotify.com')) return null;
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    const playlistIndex = parts.indexOf('playlist');
+    return playlistIndex >= 0 ? parts[playlistIndex + 1] || null : null;
+  } catch {
+    return null;
+  }
+}
+
+function getPlaylistLinks(plataformas) {
+  return (plataformas || '')
+    .split(',')
+    .map((url) => url.trim())
+    .filter((url) => url.length > 0);
+}
 
 export default function FichaDj() {
   const router = useRouter();
@@ -12,6 +33,7 @@ export default function FichaDj() {
   const [error, setError] = useState(null);
   const [iframeSrc, setIframeSrc] = useState(null);
   const [iframeEl, setIframeEl] = useState(null);
+  const [djData, setDjData] = useState(null);
 
   useEffect(() => {
     if (!iframeEl || status !== 'ready') return undefined;
@@ -39,12 +61,25 @@ export default function FichaDj() {
 
     async function launch() {
       try {
-        const res = await fetch(`/api/djs/${encodeURIComponent(djIdParam)}/launch`, {
+        const detailRes = await fetch(`/api/djs/${encodeURIComponent(djIdParam)}`);
+        const detail = await detailRes.json();
+        if (!detailRes.ok) {
+          throw new Error(detail.error || `HTTP ${detailRes.status}`);
+        }
+
+        setDjData(detail);
+
+        if (!detail.dj?.hasLocalPlayer) {
+          setStatus('playlist');
+          return;
+        }
+
+        const launchRes = await fetch(`/api/djs/${encodeURIComponent(djIdParam)}/launch`, {
           method: 'POST',
         });
-        const data = await res.json();
-        if (!res.ok || !data.ok) {
-          throw new Error(data.error || `HTTP ${res.status}`);
+        const launchData = await launchRes.json();
+        if (!launchRes.ok || !launchData.ok) {
+          throw new Error(launchData.error || `HTTP ${launchRes.status}`);
         }
 
         setIframeSrc(`/api/djs/${encodeURIComponent(djIdParam)}/proxy/`);
@@ -116,6 +151,68 @@ export default function FichaDj() {
         >
           Volver a la lista de DJs
         </button>
+      </div>
+    );
+  }
+
+  if (status === 'playlist') {
+    const dj = djData?.dj;
+    const playlists = djData?.playlists || [];
+    return (
+      <div className="page-container">
+        <BarraNavegacion />
+        <main className="neon-main">
+          <section className="neon-section">
+            <header className="section-header">
+              <span className="section-tag tag-purple">DJ de playlist</span>
+              <h2>{dj?.nombre_artistico || 'DJ'}</h2>
+              <p>{dj?.bio || 'Este DJ comparte playlists externas para escuchar sin descargar música.'}</p>
+            </header>
+
+            <div className="dj-grid">
+              {playlists.length === 0 ? (
+                <div className="admin-empty">Este DJ todavía no tiene playlists publicadas.</div>
+              ) : (
+                playlists.map((playlist) => (
+                  <article className="neon-card dj-card" key={playlist.id}>
+                    <div className="card-content">
+                      <h3>{playlist.titulo}</h3>
+                      {playlist.descripcion && <p>{playlist.descripcion}</p>}
+                      <div className="playlist-chip">Mood: {playlist.mood || '—'}</div>
+                      <div className="playlist-chip">Tempo: {playlist.tempo || '—'}</div>
+                      {getPlaylistLinks(playlist.plataformas).map((url) => {
+                        const spotifyPlaylistId = getSpotifyPlaylistId(url);
+                        if (spotifyPlaylistId) {
+                          return (
+                            <div className="spotify-embed" key={url}>
+                              <iframe
+                                title={`Spotify playlist ${playlist.titulo}`}
+                                src={`https://open.spotify.com/embed/playlist/${spotifyPlaylistId}`}
+                                width="100%"
+                                height="352"
+                                frameBorder="0"
+                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                                loading="lazy"
+                              />
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="playlist-links" key={url}>
+                            <a href={url} target="_blank" rel="noreferrer">
+                              {url}
+                            </a>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
+          </section>
+        </main>
       </div>
     );
   }

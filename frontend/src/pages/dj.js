@@ -28,6 +28,26 @@ const defaultPlaylistForm = {
   plataformas: '',
 };
 
+function getSpotifyPlaylistId(url) {
+  if (!url || typeof url !== 'string') return null;
+  try {
+    const parsed = new URL(url.trim());
+    if (!parsed.hostname.includes('spotify.com')) return null;
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    const playlistIndex = parts.indexOf('playlist');
+    return playlistIndex >= 0 ? parts[playlistIndex + 1] || null : null;
+  } catch {
+    return null;
+  }
+}
+
+function getPlaylistLinks(plataformas) {
+  return (plataformas || '')
+    .split(',')
+    .map((url) => url.trim())
+    .filter((url) => url.length > 0);
+}
+
 export default function PanelDj() {
   const router = useRouter();
   const { appUser, supabaseUser, loading: loadingUser } = useAppUser();
@@ -169,7 +189,7 @@ export default function PanelDj() {
     const descripcion = window.prompt('Descripción', playlist.descripcion || '') || '';
     const mood = window.prompt('Mood / ambiente', playlist.mood || '') || '';
     const tempo = window.prompt('Tempo / BPM', playlist.tempo || '') || '';
-    const plataformas = window.prompt('Enlaces (Spotify, SoundCloud...)', playlist.plataformas || '') || '';
+    const plataformas = window.prompt('Enlaces (Spotify playlist, SoundCloud...)', playlist.plataformas || '') || '';
 
     try {
       const updated = await updateDjPlaylist(playlist.id, {
@@ -295,7 +315,7 @@ export default function PanelDj() {
           <section className="dj-playlists">
             <header className="dj-subheader">
               <h3>Tus playlists destacadas</h3>
-              <p>Comparte sets recientes, sesiones temáticas o mixes exclusivos.</p>
+              <p>Comparte sets recientes, sesiones temáticas, mixes exclusivos o playlists de Spotify.</p>
             </header>
 
             <form className="dj-playlist-form" onSubmit={handleCreatePlaylist}>
@@ -349,9 +369,9 @@ export default function PanelDj() {
                     name="plataformas"
                     value={playlistForm.plataformas}
                     onChange={handlePlaylistFormChange}
-                    placeholder="Spotify, SoundCloud, Mixcloud..."
+                    placeholder="https://open.spotify.com/playlist/..."
                   />
-                  <span className="form-helper">Separa múltiples enlaces con comas.</span>
+                  <span className="form-helper">Pega una playlist de Spotify para mostrarla embebida. Separa múltiples enlaces con comas.</span>
                 </div>
               </div>
 
@@ -387,19 +407,32 @@ export default function PanelDj() {
                       {playlist.descripcion && <p>{playlist.descripcion}</p>}
                       <div className="playlist-chip">Mood: {playlist.mood || '—'}</div>
                       <div className="playlist-chip">Tempo: {playlist.tempo || '—'}</div>
-                      {playlist.plataformas && (
-                        <div className="playlist-links">
-                          {playlist.plataformas
-                            .split(',')
-                            .map((url) => url.trim())
-                            .filter((url) => url.length > 0)
-                            .map((url) => (
-                              <a key={url} href={url} target="_blank" rel="noreferrer">
-                                {url}
-                              </a>
-                            ))}
-                        </div>
-                      )}
+                      {getPlaylistLinks(playlist.plataformas).map((url) => {
+                        const spotifyPlaylistId = getSpotifyPlaylistId(url);
+                        if (spotifyPlaylistId) {
+                          return (
+                            <div className="spotify-embed" key={url}>
+                              <iframe
+                                title={`Spotify playlist ${playlist.titulo}`}
+                                src={`https://open.spotify.com/embed/playlist/${spotifyPlaylistId}`}
+                                width="100%"
+                                height="352"
+                                frameBorder="0"
+                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                                loading="lazy"
+                              />
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="playlist-links" key={url}>
+                            <a href={url} target="_blank" rel="noreferrer">
+                              {url}
+                            </a>
+                          </div>
+                        );
+                      })}
                       <div className="admin-request-actions">
                         <button
                           type="button"

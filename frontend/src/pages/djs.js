@@ -120,6 +120,7 @@ export default function PaginaDJs() {
                     <h3>{dj.nombre_artistico}</h3>
                     {dj.headline && <div className="card-meta">{dj.headline}</div>}
                     {dj.bio && <p>{dj.bio}</p>}
+                    <p className="chip">{dj.hasLocalPlayer ? 'Cabina AI disponible' : 'DJ de playlists'}</p>
                     <p className="chip">Playlists destacadas: {dj.playlists_count || 0}</p>
                     {dj.activoDesde && <span className="dj-stats">Activo desde {dj.activoDesde}</span>}
                     <span className="card-link">Ver perfil →</span>

@@ -1,7 +1,6 @@
 // Componente de la barra de navegación principal
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { supabase } from '../utils/supabase';
 import { useAppUser } from '../hooks/useAppUser';
 
@@ -38,7 +37,7 @@ export default function BarraNavegacion() {
       {/* Logo y título de la aplicación */}
       <div>
         <Link href="/" className="navbar-logo">
-          <Image src="/logo.png" alt="Discoteca Online" className="navbar-logo-image" width={78} height={78} />
+          <img src="/logo.png" alt="Discoteca Online" className="navbar-logo-image" />
         </Link>
       </div>
       

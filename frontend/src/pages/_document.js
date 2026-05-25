@@ -9,6 +9,8 @@ export default function Document() {
         {/* Meta tags y configuración del head */}
         <meta charSet="utf-8" />
         <meta name="description" content="Discoteca Online - Plataforma de música" />
+        <link rel="icon" type="image/png" href="/logo.png" />
+        <link rel="apple-touch-icon" href="/logo.png" />
       </Head>
       <body>
         {/* Contenido principal de la aplicación */}

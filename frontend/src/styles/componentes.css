@@ -165,6 +165,35 @@
 }
 
 @media (max-width: 768px) {
+  .dj-playlist-wide-card .card-content {
+    grid-template-columns: 1fr;
+  }
+
+  .dj-playlist-wide-card.is-reversed .dj-playlist-info,
+  .dj-playlist-wide-card.is-reversed .dj-playlist-player {
+    order: initial;
+  }
+
+  .dj-playlist-wide-card.is-reversed .dj-playlist-info {
+    text-align: left;
+    justify-items: start;
+  }
+
+  .dj-playlist-wide-card .spotify-embed {
+    margin-top: 10px;
+  }
+
+  .public-playlist-card .card-content {
+    grid-template-columns: 1fr;
+  }
+
+  .public-playlist-card.is-reversed .public-playlist-main,
+  .public-playlist-card.is-reversed .public-playlist-meta {
+    order: initial;
+    text-align: left;
+    justify-items: start;
+  }
+
   .profile-dashboard-panel {
     padding: 20px;
     border-radius: 20px;
@@ -724,6 +753,38 @@
   padding: 34px;
 }
 
+.dj-separated-sections {
+  display: grid;
+  gap: 34px;
+}
+
+.dj-list-section {
+  display: grid;
+  gap: 18px;
+}
+
+.dj-list-header {
+  max-width: 760px;
+}
+
+.dj-list-header h3 {
+  margin: 10px 0 8px;
+  color: #ffffff;
+  font-size: clamp(1.6rem, 3vw, 2.25rem);
+}
+
+.dj-list-header p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.dj-card-local {
+  border-color: rgba(0, 255, 255, 0.32);
+  background:
+    radial-gradient(circle at 16% 18%, rgba(0, 255, 255, 0.16), transparent 34%),
+    rgba(255, 255, 255, 0.06);
+}
+
 .dj-badge {
   width: 56px;
   height: 56px;
@@ -757,6 +818,157 @@
     linear-gradient(145deg, rgba(18, 22, 31, 0.98), rgba(8, 10, 14, 0.94)),
     radial-gradient(circle at 20% 0%, var(--playlist-accent-soft, rgba(120, 130, 150, 0.16)), transparent 34%);
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dj-playlist-stack {
+  display: grid;
+  gap: 20px;
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.dj-playlist-wide-card {
+  width: 100%;
+  min-height: 0;
+  padding: clamp(18px, 3vw, 26px);
+  border-radius: 28px;
+}
+
+.dj-playlist-wide-card .card-content {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.9fr) minmax(260px, 1fr);
+  align-items: center;
+  gap: clamp(22px, 4vw, 42px);
+}
+
+.dj-playlist-info {
+  order: 2;
+  display: grid;
+  gap: 12px;
+  align-content: center;
+}
+
+.dj-playlist-player {
+  order: 1;
+  position: relative;
+  z-index: 2;
+}
+
+.dj-playlist-wide-card.is-reversed .dj-playlist-info {
+  order: 1;
+}
+
+.dj-playlist-wide-card.is-reversed .dj-playlist-player {
+  order: 2;
+}
+
+.dj-playlist-wide-card.is-reversed .dj-playlist-info {
+  text-align: right;
+  justify-items: end;
+}
+
+.dj-playlist-wide-card h3 {
+  margin: 0;
+  max-width: 520px;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 0.92;
+}
+
+.dj-playlist-wide-card .playlist-description {
+  max-width: 520px;
+  margin: 0;
+}
+
+.dj-playlist-wide-card .spotify-embed {
+  margin-top: 0;
+  width: 100%;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+}
+
+.dj-playlist-wide-card iframe {
+  border-radius: 14px;
+}
+
+.dj-playlist-wide-card .playlist-visualizer {
+  inset: auto 26px 24px auto;
+  width: 36%;
+  opacity: 0.3;
+}
+
+.public-playlist-stack {
+  display: grid;
+  gap: 22px;
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.public-playlist-card {
+  min-height: 230px;
+  padding: clamp(24px, 4vw, 38px);
+  border-radius: 30px;
+}
+
+.public-playlist-card .card-content {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(220px, 0.65fr);
+  align-items: center;
+  gap: clamp(22px, 5vw, 60px);
+}
+
+.public-playlist-main {
+  display: grid;
+  gap: 12px;
+}
+
+.public-playlist-card h3 {
+  margin: 0;
+  max-width: 680px;
+  font-size: clamp(2.4rem, 6vw, 5.4rem);
+  line-height: 0.88;
+}
+
+.public-playlist-meta {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  text-align: right;
+}
+
+.public-playlist-meta span {
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.public-playlist-meta strong {
+  color: #ffffff;
+  font-size: clamp(1.25rem, 3vw, 2rem);
+}
+
+.public-playlist-meta b {
+  color: var(--playlist-accent, #c8ff00);
+  font-size: 0.95rem;
+}
+
+.public-playlist-card.is-reversed .public-playlist-main {
+  order: 2;
+  text-align: right;
+  justify-items: end;
+}
+
+.public-playlist-card.is-reversed .public-playlist-meta {
+  order: 1;
+  justify-items: start;
+  text-align: left;
+}
+
+.public-playlist-card .playlist-visualizer {
+  inset: auto 30px 28px 30px;
+  opacity: 0.24;
 }
 
 .playlist-visual-card::after {

@@ -72,7 +72,7 @@ export default function Home() {
 
         const payload = await response.json();
         if (isMounted) {
-          setResidentDjs(payload?.djs || []);
+          setResidentDjs(payload?.localDjs || []);
         }
       } catch (error) {
         if (!controller.signal.aborted && isMounted) {
@@ -96,7 +96,7 @@ export default function Home() {
   const featuredDjs = useMemo(() => {
     return residentDjs.slice(0, 4).map((dj) => {
       const name = dj.nombre_artistico || dj.username || 'DJ Invitado';
-      const headline = dj.estilo_musical || dj.estilo_visual || 'Set en vivo';
+      const headline = dj.isLocal ? 'DJ local por código' : dj.estilo_musical || dj.estilo_visual || 'Set en vivo';
       const description = dj.bio || 'Escucha sus últimos sets y playlists.';
       const badge = name.trim().charAt(0).toUpperCase() || '🎧';
 

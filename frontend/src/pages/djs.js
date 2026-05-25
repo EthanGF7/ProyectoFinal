@@ -80,6 +80,37 @@ export default function PaginaDJs() {
     });
   }, [djs]);
 
+  const localDjs = useMemo(() => preparedDjs.filter((dj) => dj.isLocal), [preparedDjs]);
+  const userDjs = useMemo(() => preparedDjs.filter((dj) => !dj.isLocal), [preparedDjs]);
+
+  const renderDjGrid = (items) => (
+    <div className="neon-grid dj-profiles">
+      {items.map((dj) => (
+        <Link
+          key={dj.id}
+          href={dj.profileUrl}
+          className={`neon-card dj-card ${dj.isLocal ? 'dj-card-local' : ''}`}
+          onMouseMove={handleCardMouseMove}
+          onMouseEnter={handleCardMouseEnter}
+          onMouseLeave={handleCardMouseLeave}
+          onClick={handleCardClick}
+        >
+          <div className="card-content">
+            <div className="dj-badge">{dj.badge}</div>
+            <h3>{dj.nombre_artistico}</h3>
+            {dj.headline && <div className="card-meta">{dj.headline}</div>}
+            {dj.bio && <p>{dj.bio}</p>}
+            <p className="chip">{dj.isLocal ? 'DJ local por código' : 'Usuario DJ'}</p>
+            <p className="chip">{dj.hasLocalPlayer ? 'Cabina AI disponible' : 'DJ de playlists'}</p>
+            {!dj.isLocal && <p className="chip">Playlists destacadas: {dj.playlists_count || 0}</p>}
+            {dj.activoDesde && <span className="dj-stats">Activo desde {dj.activoDesde}</span>}
+            <span className="card-link">Ver perfil →</span>
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+
   return (
     <div className="page-container">
       <BarraNavegacion />
@@ -104,29 +135,24 @@ export default function PaginaDJs() {
           ) : preparedDjs.length === 0 ? (
             <div className="admin-empty">Aún no hay DJs activos. ¡Pronto llegará el primer line-up!</div>
           ) : (
-            <div className="neon-grid dj-profiles">
-              {preparedDjs.map((dj) => (
-                <Link
-                  key={dj.id}
-                  href={dj.profileUrl}
-                  className="neon-card dj-card"
-                  onMouseMove={handleCardMouseMove}
-                  onMouseEnter={handleCardMouseEnter}
-                  onMouseLeave={handleCardMouseLeave}
-                  onClick={handleCardClick}
-                >
-                  <div className="card-content">
-                    <div className="dj-badge">{dj.badge}</div>
-                    <h3>{dj.nombre_artistico}</h3>
-                    {dj.headline && <div className="card-meta">{dj.headline}</div>}
-                    {dj.bio && <p>{dj.bio}</p>}
-                    <p className="chip">{dj.hasLocalPlayer ? 'Cabina AI disponible' : 'DJ de playlists'}</p>
-                    <p className="chip">Playlists destacadas: {dj.playlists_count || 0}</p>
-                    {dj.activoDesde && <span className="dj-stats">Activo desde {dj.activoDesde}</span>}
-                    <span className="card-link">Ver perfil →</span>
-                  </div>
-                </Link>
-              ))}
+            <div className="dj-separated-sections">
+              <section className="dj-list-section">
+                <header className="dj-list-header">
+                  <span className="section-tag tag-cyan">Locales</span>
+                  <h3>DJs locales</h3>
+                  <p>Cabinas creadas por código y disponibles desde las carpetas locales del proyecto.</p>
+                </header>
+                {localDjs.length > 0 ? renderDjGrid(localDjs) : <div className="admin-empty">No hay DJs locales disponibles.</div>}
+              </section>
+
+              <section className="dj-list-section">
+                <header className="dj-list-header">
+                  <span className="section-tag tag-purple">Comunidad</span>
+                  <h3>Usuarios DJ</h3>
+                  <p>Perfiles creados por usuarios de la plataforma y sus playlists destacadas.</p>
+                </header>
+                {userDjs.length > 0 ? renderDjGrid(userDjs) : <div className="admin-empty">Aún no hay usuarios DJ activos.</div>}
+              </section>
             </div>
           )}
         </section>

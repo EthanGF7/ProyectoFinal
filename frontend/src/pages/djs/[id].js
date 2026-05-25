@@ -188,13 +188,13 @@ export default function FichaDj() {
               <p>{dj?.bio || 'Este DJ comparte playlists externas para escuchar sin descargar música.'}</p>
             </header>
 
-            <div className="dj-grid">
+            <div className="dj-playlist-stack">
               {playlists.length === 0 ? (
                 <div className="admin-empty">Este DJ todavía no tiene playlists publicadas.</div>
               ) : (
-                playlists.map((playlist) => (
+                playlists.map((playlist, index) => (
                   <article
-                    className={`neon-card dj-card playlist-visual-card visual-${getPlaylistVisualPreset(playlist)}`}
+                    className={`neon-card dj-card playlist-visual-card dj-playlist-wide-card ${index % 2 === 1 ? 'is-reversed' : ''} visual-${getPlaylistVisualPreset(playlist)}`}
                     key={playlist.id}
                     onClick={() => router.push(`/playlists/${encodeURIComponent(playlist.id)}`)}
                   >
@@ -205,35 +205,40 @@ export default function FichaDj() {
                       <span></span>
                     </div>
                     <div className="card-content">
-                      <span className="playlist-kicker">{getVisualOptionLabel(playlist.mood)}</span>
-                      <h3>{playlist.titulo}</h3>
-                      {playlist.descripcion && <p className="playlist-description">{playlist.descripcion}</p>}
-                      {getPlaylistLinks(playlist.plataformas).map((url) => {
-                        const spotifyPlaylistId = getSpotifyPlaylistId(url);
-                        if (spotifyPlaylistId) {
+                      <div className="dj-playlist-info">
+                        <span className="playlist-kicker">{getVisualOptionLabel(playlist.mood)}</span>
+                        <h3>{playlist.titulo}</h3>
+                        {playlist.descripcion && <p className="playlist-description">{playlist.descripcion}</p>}
+                        <span className="card-link">Abrir playlist →</span>
+                      </div>
+                      <div className="dj-playlist-player">
+                        {getPlaylistLinks(playlist.plataformas).map((url) => {
+                          const spotifyPlaylistId = getSpotifyPlaylistId(url);
+                          if (spotifyPlaylistId) {
+                            return (
+                              <div className="spotify-embed" key={url}>
+                                <iframe
+                                  title={`Spotify playlist ${playlist.titulo}`}
+                                  src={`https://open.spotify.com/embed/playlist/${spotifyPlaylistId}`}
+                                  width="100%"
+                                  height="180"
+                                  frameBorder="0"
+                                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                                  loading="lazy"
+                                />
+                              </div>
+                            );
+                          }
+
                           return (
-                            <div className="spotify-embed" key={url}>
-                              <iframe
-                                title={`Spotify playlist ${playlist.titulo}`}
-                                src={`https://open.spotify.com/embed/playlist/${spotifyPlaylistId}`}
-                                width="100%"
-                                height="352"
-                                frameBorder="0"
-                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                                loading="lazy"
-                              />
+                            <div className="playlist-links" key={url}>
+                              <a href={url} target="_blank" rel="noreferrer">
+                                {url}
+                              </a>
                             </div>
                           );
-                        }
-
-                        return (
-                          <div className="playlist-links" key={url}>
-                            <a href={url} target="_blank" rel="noreferrer">
-                              {url}
-                            </a>
-                          </div>
-                        );
-                      })}
+                        })}
+                      </div>
                     </div>
                   </article>
                 ))

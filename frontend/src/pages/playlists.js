@@ -1,63 +1,60 @@
-// Página para explorar todas las playlists
+﻿import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import BarraNavegacion from '../components/BarraNavegacion';
 import { useNeonCardEffects } from '../hooks/useNeonCardEffects';
 
-const spotlightPlaylists = [
-  {
-    title: 'Pulse Pop 2024',
-    description: 'Las canciones más coreadas del momento con remixes exclusivos.',
-    length: '45 canciones · 2h 30m',
-    link: '/playlists/pulse-pop',
-  },
-  {
-    title: 'Neon Tech Odyssey',
-    description: 'Tech house con subgraves vibrantes y builds interminables.',
-    length: '38 canciones · 2h 05m',
-    link: '/playlists/neon-tech',
-  },
-  {
-    title: 'Retro Groove Memories',
-    description: 'Funk y synthwave con selecciones de vinilo digitalizadas.',
-    length: '52 canciones · 3h 10m',
-    link: '/playlists/retro-groove',
-  },
+const visualOptions = [
+  { value: 'minimal', label: 'Minimal' },
+  { value: 'club', label: 'Club oscuro' },
+  { value: 'chill', label: 'Chill' },
+  { value: 'latin', label: 'Latin' },
+  { value: 'pop', label: 'Pop editorial' },
+  { value: 'retro', label: 'Retro' },
 ];
 
-const collections = [
-  {
-    heading: 'Mood Boost',
-    playlists: [
-      'Sunset Chillwave',
-      'Feel Good Pop',
-      'Morning Disco Coffee',
-    ],
-  },
-  {
-    heading: 'Club Essentials',
-    playlists: [
-      'Bassline Essentials',
-      'Glow House Anthems',
-      'Afterhours Stories',
-    ],
-  },
-  {
-    heading: 'Experiencias',
-    playlists: [
-      'Cyberpunk Night Ride',
-      'Latin Bass Carnival',
-      'Velvet Cocktail Lounge',
-    ],
-  },
-];
+function getPlaylistVisualPreset(playlist) {
+  const preset = playlist?.mood || 'minimal';
+  if (visualOptions.some((option) => option.value === preset)) return preset;
+  return 'minimal';
+}
+
+function getVisualOptionLabel(value) {
+  return visualOptions.find((option) => option.value === value)?.label || 'Minimal';
+}
 
 export default function PaginaPlaylists() {
+  const [playlists, setPlaylists] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const {
     handleCardMouseMove,
     handleCardMouseLeave,
     handleCardMouseEnter,
     handleCardClick,
   } = useNeonCardEffects();
+
+  useEffect(() => {
+    async function loadPlaylists() {
+      try {
+        setLoading(true);
+        setError('');
+        const response = await fetch('/api/playlists');
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload.error || 'No se pudieron cargar las playlists');
+        }
+
+        setPlaylists(payload.playlists || []);
+      } catch (err) {
+        setError(err.message || 'No se pudieron cargar las playlists');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPlaylists();
+  }, []);
 
   return (
     <div className="page-container">
@@ -66,63 +63,54 @@ export default function PaginaPlaylists() {
       <main className="neon-main">
         <section className="neon-section">
           <header className="section-header">
-            <span className="section-tag">Sesiones destacadas</span>
-            <h2>Playlists curadas para activar cada momento</h2>
-            <p>
-              Descubre selecciones hechas por nuestros DJs para calentar la noche, subir la energía o bajar revoluciones.
-            </p>
+            <span className="section-tag">Playlists</span>
+            <h2>Playlists creadas por usuarios DJ</h2>
+            <p>Explora todas las playlists publicadas por los DJs de la comunidad.</p>
           </header>
 
-          <div className="neon-grid">
-            {spotlightPlaylists.map((playlist) => (
-              <Link
-                key={playlist.title}
-                href={playlist.link}
-                className="neon-card playlist-card"
-                onMouseMove={handleCardMouseMove}
-                onMouseEnter={handleCardMouseEnter}
-                onMouseLeave={handleCardMouseLeave}
-                onClick={handleCardClick}
-              >
-                <div className="card-content">
-                  <h3>{playlist.title}</h3>
-                  <p>{playlist.description}</p>
-                  <div className="card-meta">{playlist.length}</div>
-                  <span className="card-link">Abrir playlist →</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <section className="neon-section">
-          <header className="section-header">
-            <span className="section-tag tag-purple">Colecciones</span>
-            <h2>Elige la vibra y deja que el set fluya</h2>
-            <p>Combina playlists según tu mood o evento; cada colección tiene transiciones pensadas para mezclar sin cortes.</p>
-          </header>
-
-          <div className="neon-grid playlist-collections">
-            {collections.map((collection) => (
-              <div
-                key={collection.heading}
-                className="neon-card neon-tile"
-                onMouseMove={handleCardMouseMove}
-                onMouseEnter={handleCardMouseEnter}
-                onMouseLeave={handleCardMouseLeave}
-              >
-                <div className="card-content">
-                  <h3>{collection.heading}</h3>
-                  <ul className="playlist-list">
-                    {collection.playlists.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                  <span className="card-link">Ver todas →</span>
-                </div>
-              </div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="admin-loading">
+              <div className="loading-spinner"></div>
+              <p>Cargando playlists...</p>
+            </div>
+          ) : error ? (
+            <div className="error-message">{error}</div>
+          ) : playlists.length === 0 ? (
+            <div className="admin-empty">Aún no hay playlists creadas por usuarios.</div>
+          ) : (
+            <div className="public-playlist-stack">
+              {playlists.map((playlist, index) => (
+                <Link
+                  key={playlist.id}
+                  href={`/playlists/${encodeURIComponent(playlist.id)}`}
+                  className={`neon-card playlist-visual-card public-playlist-card ${index % 2 === 1 ? 'is-reversed' : ''} visual-${getPlaylistVisualPreset(playlist)}`}
+                  onMouseMove={handleCardMouseMove}
+                  onMouseEnter={handleCardMouseEnter}
+                  onMouseLeave={handleCardMouseLeave}
+                  onClick={handleCardClick}
+                >
+                  <div className="playlist-visualizer" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                  <div className="card-content">
+                    <div className="public-playlist-main">
+                      <span className="playlist-kicker">{getVisualOptionLabel(playlist.mood)}</span>
+                      <h3>{playlist.titulo}</h3>
+                      {playlist.descripcion && <p className="playlist-description">{playlist.descripcion}</p>}
+                    </div>
+                    <div className="public-playlist-meta">
+                      <span>Creada por</span>
+                      <strong>{playlist.dj?.nombre_artistico || 'DJ'}</strong>
+                      <b>Abrir playlist →</b>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
       </main>
     </div>

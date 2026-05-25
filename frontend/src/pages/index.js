@@ -1,6 +1,7 @@
 // Página de inicio de la aplicación
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useNeonCardEffects } from '../hooks/useNeonCardEffects';
 import { useAppUser } from '../hooks/useAppUser';
 import { useListenHistory } from '../hooks/useListenHistory';
@@ -115,7 +116,7 @@ export default function Home() {
 
       <main className="home-main">
         <section className="home-hero">
-          <div className="hero-badge">Vibes nocturnas · 24/7</div>
+          <Image src="/logo.png" alt="Discoteca Online" className="home-hero-logo" width={220} height={220} priority />
           <h1 className="home-title">Bienvenido a Discoteca Online</h1>
           <p className="home-subtitle">
             Sintoniza sets exclusivos, descubre nuevos DJs y reserva tu lugar en los próximos eventos.

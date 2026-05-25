@@ -23,10 +23,18 @@ const defaultProfile = {
 const defaultPlaylistForm = {
   titulo: '',
   descripcion: '',
-  mood: '',
-  tempo: '',
+  mood: 'minimal',
   plataformas: '',
 };
+
+const visualOptions = [
+  { value: 'minimal', label: 'Minimal', hint: 'Elegante y limpio' },
+  { value: 'club', label: 'Club oscuro', hint: 'Líneas intensas' },
+  { value: 'chill', label: 'Chill', hint: 'Movimiento suave' },
+  { value: 'latin', label: 'Latin', hint: 'Cálido y rítmico' },
+  { value: 'pop', label: 'Pop editorial', hint: 'Color sofisticado' },
+  { value: 'retro', label: 'Retro', hint: 'Dorado vintage' },
+];
 
 function getSpotifyPlaylistId(url) {
   if (!url || typeof url !== 'string') return null;
@@ -46,6 +54,16 @@ function getPlaylistLinks(plataformas) {
     .split(',')
     .map((url) => url.trim())
     .filter((url) => url.length > 0);
+}
+
+function getPlaylistVisualPreset(playlist) {
+  const preset = playlist?.mood || 'minimal';
+  if (visualOptions.some((option) => option.value === preset)) return preset;
+  return 'minimal';
+}
+
+function getVisualOptionLabel(value) {
+  return visualOptions.find((option) => option.value === value)?.label || 'Minimal';
 }
 
 export default function PanelDj() {
@@ -187,8 +205,7 @@ export default function PanelDj() {
     const titulo = window.prompt('Título de la playlist', playlist.titulo || '')?.trim();
     if (!titulo) return;
     const descripcion = window.prompt('Descripción', playlist.descripcion || '') || '';
-    const mood = window.prompt('Mood / ambiente', playlist.mood || '') || '';
-    const tempo = window.prompt('Tempo / BPM', playlist.tempo || '') || '';
+    const mood = window.prompt('Decoración (minimal, club, chill, latin, pop o retro)', playlist.mood || 'minimal') || 'minimal';
     const plataformas = window.prompt('Enlaces (Spotify playlist, SoundCloud...)', playlist.plataformas || '') || '';
 
     try {
@@ -196,7 +213,6 @@ export default function PanelDj() {
         titulo,
         descripcion,
         mood,
-        tempo,
         plataformas,
       });
       setPlaylists((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
@@ -342,25 +358,26 @@ export default function PanelDj() {
                     rows={3}
                   />
                 </div>
-                <div className="form-row">
-                  <label>Mood / Ambiente</label>
-                  <input
-                    type="text"
-                    name="mood"
-                    value={playlistForm.mood}
-                    onChange={handlePlaylistFormChange}
-                    placeholder="Noche futurista, chill electro, sunset vibes..."
-                  />
-                </div>
-                <div className="form-row">
-                  <label>Tempo / BPM</label>
-                  <input
-                    type="text"
-                    name="tempo"
-                    value={playlistForm.tempo}
-                    onChange={handlePlaylistFormChange}
-                    placeholder="124 BPM, Mid-tempo, 90-100 BPM..."
-                  />
+                <div className="form-row playlist-decoration-row">
+                  <label>Decoración visual</label>
+                  <div className="visual-option-grid">
+                    {visualOptions.map((option) => (
+                      <label
+                        className={`visual-option visual-${option.value} ${playlistForm.mood === option.value ? 'is-selected' : ''}`}
+                        key={option.value}
+                      >
+                        <input
+                          type="radio"
+                          name="mood"
+                          value={option.value}
+                          checked={playlistForm.mood === option.value}
+                          onChange={handlePlaylistFormChange}
+                        />
+                        <span>{option.label}</span>
+                        <small>{option.hint}</small>
+                      </label>
+                    ))}
+                  </div>
                 </div>
                 <div className="form-row">
                   <label>Enlaces</label>
@@ -396,17 +413,25 @@ export default function PanelDj() {
                 playlists.map((playlist) => (
                   <div
                     key={playlist.id}
-                    className="neon-card dj-card"
+                    className={`neon-card dj-card playlist-visual-card visual-${getPlaylistVisualPreset(playlist)}`}
                     onMouseMove={handleCardMouseMove}
                     onMouseEnter={handleCardMouseEnter}
                     onMouseLeave={handleCardMouseLeave}
-                    onClick={handleCardClick}
+                    onClick={(event) => {
+                      handleCardClick(event);
+                      router.push(`/playlists/${encodeURIComponent(playlist.id)}`);
+                    }}
                   >
+                    <div className="playlist-visualizer" aria-hidden="true">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
                     <div className="card-content">
+                      <span className="playlist-kicker">{getVisualOptionLabel(playlist.mood)}</span>
                       <h3>{playlist.titulo}</h3>
-                      {playlist.descripcion && <p>{playlist.descripcion}</p>}
-                      <div className="playlist-chip">Mood: {playlist.mood || '—'}</div>
-                      <div className="playlist-chip">Tempo: {playlist.tempo || '—'}</div>
+                      {playlist.descripcion && <p className="playlist-description">{playlist.descripcion}</p>}
                       {getPlaylistLinks(playlist.plataformas).map((url) => {
                         const spotifyPlaylistId = getSpotifyPlaylistId(url);
                         if (spotifyPlaylistId) {
@@ -437,14 +462,20 @@ export default function PanelDj() {
                         <button
                           type="button"
                           className="btn-secondary"
-                          onClick={() => handleEditPlaylist(playlist)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleEditPlaylist(playlist);
+                          }}
                         >
                           Editar
                         </button>
                         <button
                           type="button"
                           className="btn-secondary"
-                          onClick={() => handleDeletePlaylist(playlist.id)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDeletePlaylist(playlist.id);
+                          }}
                         >
                           Eliminar
                         </button>

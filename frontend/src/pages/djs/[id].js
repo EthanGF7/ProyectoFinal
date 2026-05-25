@@ -5,6 +5,15 @@ import { useRouter } from 'next/router';
 import BarraNavegacion from '../../components/BarraNavegacion';
 import { supabase } from '../../utils/supabase';
 
+const visualOptions = [
+  { value: 'minimal', label: 'Minimal' },
+  { value: 'club', label: 'Club oscuro' },
+  { value: 'chill', label: 'Chill' },
+  { value: 'latin', label: 'Latin' },
+  { value: 'pop', label: 'Pop editorial' },
+  { value: 'retro', label: 'Retro' },
+];
+
 function getSpotifyPlaylistId(url) {
   if (!url || typeof url !== 'string') return null;
   try {
@@ -23,6 +32,16 @@ function getPlaylistLinks(plataformas) {
     .split(',')
     .map((url) => url.trim())
     .filter((url) => url.length > 0);
+}
+
+function getPlaylistVisualPreset(playlist) {
+  const preset = playlist?.mood || 'minimal';
+  if (visualOptions.some((option) => option.value === preset)) return preset;
+  return 'minimal';
+}
+
+function getVisualOptionLabel(value) {
+  return visualOptions.find((option) => option.value === value)?.label || 'Minimal';
 }
 
 export default function FichaDj() {
@@ -174,12 +193,21 @@ export default function FichaDj() {
                 <div className="admin-empty">Este DJ todavía no tiene playlists publicadas.</div>
               ) : (
                 playlists.map((playlist) => (
-                  <article className="neon-card dj-card" key={playlist.id}>
+                  <article
+                    className={`neon-card dj-card playlist-visual-card visual-${getPlaylistVisualPreset(playlist)}`}
+                    key={playlist.id}
+                    onClick={() => router.push(`/playlists/${encodeURIComponent(playlist.id)}`)}
+                  >
+                    <div className="playlist-visualizer" aria-hidden="true">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
                     <div className="card-content">
+                      <span className="playlist-kicker">{getVisualOptionLabel(playlist.mood)}</span>
                       <h3>{playlist.titulo}</h3>
-                      {playlist.descripcion && <p>{playlist.descripcion}</p>}
-                      <div className="playlist-chip">Mood: {playlist.mood || '—'}</div>
-                      <div className="playlist-chip">Tempo: {playlist.tempo || '—'}</div>
+                      {playlist.descripcion && <p className="playlist-description">{playlist.descripcion}</p>}
                       {getPlaylistLinks(playlist.plataformas).map((url) => {
                         const spotifyPlaylistId = getSpotifyPlaylistId(url);
                         if (spotifyPlaylistId) {

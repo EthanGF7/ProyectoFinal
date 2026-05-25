@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { useNeonCardEffects } from '../hooks/useNeonCardEffects';
 import BarraNavegacion from '../components/BarraNavegacion';
 
+const DJ_PRESETS = ['club', 'latin', 'retro', 'minimal'];
+
 const upcomingEvents = [
   {
     title: 'Noche Retro Wave',
@@ -79,11 +81,12 @@ export default function Home() {
   }, []);
 
   const featuredDjs = useMemo(() => {
-    return residentDjs.slice(0, 4).map((dj) => {
+    return residentDjs.slice(0, 4).map((dj, i) => {
       const name = dj.nombre_artistico || dj.username || 'DJ Invitado';
       const headline = dj.isLocal ? 'DJ local por código' : dj.estilo_musical || dj.estilo_visual || 'Set en vivo';
       const description = dj.bio || 'Escucha sus últimos sets y playlists.';
       const badge = name.trim().charAt(0).toUpperCase() || '🎧';
+      const preset = DJ_PRESETS[i % DJ_PRESETS.length];
 
       return {
         id: dj.id,
@@ -91,6 +94,7 @@ export default function Home() {
         headline,
         description,
         badge,
+        preset,
       };
     });
   }, [residentDjs]);
@@ -101,8 +105,8 @@ export default function Home() {
 
       <main className="home-main">
         <section className="home-hero">
-          <Image src="/logo.png" alt="Discoteca Online" className="home-hero-logo" width={220} height={220} priority />
-          <h1 className="home-title">Bienvenido a Discoteca Online</h1>
+          <Image src="/logo.png" alt="Namae Nashi" className="home-hero-logo" width={220} height={220} priority />
+          <h1 className="home-title">Bienvenido a Namae Nashi</h1>
           <p className="home-subtitle">
             Sintoniza sets exclusivos, descubre nuevos DJs y reserva tu lugar en los próximos eventos.
           </p>
@@ -126,36 +130,6 @@ export default function Home() {
             </Link>
           </div>
         </section>
-        <section className="home-section home-section-events">
-          <header className="section-header">
-            <span className="section-tag">Próximos eventos</span>
-            <h2>Luces, pista y ritmos en la agenda</h2>
-            <p>Cada semana o mes montamos un concepto único: eventos exclusivos que solo viven una vez.</p>
-          </header>
-
-          <div className="home-grid events-grid">
-            {upcomingEvents.map((event) => (
-              <Link
-                key={event.title}
-                href={event.link}
-                className="home-card event-card"
-                onMouseMove={handleCardMouseMove}
-                onMouseEnter={handleCardMouseEnter}
-                onMouseLeave={handleCardMouseLeave}
-                onClick={handleCardClick}
-              >
-                <div className="card-content">
-                  <div className="card-date">{event.date}</div>
-                  <h3>{event.title}</h3>
-                  <p>{event.description}</p>
-                  <div className="card-meta">📍 {event.location}</div>
-                  <span className="card-link">Ver detalles →</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
         <section className="home-section">
           <header className="section-header">
             <span className="section-tag tag-purple">DJs residentes</span>
@@ -163,37 +137,46 @@ export default function Home() {
             <p>Descubre sus estilos, agendas y playlists destacadas.</p>
           </header>
 
-          <div className="home-grid dj-grid">
-            {djsLoading ? (
+          {djsLoading ? (
               <div className="admin-loading">Iluminando la cabina...</div>
             ) : djsError ? (
               <div className="error-message">{djsError}</div>
             ) : featuredDjs.length === 0 ? (
               <div className="admin-empty">Aún no hay DJs activos. ¡Muy pronto sabrás quién pincha!</div>
             ) : (
-              featuredDjs.map((dj) => (
-                <Link
-                  key={dj.id}
-                  href={`/djs/${dj.id}`}
-                  className="home-card dj-card"
-                  onMouseMove={handleCardMouseMove}
-                  onMouseEnter={handleCardMouseEnter}
-                  onMouseLeave={handleCardMouseLeave}
-                  onClick={handleCardClick}
-                >
-                  <div className="card-content">
-                    <div className="card-avatar" aria-hidden="true">
-                      <span>{dj.badge}</span>
+              <div className="public-playlist-stack">
+                {featuredDjs.map((dj, index) => (
+                  <Link
+                    key={dj.id}
+                    href={`/djs/${dj.id}`}
+                    className={`neon-card playlist-visual-card public-playlist-card ${index % 2 === 1 ? 'is-reversed' : ''} visual-${dj.preset}`}
+                    onMouseMove={handleCardMouseMove}
+                    onMouseEnter={handleCardMouseEnter}
+                    onMouseLeave={handleCardMouseLeave}
+                    onClick={handleCardClick}
+                  >
+                    <div className="playlist-visualizer" aria-hidden="true">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                      <span></span>
                     </div>
-                    <h3>{dj.name}</h3>
-                    <p>{dj.description}</p>
-                    <div className="card-meta">🎶 {dj.headline}</div>
-                    <span className="card-link">Ver perfil →</span>
-                  </div>
-                </Link>
-              ))
+                    <div className="card-content">
+                      <div className="public-playlist-main">
+                        <span className="playlist-kicker">{dj.headline}</span>
+                        <h3>{dj.name}</h3>
+                        {dj.description && <p className="playlist-description">{dj.description}</p>}
+                      </div>
+                      <div className="public-playlist-meta">
+                        <span>DJ Residente</span>
+                        <strong>{dj.name}</strong>
+                        <b>Ver perfil →</b>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             )}
-          </div>
         </section>
 
         <section className="home-section home-section-highlight">

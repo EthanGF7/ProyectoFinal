@@ -660,10 +660,6 @@ export default function PaginaPerfil() {
                     {formattedLastListen && <span className="summary-meta">{formattedLastListen.time}</span>}
                   </div>
                   <div className="summary-item">
-                    <span className="summary-label">Última playlist</span>
-                    <span className="summary-value">{lastPlaylist?.playlist_name || 'Sin playlist registrada'}</span>
-                  </div>
-                  <div className="summary-item">
                     <span className="summary-label">Total de likes</span>
                     <span className="summary-value">{likedTracks.length}</span>
                   </div>

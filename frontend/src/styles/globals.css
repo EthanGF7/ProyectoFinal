@@ -21,11 +21,21 @@ iframe {
 
 body,
 .neon-body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Outfit', 'Inter', sans-serif;
   background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 50%, #16213e 100%);
   color: #ffffff;
   line-height: 1.6;
   min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Bebas Neue', 'Outfit', sans-serif;
+  letter-spacing: 0.04em;
+}
+
+code, pre, kbd,
+.card-meta, .section-tag, .playlist-kicker {
+  font-family: 'IBM Plex Mono', 'Outfit', monospace;
 }
 
 /* Contenedor principal de páginas */

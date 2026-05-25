@@ -29,11 +29,13 @@ const buildStats = (history) => {
     djCounts.set(key, current);
   });
   const topDj = [...djCounts.values()].sort((a, b) => b.count - a.count)[0] || null;
+  const lastPlaylist = history.find((entry) => entry?.playlist_name) || null;
   return {
     total: history.length,
     uniqueDjs: djCounts.size,
     lastListen: history[0] || null,
     topDj,
+    lastPlaylist,
   };
 };
 
@@ -57,7 +59,7 @@ export default async function handler(req, res) {
 
       let query = supabaseAdmin
         .from(TABLE_NAME)
-        .select('id, dj_id, dj_name, track_name, listened_at')
+        .select('id, dj_id, dj_name, playlist_id, playlist_name, track_name, listened_at')
         .in('user_id', possibleUserIds)
         .order('listened_at', { ascending: false })
         .limit(limit);
@@ -73,7 +75,7 @@ export default async function handler(req, res) {
         if (fetchError?.code === '42P01') {
           return res.status(501).json({
             error:
-              'Falta la tabla user_listen_history. Crea la tabla en Supabase con columnas: id uuid default uuid_generate_v4(), user_id uuid, dj_id text, dj_name text, track_name text, listened_at timestamptz default now().',
+              'Falta la tabla user_listen_history. Crea la tabla en Supabase con columnas: id uuid default uuid_generate_v4(), user_id uuid, dj_id text, dj_name text, playlist_id text, playlist_name text, track_name text, listened_at timestamptz default now().',
           });
         }
         return res.status(500).json({ error: 'No se pudo obtener el historial de escuchas' });
@@ -93,6 +95,8 @@ export default async function handler(req, res) {
           id: item.id,
           dj_id: item.dj_id,
           dj_name: item.dj_id,
+          playlist_id: null,
+          playlist_name: null,
           track_name: item.track_name,
           listened_at: item.updated_at,
         }));
@@ -105,7 +109,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       const body = typeof req.body === 'object' && req.body !== null ? req.body : {};
-      const { djId, djName, trackName, startedAt } = body;
+      const { djId, djName, trackName, playlistId, playlistName, startedAt } = body;
 
       if (!djId || !trackName) {
         return res.status(400).json({ error: 'djId y trackName son obligatorios' });
@@ -117,6 +121,8 @@ export default async function handler(req, res) {
         user_id: userId,
         dj_id: sanitizeText(djId, 120),
         dj_name: sanitizeText(djName, 120),
+        playlist_id: sanitizeText(playlistId, 120),
+        playlist_name: sanitizeText(playlistName, 160),
         track_name: sanitizeText(trackName, 200),
         listened_at: listenedAt,
       };
@@ -130,7 +136,7 @@ export default async function handler(req, res) {
         if (insertError?.code === '42P01') {
           return res.status(501).json({
             error:
-              'Falta la tabla user_listen_history. Crea la tabla en Supabase con columnas: id uuid default uuid_generate_v4(), user_id uuid, dj_id text, dj_name text, track_name text, listened_at timestamptz default now().',
+              'Falta la tabla user_listen_history. Crea la tabla en Supabase con columnas: id uuid default uuid_generate_v4(), user_id uuid, dj_id text, dj_name text, playlist_id text, playlist_name text, track_name text, listened_at timestamptz default now().',
           });
         }
         return res.status(500).json({ error: 'No se pudo guardar la reproducción' });

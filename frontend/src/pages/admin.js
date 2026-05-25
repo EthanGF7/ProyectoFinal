@@ -79,7 +79,7 @@ export default function PaginaAdmin() {
   useEffect(() => {
     if (!loadingAppUser) {
       if (!isAdmin) {
-        router.replace('/dashboard');
+        router.replace('/');
       } else {
         loadRequests(statusFilter);
         loadDjs();

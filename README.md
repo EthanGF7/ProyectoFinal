@@ -1,6 +1,6 @@
 # Discoteca Online
 
-Discoteca Online es una plataforma web con estética neon/disco pensada para ofrecer a los usuarios una experiencia inmersiva de comunidad musical. El proyecto combina un **frontend en Next.js 14** con autenticación mediante **Supabase** y un **backend en FastAPI** preparado para futuras integraciones (playlists, eventos, dashboards personalizados, etc.).
+Discoteca Online es una plataforma web con estética neon/disco pensada para ofrecer a los usuarios una experiencia inmersiva de comunidad musical. El proyecto combina un **frontend en Next.js 14** con autenticación mediante **Supabase** y un **backend en FastAPI** preparado para futuras integraciones (playlists, eventos, experiencias personalizadas, etc.).
 
 La aplicación actual se centra en la experiencia de registro, acceso seguro y gestión del perfil del usuario, manteniendo una interfaz altamente visual con animaciones de vinilos, gradientes luminosos y componentes responsivos.
 
@@ -31,6 +31,7 @@ ProyectoFinal/
   -Actualización inmediata del email utilizando un endpoint protegido con la Service Role Key de Supabase.
   -Botón de cierre de sesión que limpia la sesión y redirige al inicio.
 - **Barra de navegación dinámica**: muestra enlaces a login/registro solo cuando el usuario no está autenticado y acceso directo al perfil cuando sí lo está.
+- **Panel de actividad personal**: historial de últimas canciones, canciones con like, último DJ y playlist reproducida, todo desde una vista resumida en `/perfil`.
 - **Tema disco-neón** consistente: gradientes, luces dinámicas, tarjetas con borde brillante, avatar generativo pulsante y componentes responsivos.
 - **Páginas temáticas preparadas**: playlists, DJs, eventos y paneles administrativos listos para conectar con datos reales.
 
@@ -148,11 +149,13 @@ src/
 | `_app.js` | Envuelve todas las páginas y carga los estilos globales. | `globals.css`, `componentes.css` | - |
 | `_document.js` | Ajusta la plantilla HTML (lang, meta tags). | Next Document API | - |
 | `index.js` | Landing estática que introduce la discoteca y enlaza a otras secciones. | `BarraNavegacion` | Navegación a rutas públicas. |
-| `login.js` | Formulario de inicio de sesión con animación de vinilo. | `supabase.js` (cliente), `useRouter` | Redirige al dashboard tras login. |
+| `login.js` | Formulario de inicio de sesión con animación de vinilo. | `supabase.js` (cliente), `useRouter` | Redirige al perfil tras login. |
 | `registro.js` | Alta de usuarios con validaciones y popup neon. | `supabase.js`, `PopupVerificacion` | Redirige a `/login` y muestra modal tras registro. |
-| `perfil.js` | Dashboard personal: muestra metadata, permite editar username/email/password y cerrar sesión. | `supabase.js`, `BarraNavegacion`, `/api/profile/update-email` | Actualiza Supabase Auth y la API interna para cambios de email; redirige a `/login` si no hay sesión. |
-| `eventos.js`, `djs.js`, `playlists.js`, `dashboard.js`, `admin.js` | Páginas temáticas/preparadas para ampliar contenido (listados, dashboards, panel de admin). | Componentes específicos (p.ej. `EventoTematico`, `PanelAdmin`) | Sirven como contenedores para futuras integraciones. |
+| `perfil.js` | Perfil personal: muestra metadata, panel de actividad (historial, likes, resumen) y permite editar username/email/password. | `supabase.js`, `BarraNavegacion`, `/api/profile/update-email`, `useListenHistory`, `useLikedTracks` | Actualiza Supabase Auth, consume `/api/user/listen-history` y `/api/user/liked-tracks`; redirige a `/login` si no hay sesión. |
+| `eventos.js`, `djs.js`, `playlists.js`, `admin.js` | Páginas temáticas/preparadas para ampliar contenido (listados, dashboards, panel de admin). | Componentes específicos (p.ej. `EventoTematico`, `PanelAdmin`) | Sirven como contenedores para futuras integraciones. |
 | `api/profile/update-email.js` | API Route que ejecuta en servidor Next. Usa la Service Role Key para cambiar el email directamente en Supabase sin verificación. | `@supabase/supabase-js`, variable `SUPABASE_SERVICE_ROLE_KEY` | Devuelve JSON con el nuevo email o error; consumido por `perfil.js`. |
+| `api/user/listen-history.js` | Devuelve/almacena historial de escuchas con DJ, playlist y track. | `supabaseAdmin`, `getAuthenticatedUser` | Usado por `useListenHistory` para panel de actividad. |
+| `api/user/liked-tracks.js` | Devuelve los `track_reactions` con like del usuario autenticado. | `supabaseAdmin`, `getAuthenticatedUser` | Usado por `useLikedTracks` para mostrar favoritos recientes. |
 
 ### Frontend – Componentes (`src/components`)
 

@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { supabase } from '../utils/supabase';
 import { createDjRequest, fetchOwnDjRequest } from '../utils/djRequests';
 import { useAppUser } from '../hooks/useAppUser';
-import BarraNavegacion from '../components/BarraNavegacion';
 import { useListenHistory } from '../hooks/useListenHistory';
+import { useLikedTracks } from '../hooks/useLikedTracks';
+import BarraNavegacion from '../components/BarraNavegacion';
 
 export default function PaginaPerfil() {
   const [user, setUser] = useState(null);
@@ -18,7 +19,6 @@ export default function PaginaPerfil() {
   const [djRequest, setDjRequest] = useState(null);
   const [djRequestLoading, setDjRequestLoading] = useState(false);
   const [djRequestMessage, setDjRequestMessage] = useState('');
-  const [historyScope, setHistoryScope] = useState('all');
   const [editData, setEditData] = useState({
     username: '',
     email: '',
@@ -34,6 +34,13 @@ export default function PaginaPerfil() {
     refresh: refreshHistory,
     stats: historyStats,
   } = useListenHistory({ enabled: !!user, limit: 10 });
+
+  const {
+    likedTracks,
+    loading: likedLoading,
+    error: likedError,
+    refresh: refreshLiked,
+  } = useLikedTracks({ enabled: !!user, limit: 12 });
 
   const fetchCurrentUser = async () => {
     const { data, error } = await supabase.auth.getUser();
@@ -255,14 +262,6 @@ export default function PaginaPerfil() {
     }
   };
 
-  const displayedHistory = useMemo(() => {
-    if (historyScope === 'top' && historyStats.topDj?.id) {
-      const targetId = historyStats.topDj.id;
-      return listenHistory.filter((item) => (item?.dj_id || '') === targetId);
-    }
-    return listenHistory;
-  }, [historyScope, historyStats, listenHistory]);
-
   const puedeSolicitarDj = useMemo(() => {
     if (!user) return false;
     const tipo = appUser?.tipo_usuario || supabaseUser?.user_metadata?.tipo_usuario;
@@ -285,6 +284,29 @@ export default function PaginaPerfil() {
     }
     return null;
   }, [djRequest]);
+
+  const { lastListen, lastPlaylist, totalTracks, uniqueDjs } = useMemo(() => {
+    const summary = {
+      lastListen: historyStats?.lastListen || listenHistory[0] || null,
+      lastPlaylist: historyStats?.lastPlaylist || listenHistory.find((item) => item?.playlist_name) || null,
+      totalTracks: historyStats?.total || listenHistory.length,
+      uniqueDjs: historyStats?.uniqueDjs || 0,
+    };
+    return summary;
+  }, [historyStats, listenHistory]);
+
+  const formattedLastListen = lastListen
+    ? {
+        track: lastListen.track_name || 'Track sin título',
+        dj: lastListen.dj_name || 'DJ desconocido',
+        time: new Date(lastListen.listened_at).toLocaleString('es-ES', {
+          hour: '2-digit',
+          minute: '2-digit',
+          day: '2-digit',
+          month: 'short',
+        }),
+      }
+    : null;
 
   if (loading) {
     return (
@@ -489,142 +511,144 @@ export default function PaginaPerfil() {
 
           <div className="profile-stats">
             <div className="profile-stat-card">
-              <div className="stat-icon">🎵</div>
+              <div className="stat-icon">�</div>
               <div className="stat-info">
-                <h4>Playlists</h4>
-                <p>Próximamente</p>
+                <h4>Reproducciones</h4>
+                <p>{totalTracks || 0} canciones registradas</p>
               </div>
             </div>
-            
+
+            <div className="profile-stat-card">
+              <div className="stat-icon">🧑‍🎤</div>
+              <div className="stat-info">
+                <h4>DJs distintos</h4>
+                <p>{uniqueDjs || 0} nombres en tu historial</p>
+              </div>
+            </div>
+
             <div className="profile-stat-card">
               <div className="stat-icon">❤️</div>
               <div className="stat-info">
-                <h4>Favoritos</h4>
-                <p>Próximamente</p>
-              </div>
-            </div>
-            
-            <div className="profile-stat-card">
-              <div className="stat-icon">🎧</div>
-              <div className="stat-info">
-                <h4>Escuchadas</h4>
-                <p>Próximamente</p>
+                <h4>Likes guardados</h4>
+                <p>{likedTracks.length} canciones favoritas</p>
               </div>
             </div>
           </div>
 
-          <section className="profile-dashboard-panel" id="panel-actividad">
-            <div className="profile-dashboard-head">
+          <section className="profile-activity-panel" id="panel-actividad">
+            <div className="profile-activity-head">
               <div>
                 <h2>Tu panel de actividad</h2>
-                <p>Accede rápido a tus datos recientes y tu cabina personal.</p>
+                <p>Revisa tu historial reciente, favoritos y accesos rápidos.</p>
               </div>
-              <div className="profile-dashboard-actions">
+              <div className="profile-activity-actions">
                 <button
                   type="button"
                   className="btn-secondary"
-                  onClick={refreshHistory}
-                  disabled={historyLoading}
+                  onClick={() => {
+                    refreshHistory();
+                    refreshLiked();
+                  }}
+                  disabled={historyLoading || likedLoading}
                 >
-                  {historyLoading ? 'Actualizando...' : 'Actualizar' }
+                  {historyLoading || likedLoading ? 'Actualizando...' : 'Actualizar datos'}
                 </button>
-                <Link href="/dashboard" className="btn-primary-outline">
-                  Abrir panel completo →
-                </Link>
               </div>
             </div>
 
-            {historyError && (
-              <div className="error-message" style={{ marginBottom: '20px' }}>
-                {historyError}
-              </div>
-            )}
-
-            <div className="dashboard-grid profile-dashboard-grid">
-              <div className="dashboard-widget neon-tile profile-dashboard-card" id="historial-reciente">
-                <div className="card-content">
-                  <h3>🎧 Historial reciente</h3>
-                  {historyLoading ? (
-                    <p className="profile-dashboard-placeholder">Cargando últimas escuchas...</p>
-                  ) : listenHistory.length === 0 ? (
-                    <p className="profile-dashboard-placeholder">
-                      Cuando uses la cabina o escuches DJs, verás las últimas canciones aquí.
-                    </p>
-                  ) : (
-                    <>
-                      <div className="history-toggle-group">
-                        <button
-                          type="button"
-                          className={`history-toggle ${historyScope === 'all' ? 'active' : ''}`}
-                          onClick={() => setHistoryScope('all')}
-                          disabled={historyScope === 'all'}
-                        >
-                          Todas
-                        </button>
-                        <button
-                          type="button"
-                          className={`history-toggle ${historyScope === 'top' ? 'active' : ''}`}
-                          onClick={() => setHistoryScope('top')}
-                          disabled={!historyStats.topDj || historyScope === 'top'}
-                          title={historyStats.topDj ? `Ver solo sesiones con ${historyStats.topDj.name}` : 'Necesitas más escuchas para ver tu DJ más frecuente'}
-                        >
-                          Top DJ
-                        </button>
-                      </div>
-
-                      <ul className="dashboard-list profile-history-list">
-                        {displayedHistory.slice(0, 5).map((item) => (
-                          <li key={item.id || `${item.track_name}-${item.listened_at}`}>
-                            <span className="profile-history-track">{item.track_name || 'Track sin título'}</span>
-                            <span className="profile-history-meta">
-                              {item.dj_name ? `por ${item.dj_name}` : 'DJ desconocido'} ·{' '}
-                              {new Date(item.listened_at).toLocaleString('es-ES', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                day: '2-digit',
-                                month: 'short',
-                              })}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
+            <div className="profile-activity-grid">
+              <div className="activity-card">
+                <div className="card-header">
+                  <h3>🎧 Últimas canciones</h3>
+                  {historyError && <span className="card-status error">{historyError}</span>}
                 </div>
-              </div>
-
-              <div className="dashboard-widget neon-tile profile-dashboard-card">
-                <div className="card-content">
-                  <h3>📈 Tus números rápidos</h3>
-                  <ul className="dashboard-list">
-                    <li>{historyStats.total} canciones registradas recientemente</li>
-                    <li>{historyStats.uniqueDjs} DJs diferentes en tus sesiones</li>
-                    <li>
-                      Última escucha:{' '}
-                      {historyStats.lastListen
-                        ? `${historyStats.lastListen.track_name || 'Track'} · ${historyStats.lastListen.dj_name || 'DJ desconocido'}`
-                        : '—'}
-                    </li>
-                    <li>
-                      DJ más repetido:{' '}
-                      {historyStats.topDj
-                        ? `${historyStats.topDj.name} (${historyStats.topDj.count} sesiones)`
-                        : '—'}
-                    </li>
+                {historyLoading ? (
+                  <p className="card-placeholder">Cargando historial personal...</p>
+                ) : listenHistory.length === 0 ? (
+                  <p className="card-placeholder">
+                    Aún no registramos sesiones. Lanza la cabina desde tus playlists o sets y verás todo aquí.
+                  </p>
+                ) : (
+                  <ul className="activity-list">
+                    {listenHistory.slice(0, 6).map((item) => (
+                      <li key={item.id || `${item.track_name}-${item.listened_at}`}>
+                        <div className="activity-track">{item.track_name || 'Track sin título'}</div>
+                        <div className="activity-meta">
+                          {item.dj_name || 'DJ desconocido'} ·{' '}
+                          {new Date(item.listened_at).toLocaleString('es-ES', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            day: '2-digit',
+                            month: 'short',
+                          })}
+                        </div>
+                      </li>
+                    ))}
                   </ul>
-                  <span className="card-link">Seguimos guardando las 10 últimas mezclas</span>
-                </div>
+                )}
               </div>
 
-              <Link href="/dj" className="dashboard-widget neon-tile profile-dashboard-card">
-                <div className="card-content">
-                  <h3>🎚️ Cabina DJ</h3>
-                  <p>Gestiona tus playlists, bio y sesiones si ya eres DJ.</p>
-                  <span className="card-link">Ir al panel de DJ →</span>
+              <div className="activity-card">
+                <div className="card-header">
+                  <h3>❤️ Tus likes recientes</h3>
+                  {likedError && <span className="card-status error">{likedError}</span>}
                 </div>
-              </Link>
+                {likedLoading ? (
+                  <p className="card-placeholder">Consultando reacciones...</p>
+                ) : likedTracks.length === 0 ? (
+                  <p className="card-placeholder">Todavía no has marcado canciones con like.</p>
+                ) : (
+                  <ul className="activity-list">
+                    {likedTracks.slice(0, 6).map((item) => (
+                      <li key={item.id || `${item.dj_id}-${item.track_name}`}>
+                        <div className="activity-track">{item.track_name || 'Track sin título'}</div>
+                        <div className="activity-meta">
+                          {item.dj_name || item.dj_id || 'DJ desconocido'} ·{' '}
+                          {new Date(item.updated_at).toLocaleString('es-ES', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            day: '2-digit',
+                            month: 'short',
+                          })}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="activity-card">
+                <div className="card-header">
+                  <h3>📊 Resumen rápido</h3>
+                </div>
+                <div className="activity-summary">
+                  <div className="summary-item">
+                    <span className="summary-label">Último DJ escuchado</span>
+                    <span className="summary-value">{formattedLastListen?.dj || 'Sin datos'}</span>
+                  </div>
+                  <div className="summary-item">
+                    <span className="summary-label">Última canción</span>
+                    <span className="summary-value">{formattedLastListen?.track || 'Sin datos'}</span>
+                    {formattedLastListen && <span className="summary-meta">{formattedLastListen.time}</span>}
+                  </div>
+                  <div className="summary-item">
+                    <span className="summary-label">Última playlist</span>
+                    <span className="summary-value">{lastPlaylist?.playlist_name || 'Sin playlist registrada'}</span>
+                  </div>
+                  <div className="summary-item">
+                    <span className="summary-label">Total de likes</span>
+                    <span className="summary-value">{likedTracks.length}</span>
+                  </div>
+                </div>
+                <div className="activity-footer">
+                  <Link href="/playlists" className="card-link">
+                    Explorar playlists →
+                  </Link>
+                </div>
+              </div>
             </div>
           </section>
+
         </div>
       </div>
     </div>

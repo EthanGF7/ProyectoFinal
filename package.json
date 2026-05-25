@@ -1,9 +1,9 @@
 {
   "name": "discoteca-online",
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:frontend": "cd frontend && npm run dev",
-    "dev:backend": "cd backend && npm run dev"
+    "dev": "npm --prefix frontend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "python -m uvicorn main:app --reload --port 5000 --app-dir backend"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

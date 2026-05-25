@@ -5,6 +5,20 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+}
+
 body,
 .neon-body {
   font-family: 'Inter', sans-serif;
@@ -115,4 +129,21 @@ body,
 .text-secondary {
   color: #666;
   margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+  .page-content,
+  .page-content-centered,
+  .form-content {
+    padding: 24px 16px;
+  }
+
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .page-title {
+    font-size: clamp(1.6rem, 8vw, 2rem);
+  }
 }

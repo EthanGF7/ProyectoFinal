@@ -658,10 +658,6 @@
   color: #ffffff;
 }
 
-.dj-card .card-content {
-  gap: 10px;
-}
-
 .card-avatar {
   width: 60px;
   height: 60px;
@@ -726,11 +722,164 @@
 }
 
 .dj-profiles {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: 1fr;
+  gap: 22px;
 }
 
 .dj-card {
-  padding: 34px;
+  padding: 28px;
+  min-height: 230px;
+  overflow: hidden;
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(160, 88, 255, 0.22), transparent 34%),
+    radial-gradient(circle at 90% 0%, rgba(0, 255, 255, 0.16), transparent 36%),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.08) 0 1px, transparent 1px 100%),
+    linear-gradient(145deg, rgba(14, 17, 27, 0.96), rgba(6, 8, 14, 0.92));
+  background-size: auto, auto, 42px 100%, auto;
+  box-shadow:
+    0 26px 70px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dj-card:hover {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(160, 88, 255, 0.22), transparent 34%),
+    radial-gradient(circle at 90% 0%, rgba(0, 255, 255, 0.16), transparent 36%),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.08) 0 1px, transparent 1px 100%),
+    linear-gradient(145deg, rgba(14, 17, 27, 0.96), rgba(6, 8, 14, 0.92));
+  background-size: auto, auto, 42px 100%, auto;
+}
+
+.dj-card.card-pulse {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(160, 88, 255, 0.22), transparent 34%),
+    radial-gradient(circle at 90% 0%, rgba(0, 255, 255, 0.16), transparent 36%),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.08) 0 1px, transparent 1px 100%),
+    linear-gradient(145deg, rgba(14, 17, 27, 0.96), rgba(6, 8, 14, 0.92));
+  background-size: auto, auto, 42px 100%, auto;
+}
+
+.dj-card::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 36%),
+    radial-gradient(circle at var(--pointer-x, 50%) var(--pointer-y, 50%), rgba(255, 255, 255, 0.12), transparent 42%);
+  opacity: 0.7;
+}
+
+.dj-card .card-content {
+  position: relative;
+  z-index: 2;
+  min-height: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(18px, 4vw, 34px);
+}
+
+.dj-card-eq {
+  position: absolute;
+  right: clamp(18px, 4vw, 34px);
+  bottom: 18px;
+  display: flex;
+  align-items: end;
+  gap: 6px;
+  height: 52px;
+  opacity: 0.16;
+  pointer-events: none;
+}
+
+.dj-card-eq span {
+  width: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(216, 228, 255, 0.72), rgba(0, 255, 255, 0.38));
+  box-shadow: 0 0 14px rgba(0, 255, 255, 0.22);
+}
+
+.dj-card-eq span:nth-child(1) {
+  height: 42%;
+}
+
+.dj-card-eq span:nth-child(2) {
+  height: 72%;
+}
+
+.dj-card-eq span:nth-child(3) {
+  height: 54%;
+}
+
+.dj-card-eq span:nth-child(4) {
+  height: 88%;
+}
+
+.dj-card-top,
+.dj-card-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.dj-card-status {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(235, 240, 255, 0.78);
+  background: rgba(255, 255, 255, 0.045);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.dj-card-body {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.dj-card-body h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(1.8rem, 3vw, 2.65rem);
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  text-shadow: 0 0 18px rgba(0, 255, 255, 0.1);
+}
+
+.dj-card-body p {
+  margin: 0;
+  color: rgba(235, 240, 255, 0.7);
+  line-height: 1.65;
+}
+
+.dj-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-content: center;
+  justify-content: flex-start;
+}
+
+.dj-card .chip {
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(225, 234, 255, 0.72);
+  background: rgba(255, 255, 255, 0.045);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .dj-separated-sections {
@@ -759,23 +908,52 @@
 }
 
 .dj-card-local {
-  border-color: rgba(0, 255, 255, 0.32);
+  border-color: rgba(255, 255, 255, 0.12);
   background:
-    radial-gradient(circle at 16% 18%, rgba(0, 255, 255, 0.16), transparent 34%),
-    rgba(255, 255, 255, 0.06);
+    radial-gradient(circle at 18% 12%, rgba(160, 88, 255, 0.22), transparent 34%),
+    radial-gradient(circle at 90% 0%, rgba(0, 255, 255, 0.16), transparent 36%),
+    linear-gradient(145deg, rgba(14, 17, 27, 0.96), rgba(6, 8, 14, 0.92));
+}
+
+.dj-card-local:hover {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(160, 88, 255, 0.22), transparent 34%),
+    radial-gradient(circle at 90% 0%, rgba(0, 255, 255, 0.16), transparent 36%),
+    linear-gradient(145deg, rgba(14, 17, 27, 0.96), rgba(6, 8, 14, 0.92));
+}
+
+.dj-card-local.card-pulse {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(160, 88, 255, 0.22), transparent 34%),
+    radial-gradient(circle at 90% 0%, rgba(0, 255, 255, 0.16), transparent 36%),
+    linear-gradient(145deg, rgba(14, 17, 27, 0.96), rgba(6, 8, 14, 0.92));
 }
 
 .dj-badge {
-  width: 56px;
-  height: 56px;
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  margin-bottom: 18px;
+  color: #ffffff;
+  font-size: 1.85rem;
+  font-weight: 900;
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.22), transparent 28%),
+    linear-gradient(135deg, rgba(64, 80, 120, 0.76), rgba(18, 24, 38, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.dj-badge::after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: inherit;
+  border: 2px solid rgba(6, 8, 14, 0.72);
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.08);
 }
 
 .dj-stats {
@@ -1725,10 +1903,12 @@
 }
 
 .dj-card .chip {
-  display: block;
-  margin-top: 8px;
-  color: rgba(0, 255, 255, 0.75);
-  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin: 0;
+  color: rgba(225, 234, 255, 0.72);
+  font-size: 0.78rem;
 }
 
 .dj-player-section {
@@ -4033,5 +4213,181 @@
   
   .profile-edit-actions {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 900px) {
+  .navbar {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .navbar-logo-image {
+    width: 58px;
+    height: 58px;
+  }
+
+  .navbar-menu,
+  .navbar-auth {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .navbar-link,
+  .navbar-login,
+  .navbar-register {
+    padding: 8px 10px;
+    font-size: 0.9rem;
+  }
+
+  .neon-main {
+    padding-inline: clamp(14px, 4vw, 28px);
+  }
+
+  .neon-section {
+    padding: clamp(28px, 6vw, 44px) clamp(18px, 5vw, 30px);
+  }
+
+  .home-grid,
+  .neon-grid,
+  .events-grid,
+  .curated-grid,
+  .dj-profiles {
+    grid-template-columns: 1fr;
+  }
+
+  .dj-card,
+  .home-card,
+  .neon-card,
+  .public-playlist-card,
+  .dj-playlist-wide-card {
+    padding: clamp(20px, 5vw, 28px);
+  }
+
+  .dj-card {
+    min-height: auto;
+  }
+
+  .dj-card .card-content {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .dj-card-top,
+  .dj-card-footer {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .dj-card-body h3,
+  .public-playlist-card h3,
+  .dj-playlist-wide-card h3,
+  .section-header h2 {
+    overflow-wrap: anywhere;
+  }
+
+  .public-playlist-stack,
+  .dj-playlist-stack {
+    max-width: 100%;
+  }
+
+  .public-playlist-card {
+    min-height: auto;
+  }
+
+  .playlist-visual-card {
+    min-height: auto;
+  }
+
+  .playlist-visualizer {
+    opacity: 0.18;
+  }
+
+  .rhythm-options,
+  .rhythm-scoreboard {
+    grid-template-columns: 1fr;
+  }
+
+  .rhythm-orbit {
+    width: min(80vw, 320px);
+    height: min(80vw, 320px);
+  }
+
+  .profile-input {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .navbar {
+    position: sticky;
+  }
+
+  .navbar-menu,
+  .navbar-auth {
+    width: 100%;
+  }
+
+  .navbar-link,
+  .navbar-login,
+  .navbar-register {
+    font-size: 0.82rem;
+    padding: 7px 8px;
+  }
+
+  .section-header h2 {
+    font-size: clamp(2rem, 12vw, 3.2rem);
+    line-height: 0.95;
+  }
+
+  .section-header p,
+  .dj-list-header p,
+  .playlist-description {
+    font-size: 0.95rem;
+  }
+
+  .dj-card-top,
+  .dj-card-footer,
+  .profile-dashboard-head,
+  .highlight-actions {
+    flex-direction: column;
+  }
+
+  .dj-badge {
+    width: 58px;
+    height: 58px;
+    font-size: 1.55rem;
+  }
+
+  .dj-chip-row {
+    gap: 6px;
+  }
+
+  .public-playlist-meta,
+  .public-playlist-card.is-reversed .public-playlist-main,
+  .dj-playlist-wide-card.is-reversed .dj-playlist-info {
+    text-align: left;
+    justify-items: start;
+  }
+
+  .spotify-embed iframe {
+    min-height: 152px;
+  }
+
+  .rhythm-page {
+    padding-inline: 14px;
+  }
+
+  .rhythm-stage-simple {
+    min-height: 340px;
+  }
+
+  .profile-background::before,
+  .profile-background::after {
+    width: 420px;
+    height: 420px;
   }
 }

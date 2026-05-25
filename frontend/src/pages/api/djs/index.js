@@ -21,6 +21,22 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Error obteniendo DJs' });
     }
 
+    const { data: playlistRows, error: playlistError } = await supabaseAdmin
+      .from('dj_playlists')
+      .select('dj_id');
+
+    const playlistCounts = new Map();
+
+    if (playlistError) {
+      if (playlistError.code !== '42P01' && playlistError.code !== '42703') {
+        console.warn('[public/djs] No se pudieron contar playlists:', playlistError);
+      }
+    } else {
+      (playlistRows || []).forEach((playlist) => {
+        playlistCounts.set(playlist.dj_id, (playlistCounts.get(playlist.dj_id) || 0) + 1);
+      });
+    }
+
     const userDjs = (data || [])
       .filter((dj) => !LOCAL_DJ_NAMES.some((name) => name.toLowerCase() === dj.nombre_artistico?.toLowerCase()))
       .map((dj) => ({
@@ -32,7 +48,7 @@ export default async function handler(req, res) {
         created_at: dj.created_at,
         username: dj.app_users?.username || null,
         email: dj.app_users?.email || null,
-        playlists_count: 0,
+        playlists_count: playlistCounts.get(dj.id) || 0,
         isLocal: false,
         hasLocalPlayer: Boolean(resolveDjScript(dj.id, dj.nombre_artistico)),
       }));

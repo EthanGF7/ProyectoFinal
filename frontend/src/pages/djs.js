@@ -4,19 +4,6 @@ import Link from 'next/link';
 import BarraNavegacion from '../components/BarraNavegacion';
 import { useNeonCardEffects } from '../hooks/useNeonCardEffects';
 
-const residencies = [
-  {
-    title: 'Glow House Fridays',
-    description: 'Residencia semanal con colaboraciones en vivo y sets B2B sorpresa.',
-    link: '/eventos#glow-house',
-  },
-  {
-    title: 'Noches Retro Wave',
-    description: 'Lineup rotativo de synthwave con visuales VHS y challengers retro.',
-    link: '/eventos#retro-wave',
-  },
-];
-
 export default function PaginaDJs() {
   const [djs, setDjs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -96,15 +83,30 @@ export default function PaginaDJs() {
           onClick={handleCardClick}
         >
           <div className="card-content">
-            <div className="dj-badge">{dj.badge}</div>
-            <h3>{dj.nombre_artistico}</h3>
-            {dj.headline && <div className="card-meta">{dj.headline}</div>}
-            {dj.bio && <p>{dj.bio}</p>}
-            <p className="chip">{dj.isLocal ? 'DJ local por código' : 'Usuario DJ'}</p>
-            <p className="chip">{dj.hasLocalPlayer ? 'Cabina AI disponible' : 'DJ de playlists'}</p>
-            {!dj.isLocal && <p className="chip">Playlists destacadas: {dj.playlists_count || 0}</p>}
-            {dj.activoDesde && <span className="dj-stats">Activo desde {dj.activoDesde}</span>}
-            <span className="card-link">Ver perfil →</span>
+            <div className="dj-card-eq" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div className="dj-card-top">
+              <div className="dj-badge">{dj.badge}</div>
+              <span className="dj-card-status">{dj.isLocal ? 'Local' : 'Comunidad'}</span>
+            </div>
+            <div className="dj-card-body">
+              <h3>{dj.nombre_artistico}</h3>
+              {dj.headline && <div className="card-meta">{dj.headline}</div>}
+              {dj.bio && <p>{dj.bio}</p>}
+            </div>
+            <div className="dj-chip-row">
+              <p className="chip">{dj.isLocal ? 'Código local' : 'Usuario DJ'}</p>
+              <p className="chip">{dj.hasLocalPlayer ? 'Cabina AI' : 'Playlists'}</p>
+              {!dj.isLocal && <p className="chip">{dj.playlists_count || 0} playlists</p>}
+            </div>
+            <div className="dj-card-footer">
+              {dj.activoDesde && <span className="dj-stats">Activo desde {dj.activoDesde}</span>}
+              <span className="card-link">Ver perfil →</span>
+            </div>
           </div>
         </Link>
       ))}
@@ -155,34 +157,6 @@ export default function PaginaDJs() {
               </section>
             </div>
           )}
-        </section>
-
-        <section className="neon-section">
-          <header className="section-header">
-            <span className="section-tag">Residencias</span>
-            <h2>Noches fijas donde podrás encontrarlos</h2>
-            <p>Reserva tu entrada y prepárate para pistas iluminadas, visuales envolventes y sets sorpresa.</p>
-          </header>
-
-          <div className="highlight-actions curated-grid">
-            {residencies.map((item) => (
-              <Link
-                key={item.title}
-                href={item.link}
-                className="neon-card curated-card"
-                onMouseMove={handleCardMouseMove}
-                onMouseEnter={handleCardMouseEnter}
-                onMouseLeave={handleCardMouseLeave}
-                onClick={handleCardClick}
-              >
-                <div className="card-content">
-                  <h3>{item.title}</h3>
-                  <p>{item.description}</p>
-                  <span className="card-link">Ver programación →</span>
-                </div>
-              </Link>
-            ))}
-          </div>
         </section>
       </main>
     </div>

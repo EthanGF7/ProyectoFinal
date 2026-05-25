@@ -3,8 +3,6 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useNeonCardEffects } from '../hooks/useNeonCardEffects';
-import { useAppUser } from '../hooks/useAppUser';
-import { useListenHistory } from '../hooks/useListenHistory';
 import BarraNavegacion from '../components/BarraNavegacion';
 
 const upcomingEvents = [
@@ -42,19 +40,6 @@ export default function Home() {
   const [residentDjs, setResidentDjs] = useState([]);
   const [djsLoading, setDjsLoading] = useState(true);
   const [djsError, setDjsError] = useState(null);
-  const { appUser } = useAppUser();
-  const isLogged = Boolean(appUser);
-
-  const {
-    history: listenHistory,
-    loading: historyLoading,
-    error: historyError,
-    stats: historyStats,
-  } = useListenHistory({ enabled: isLogged, limit: 5 });
-
-  const lastListen = listenHistory[0] || null;
-  const secondaryListens = listenHistory.slice(1, 4);
-
   useEffect(() => {
     let isMounted = true;
     const controller = new AbortController();
@@ -141,82 +126,11 @@ export default function Home() {
             </Link>
           </div>
         </section>
-
-        {isLogged && (
-          <section className="home-section home-section-personal">
-            <header className="section-header">
-              <span className="section-tag tag-cyan">Tu actividad</span>
-              <h2>Retoma tu última sesión</h2>
-              <p>Revisa lo que escuchaste recientemente y vuelve a tu perfil para seguir mezclando.</p>
-            </header>
-
-            <div className="home-grid personal-grid">
-              <div className="home-card personal-card">
-                <div className="card-content">
-                  {historyLoading ? (
-                    <p className="personal-placeholder">Cargando historial personal...</p>
-                  ) : historyError ? (
-                    <p className="personal-placeholder">{historyError}</p>
-                  ) : !lastListen ? (
-                    <p className="personal-placeholder">
-                      Aún no registramos sesiones. Lanza la cabina desde tu perfil y las verás aquí.
-                    </p>
-                  ) : (
-                    <>
-                      <div className="personal-now-playing">
-                        <span className="personal-label">Última reproducción</span>
-                        <h3>{lastListen.track_name || 'Track sin título'}</h3>
-                        <p className="personal-meta">
-                          {lastListen.dj_name || 'DJ desconocido'} ·{' '}
-                          {new Date(lastListen.listened_at).toLocaleString('es-ES', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            day: '2-digit',
-                            month: 'short',
-                          })}
-                        </p>
-                      </div>
-
-                      {secondaryListens.length > 0 && (
-                        <ul className="personal-history-list">
-                          {secondaryListens.map((item) => (
-                            <li key={item.id || item.listened_at}>
-                              <span className="personal-track">{item.track_name || 'Track sin título'}</span>
-                              <span className="personal-meta">
-                                {item.dj_name || 'DJ desconocido'} ·{' '}
-                                {new Date(item.listened_at).toLocaleString('es-ES', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                  day: '2-digit',
-                                  month: 'short',
-                                })}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      <div className="personal-actions">
-                        <Link href="/perfil" className="hero-cta hero-cta-outline">
-                          Ir a tu perfil
-                        </Link>
-                        <span className="personal-stat">
-                          Guardamos {historyStats.total} canciones · {historyStats.uniqueDjs} DJs distintos
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
         <section className="home-section home-section-events">
           <header className="section-header">
             <span className="section-tag">Próximos eventos</span>
             <h2>Luces, pista y ritmos en la agenda</h2>
-            <p>Haz clic en cada tarjeta para ver la programación completa y asegurar tu spot.</p>
+            <p>Cada semana o mes montamos un concepto único: eventos exclusivos que solo viven una vez.</p>
           </header>
 
           <div className="home-grid events-grid">

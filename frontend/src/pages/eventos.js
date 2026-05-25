@@ -49,7 +49,7 @@ export default function PaginaEventos() {
           <header className="section-header">
             <span className="section-tag">Evento en curso</span>
             <h2>Vive experiencias temáticas inmersivas</h2>
-            <p>Cada semana transformamos la discoteca con mundos inspirados en películas y universos cyber.</p>
+            <p>Cada semana o mes transformamos la discoteca con conceptos exclusivos que solo ocurren una vez.</p>
           </header>
 
           <Link

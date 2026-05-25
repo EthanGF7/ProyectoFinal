@@ -147,7 +147,7 @@ export default function Home() {
             <header className="section-header">
               <span className="section-tag tag-cyan">Tu actividad</span>
               <h2>Retoma tu última sesión</h2>
-              <p>Revisa lo que escuchaste recientemente y vuelve al panel para seguir mezclando.</p>
+              <p>Revisa lo que escuchaste recientemente y vuelve a tu perfil para seguir mezclando.</p>
             </header>
 
             <div className="home-grid personal-grid">
@@ -197,8 +197,8 @@ export default function Home() {
                       )}
 
                       <div className="personal-actions">
-                        <Link href="/perfil#panel-actividad" className="hero-cta hero-cta-outline">
-                          Ver panel de actividad
+                        <Link href="/perfil" className="hero-cta hero-cta-outline">
+                          Ir a tu perfil
                         </Link>
                         <span className="personal-stat">
                           Guardamos {historyStats.total} canciones · {historyStats.uniqueDjs} DJs distintos
@@ -299,12 +299,12 @@ export default function Home() {
               Explorar playlists
             </Link>
             <Link
-              href="/dashboard"
+              href="/perfil"
               className="hero-cta hero-cta-outline"
               onMouseMove={handleCardMouseMove}
               onMouseLeave={handleCardMouseLeave}
             >
-              Abrir tu dashboard
+              Abrir tu perfil
             </Link>
           </div>
         </section>

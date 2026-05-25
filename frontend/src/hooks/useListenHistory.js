@@ -101,6 +101,7 @@ export const useListenHistory = ({ enabled = true, limit = 10, djId = null } = {
         uniqueDjs: 0,
         lastListen: null,
         topDj: null,
+        lastPlaylist: null,
       };
     }
 
@@ -117,6 +118,7 @@ export const useListenHistory = ({ enabled = true, limit = 10, djId = null } = {
     });
 
     const [topDjKey, topDjValue] = [...uniqueDjs.entries()].sort((a, b) => b[1].count - a[1].count)[0] || [null, null];
+    const lastPlaylist = history.find((entry) => entry?.playlist_name) || null;
 
     return {
       ...(serverStats || {}),
@@ -124,6 +126,7 @@ export const useListenHistory = ({ enabled = true, limit = 10, djId = null } = {
       uniqueDjs: uniqueDjs.size,
       lastListen: history[0] || null,
       topDj: topDjKey ? { id: topDjKey, ...topDjValue } : null,
+      lastPlaylist,
     };
   }, [getDjKey, history, serverStats]);
 

@@ -49,7 +49,7 @@ export default function PaginaLogin() {
 
         setSuccess('¡Inicio de sesión exitoso! Redirigiendo...');
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push('/perfil');
         }, 1500);
       }
     } catch (error) {

@@ -76,7 +76,7 @@ export default function PaginaDJs() {
         <Link
           key={dj.id}
           href={dj.profileUrl}
-          className={`neon-card dj-card ${dj.isLocal ? 'dj-card-local' : ''}`}
+          className={`neon-card dj-card ${dj.isLocal ? 'dj-card-local' : 'dj-card-community'}`}
           onMouseMove={handleCardMouseMove}
           onMouseEnter={handleCardMouseEnter}
           onMouseLeave={handleCardMouseLeave}

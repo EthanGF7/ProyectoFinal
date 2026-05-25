@@ -343,7 +343,7 @@ export default function PaginaAdmin() {
 
             {djsError && <div className="error-message">{djsError}</div>}
 
-            <div className="dj-grid">
+            <div className="admin-dj-list">
               {djsLoading ? (
                 <div className="admin-loading">
                   <div className="loading-spinner"></div>
@@ -353,14 +353,29 @@ export default function PaginaAdmin() {
                 <div className="admin-empty">Todavía no hay DJs registrados.</div>
               ) : (
                 djs.map((dj) => (
-                  <div key={dj.id} className="neon-card dj-card" onMouseMove={handleCardMouseMove} onMouseEnter={handleCardMouseEnter} onMouseLeave={handleCardMouseLeave}>
-                    <div className="card-content">
-                      <h3>{dj.nombre_artistico}</h3>
-                      <div className="card-meta">{dj.app_users?.email}</div>
-                      {dj.bio && <p>{dj.bio}</p>}
-                      <p className="chip">Estilo visual: {dj.estilo_visual || '—'}</p>
-                      <p className="chip">Estilo musical: {dj.estilo_musical || '—'}</p>
-                      <div className="admin-request-actions">
+                  <div
+                    key={dj.id}
+                    className="neon-card admin-dj-wide-card"
+                    onMouseMove={handleCardMouseMove}
+                    onMouseEnter={handleCardMouseEnter}
+                    onMouseLeave={handleCardMouseLeave}
+                  >
+                    <div className="card-content admin-dj-wide-content">
+                      <div className="admin-dj-wide-main">
+                        <div className="admin-dj-wide-header">
+                          <h3>{dj.nombre_artistico}</h3>
+                          <div className="card-meta">{dj.app_users?.email}</div>
+                        </div>
+
+                        {dj.bio && <p className="admin-dj-wide-bio">{dj.bio}</p>}
+
+                        <div className="admin-dj-wide-tags">
+                          <span className="chip">Estilo visual: {dj.estilo_visual || '—'}</span>
+                          <span className="chip">Estilo musical: {dj.estilo_musical || '—'}</span>
+                        </div>
+                      </div>
+
+                      <div className="admin-dj-wide-actions">
                         <button type="button" className="btn-secondary" onClick={() => {
                           const nombre_artistico = window.prompt('Nombre artístico', dj.nombre_artistico || '');
                           if (!nombre_artistico) return;

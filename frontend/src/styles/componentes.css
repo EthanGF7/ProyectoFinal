@@ -1016,6 +1016,20 @@
   border-color: rgba(255, 255, 255, 0.1);
 }
 
+.playlist-visual-card .card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  grid-template-columns: unset;
+  align-items: flex-start;
+  height: 100%;
+}
+
+.dj-grid .playlist-visual-card {
+  min-height: unset;
+  height: auto;
+}
+
 .dj-playlist-stack {
   display: grid;
   gap: 20px;
@@ -1784,6 +1798,7 @@
   display: grid;
   gap: clamp(18px, 3vw, 28px);
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  align-items: start;
 }
 
 .dj-card {
@@ -1898,11 +1913,15 @@
   border-radius: 14px;
   border: 1px solid rgba(30, 215, 96, 0.28);
   background: rgba(0, 0, 0, 0.35);
+  width: 100%;
+  max-width: 100%;
 }
 
 .spotify-embed iframe {
   display: block;
   border: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .form-helper {

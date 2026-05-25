@@ -420,7 +420,7 @@ export default function PanelDj() {
                                 title={`Spotify playlist ${playlist.titulo}`}
                                 src={`https://open.spotify.com/embed/playlist/${spotifyPlaylistId}`}
                                 width="100%"
-                                height="352"
+                                height="232"
                                 frameBorder="0"
                                 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                                 loading="lazy"

@@ -50,5 +50,9 @@ def key_compatibility_bonus(k1: str, k2: str) -> int:
     # Two steps: works but less ideal
     if l1 == l2 and abs(n1 - n2) in (2, 10):
         return 5
-    
+
+    # Three steps: usable in practice, not ideal
+    if l1 == l2 and abs(n1 - n2) in (3, 9):
+        return 2
+
     return 0

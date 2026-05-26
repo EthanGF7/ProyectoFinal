@@ -2949,6 +2949,42 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
+.pwd-strength {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.pwd-strength-bar {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.pwd-strength-seg {
+  height: 4px;
+  flex: 1;
+  border-radius: 2px;
+  transition: background 0.3s ease;
+}
+
+.pwd-strength-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: color 0.3s ease;
+}
+
+.pwd-hint {
+  margin: 6px 0 0;
+  font-size: 0.76rem;
+  color: rgba(200, 210, 255, 0.5);
+  line-height: 1.4;
+}
+
 .form-select {
   width: 100%;
   padding: 15px 20px;

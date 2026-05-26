@@ -1,5 +1,6 @@
 ﻿// Página de perfil de usuario
 import { useState, useEffect, useMemo } from 'react';
+import { validarPassword, passwordStrength } from '../utils/helpers';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { supabase } from '../utils/supabase';
@@ -32,6 +33,7 @@ export default function PaginaPerfil() {
   const [likedTracks, setLikedTracks] = useState([]);
   const [likedLoading, setLikedLoading] = useState(false);
   const [likedError, setLikedError] = useState('');
+  const [pwdStrength, setPwdStrength] = useState({ level: 0, label: '', color: '' });
 
   const fetchActivity = async () => {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -144,12 +146,12 @@ export default function PaginaPerfil() {
   };
 
   const handleInputChange = (e) => {
-    setEditData({
-      ...editData,
-      [e.target.name]: e.target.value
-    });
+    setEditData({ ...editData, [e.target.name]: e.target.value });
     setSuccess('');
     setError('');
+    if (e.target.name === 'password') {
+      setPwdStrength(passwordStrength(e.target.value));
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -161,16 +163,18 @@ export default function PaginaPerfil() {
       const previousEmail = user?.email || '';
 
       // Validar contraseñas si se están cambiando
-      if (editData.password && editData.password !== editData.confirmPassword) {
-        setError('Las contraseñas no coinciden');
-        setLoading(false);
-        return;
-      }
-
-      if (editData.password && editData.password.length < 6) {
-        setError('La contraseña debe tener al menos 6 caracteres');
-        setLoading(false);
-        return;
+      if (editData.password) {
+        const pwdCheck = validarPassword(editData.password);
+        if (!pwdCheck.ok) {
+          setError(pwdCheck.error);
+          setLoading(false);
+          return;
+        }
+        if (editData.password !== editData.confirmPassword) {
+          setError('Las contraseñas no coinciden');
+          setLoading(false);
+          return;
+        }
       }
 
       // Preparar datos de actualización
@@ -460,6 +464,23 @@ export default function PaginaPerfil() {
                       className="profile-input"
                       placeholder="Nueva contraseña (opcional)"
                     />
+                    {pwdStrength.level > 0 && (
+                      <div className="pwd-strength">
+                        <div className="pwd-strength-bar">
+                          {[1,2,3,4,5].map(i => (
+                            <div
+                              key={i}
+                              className="pwd-strength-seg"
+                              style={{ background: i <= pwdStrength.level ? pwdStrength.color : 'rgba(255,255,255,0.1)' }}
+                            />
+                          ))}
+                        </div>
+                        <span className="pwd-strength-label" style={{ color: pwdStrength.color }}>
+                          {pwdStrength.label}
+                        </span>
+                      </div>
+                    )}
+                    <p className="pwd-hint">Mínimo 8 caracteres, una mayúscula, un número y un símbolo</p>
                   </div>
 
                   <div className="profile-field">

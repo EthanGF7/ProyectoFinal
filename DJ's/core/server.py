@@ -107,11 +107,11 @@ class DJHandler(BaseHTTPRequestHandler):
         except Exception:
             played_list = []
 
-        prefs = self.server.prefs
+        prefs = dict(self.server.prefs)
         try:
             user_prefs = json.loads(urllib.parse.unquote(qs.get("prefs", ["{}"])[0]))
             if isinstance(user_prefs, dict):
-                prefs = user_prefs
+                prefs.update(user_prefs)
         except Exception:
             pass
 

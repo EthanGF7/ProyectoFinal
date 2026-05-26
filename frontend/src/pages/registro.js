@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { supabase } from '../utils/supabase';
 import { syncUserProfile } from '../utils/profileSync';
+import { validarPassword, passwordStrength } from '../utils/helpers';
 import PopupVerificacion from '../components/PopupVerificacion';
 
 export default function PaginaRegistro() {
@@ -18,14 +19,16 @@ export default function PaginaRegistro() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showPopup, setShowPopup] = useState(false);
+  const [pwdStrength, setPwdStrength] = useState({ level: 0, label: '', color: '' });
   const router = useRouter();
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    setError(''); // Limpiar errores al escribir
+    const updated = { ...formData, [e.target.name]: e.target.value };
+    setFormData(updated);
+    setError('');
+    if (e.target.name === 'password') {
+      setPwdStrength(passwordStrength(e.target.value));
+    }
   };
 
   const validateForm = () => {
@@ -37,12 +40,13 @@ export default function PaginaRegistro() {
       setError('Email inválido');
       return false;
     }
-    if (formData.password !== formData.confirmPassword) {
-      setError('Las contraseñas no coinciden');
+    const pwdCheck = validarPassword(formData.password);
+    if (!pwdCheck.ok) {
+      setError(pwdCheck.error);
       return false;
     }
-    if (formData.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+    if (formData.password !== formData.confirmPassword) {
+      setError('Las contraseñas no coinciden');
       return false;
     }
     return true;
@@ -197,6 +201,23 @@ export default function PaginaRegistro() {
               onChange={handleChange}
               required
             />
+            {pwdStrength.level > 0 && (
+              <div className="pwd-strength">
+                <div className="pwd-strength-bar">
+                  {[1,2,3,4,5].map(i => (
+                    <div
+                      key={i}
+                      className="pwd-strength-seg"
+                      style={{ background: i <= pwdStrength.level ? pwdStrength.color : 'rgba(255,255,255,0.1)' }}
+                    />
+                  ))}
+                </div>
+                <span className="pwd-strength-label" style={{ color: pwdStrength.color }}>
+                  {pwdStrength.label}
+                </span>
+              </div>
+            )}
+            <p className="pwd-hint">Mínimo 8 caracteres, una mayúscula, un número y un símbolo</p>
           </div>
 
           <div className="form-group">

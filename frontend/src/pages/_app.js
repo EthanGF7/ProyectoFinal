@@ -3,6 +3,7 @@
 import '../styles/globals.css';
 import '../styles/componentes.css';
 
+import Head from 'next/head';
 import CursorGlow from '../components/CursorGlow';
 
 if (typeof window !== 'undefined') {
@@ -18,6 +19,9 @@ export default function App({ Component, pageProps }) {
   // pageProps: las props que se pasan a la página
   return (
     <>
+      <Head>
+        <title>Namae Nashi</title>
+      </Head>
       <CursorGlow />
       <Component {...pageProps} />
     </>

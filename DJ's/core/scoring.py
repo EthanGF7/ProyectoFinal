@@ -88,18 +88,20 @@ def score_track(candidate: dict, current: dict, phase: tuple,
         recent_keys = [t.get("key", "") for t in played_list[-2:] if isinstance(t, dict)]
         if cnd_key and recent_keys.count(cnd_key) >= 2:
             score -= 8
-    
-    # 6. JSON quality bonus
-    if candidate.get("beat_times"):
-        score += 6
-    if candidate.get("puede_salir"):
-        score += 3
-    if candidate.get("puede_empezar_mezcla"):
-        score += 3
-    
+
+    # 6. Anti-artist-repetition
+    if len(played_list) >= 2:
+        def _artist(track):
+            name = track.get("name") or track.get("file") or ""
+            return name.split("-")[0].strip().lower()
+        cnd_artist = _artist(candidate)
+        recent_artists = [_artist(t) for t in played_list[-3:] if isinstance(t, dict)]
+        if cnd_artist and recent_artists.count(cnd_artist) >= 2:
+            score -= 12
+
     # 7. Human factor randomness
     score += random.gauss(0, 4)
-    
+
     # 8. User preferences
     if pref == 1:
         score += 18
